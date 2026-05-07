@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1778164165126,
+      "tag": "0000_chubby_terrax",
+      "breakpoints": true
+    }
+  ]
+}
