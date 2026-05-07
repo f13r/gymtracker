@@ -1,0 +1,4 @@
+export * from './exercise.schema.js';
+export * from './workout.schema.js';
+export * from './set.schema.js';
+export * from './body.schema.js';
