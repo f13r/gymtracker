@@ -4,6 +4,7 @@ import { DrizzleModule } from './drizzle/drizzle.module';
 import { AuthModule } from './auth/auth.module';
 import { SeedModule } from './seed/seed.module';
 import { ExercisesModule } from './exercises/exercises.module';
+import { WorkoutsModule } from './workouts/workouts.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -13,6 +14,7 @@ import { HealthController } from './health.controller';
     AuthModule,
     SeedModule,
     ExercisesModule,
+    WorkoutsModule,
   ],
   controllers: [HealthController],
 })
