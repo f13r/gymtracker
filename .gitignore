@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+data/sqlite/
+data/photos/
+*.db
+*.db-wal
+*.db-shm
