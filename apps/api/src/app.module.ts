@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { SeedModule } from './seed/seed.module';
 import { ExercisesModule } from './exercises/exercises.module';
 import { WorkoutsModule } from './workouts/workouts.module';
+import { SetsModule } from './sets/sets.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -15,6 +16,7 @@ import { HealthController } from './health.controller';
     SeedModule,
     ExercisesModule,
     WorkoutsModule,
+    SetsModule,
   ],
   controllers: [HealthController],
 })
