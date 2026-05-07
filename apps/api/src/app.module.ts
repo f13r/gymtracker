@@ -7,6 +7,7 @@ import { ExercisesModule } from './exercises/exercises.module';
 import { WorkoutsModule } from './workouts/workouts.module';
 import { SetsModule } from './sets/sets.module';
 import { BodyModule } from './body/body.module';
+import { StatsModule } from './stats/stats.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -19,6 +20,7 @@ import { HealthController } from './health.controller';
     WorkoutsModule,
     SetsModule,
     BodyModule,
+    StatsModule,
   ],
   controllers: [HealthController],
 })
