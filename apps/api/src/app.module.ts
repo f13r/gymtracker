@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { DrizzleModule } from './drizzle/drizzle.module';
 import { AuthModule } from './auth/auth.module';
@@ -9,6 +10,7 @@ import { SetsModule } from './sets/sets.module';
 import { BodyModule } from './body/body.module';
 import { StatsModule } from './stats/stats.module';
 import { PhotosModule } from './photos/photos.module';
+import { CacheControlInterceptor } from './cache-control.interceptor';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -25,5 +27,6 @@ import { HealthController } from './health.controller';
     PhotosModule,
   ],
   controllers: [HealthController],
+  providers: [{ provide: APP_INTERCEPTOR, useClass: CacheControlInterceptor }],
 })
 export class AppModule {}
