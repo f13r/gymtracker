@@ -6,6 +6,7 @@ import { SeedModule } from './seed/seed.module';
 import { ExercisesModule } from './exercises/exercises.module';
 import { WorkoutsModule } from './workouts/workouts.module';
 import { SetsModule } from './sets/sets.module';
+import { BodyModule } from './body/body.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -17,6 +18,7 @@ import { HealthController } from './health.controller';
     ExercisesModule,
     WorkoutsModule,
     SetsModule,
+    BodyModule,
   ],
   controllers: [HealthController],
 })
