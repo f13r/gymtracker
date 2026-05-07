@@ -42,7 +42,10 @@ export class ExercisesService {
 
   update(id: string, userId: string, dto: UpdateExerciseDto) {
     this.findOne(id, userId);
-    this.db.update(schema.exercises).set(dto).where(
+    const patch = Object.fromEntries(
+      Object.entries(dto).map(([k, v]) => [k, v ?? null])
+    );
+    this.db.update(schema.exercises).set(patch).where(
       and(eq(schema.exercises.id, id), eq(schema.exercises.userId, userId))
     ).run();
     return this.db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).get()!;

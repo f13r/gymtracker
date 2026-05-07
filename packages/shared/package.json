@@ -2,16 +2,17 @@
   "name": "@gymtracker/shared",
   "version": "0.0.1",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/cjs/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "require": "./dist/cjs/index.js",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
     "dev": "tsc --watch"
   },
   "devDependencies": {

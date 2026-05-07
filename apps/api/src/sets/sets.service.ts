@@ -45,7 +45,10 @@ export class SetsService {
     const set = this.db.select().from(schema.sets)
       .where(and(eq(schema.sets.id, setId), eq(schema.sets.sessionId, sessionId))).get();
     if (!set) throw new NotFoundException('Set not found');
-    this.db.update(schema.sets).set(dto).where(eq(schema.sets.id, setId)).run();
+    const patch = Object.fromEntries(
+      Object.entries(dto).map(([k, v]) => [k, v ?? null])
+    );
+    this.db.update(schema.sets).set(patch).where(eq(schema.sets.id, setId)).run();
     return this.db.select().from(schema.sets).where(eq(schema.sets.id, setId)).get()!;
   }
 
