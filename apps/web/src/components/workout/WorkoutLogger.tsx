@@ -105,6 +105,89 @@ function InputPanel({
   )
 }
 
+// ─── Swipeable set row (tap to edit, swipe left to delete) ────────────────
+
+function SwipeableSetRow({
+  set,
+  isSelected,
+  onTap,
+  onDelete,
+  isDeletePending,
+}: {
+  set: WorkoutSet
+  isSelected: boolean
+  onTap: () => void
+  onDelete: () => void
+  isDeletePending: boolean
+}) {
+  const [offsetX, setOffsetX] = useState(0)
+  const startX = useRef(0)
+  const isDragging = useRef(false)
+  const hasMoved = useRef(false)
+  const DELETE_WIDTH = 80
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    startX.current = e.clientX
+    isDragging.current = true
+    hasMoved.current = false
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current) return
+    const dx = e.clientX - startX.current
+    if (Math.abs(dx) > 5) hasMoved.current = true
+    if (dx < 0) setOffsetX(Math.max(dx, -DELETE_WIDTH))
+    else setOffsetX(Math.min(0, offsetX + dx))
+  }
+
+  const handlePointerUp = () => {
+    isDragging.current = false
+    const wasOpen = offsetX < -DELETE_WIDTH / 2
+    if (wasOpen) {
+      setOffsetX(-DELETE_WIDTH)
+    } else {
+      setOffsetX(0)
+      if (!hasMoved.current) onTap()
+    }
+  }
+
+  return (
+    <div className="relative h-14 overflow-hidden border-b border-border/40">
+      {/* Delete zone revealed behind sliding content */}
+      <div className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-destructive">
+        <button
+          className="text-destructive-foreground text-sm font-semibold disabled:opacity-40 w-full h-full"
+          disabled={isDeletePending}
+          onClick={onDelete}
+        >
+          {isDeletePending ? '…' : 'DELETE'}
+        </button>
+      </div>
+
+      {/* Sliding row content */}
+      <div
+        className={cn(
+          'absolute inset-0 flex items-center px-4 bg-background',
+          isSelected && 'border-l-[3px] border-primary bg-primary/5',
+        )}
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: isDragging.current ? 'none' : 'transform 200ms ease-out',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        <span className="flex-1 text-base font-medium tabular-nums">
+          {set.weightKg} kg × {set.reps}
+        </span>
+        <CheckCircle2 className="shrink-0 text-accent" size={20} />
+      </div>
+    </div>
+  )
+}
+
 // ─── Adjacent exercise strip ───────────────────────────────────────────────
 
 function ExerciseStrip({
