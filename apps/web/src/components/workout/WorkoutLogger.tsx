@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronUp, ChevronDown, Plus, Minus, CheckCircle2, Square, X } from 'lucide-react'
+import { ChevronLeft, ChevronUp, ChevronDown, Plus, CheckCircle2, Square, X } from 'lucide-react'
 import { useState, useEffect, useMemo, useRef } from 'react'
 
 import type { Exercise, WorkoutSet } from '@gymtracker/shared'
@@ -9,7 +9,6 @@ import { exercisesApi } from '@/api/exercises'
 import { setsApi } from '@/api/sets'
 import { workoutsApi } from '@/api/workouts'
 import { NumericInput } from '@/components/inputs/NumericInput'
-import { useLongPress } from '@/components/inputs/useLongPress'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { cn } from '@/lib/utils'
@@ -461,6 +460,16 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const restDone = restProgress >= 1
   const restRemaining = restTimer !== null ? Math.max(0, restTimerSeconds - elapsed) : 0
 
+  const isTemplateBased = !!template
+
+  const totalPlannedSets = isTemplateBased
+    ? (currentExercise?.defaultSets ?? 0) + (extraSets[currentExercise?.id ?? ''] ?? 0)
+    : 0
+  const nextSetLabel = `Set ${loggedCount + 1}`
+  const isPanelPending = (isTemplateBased ? logSet.isPending : freeLogSet.isPending) ||
+    updateSet.isPending ||
+    deleteSet.isPending
+
   if (showPicker) {
     return (
       <ExercisePicker
@@ -474,11 +483,9 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     )
   }
 
-  const isTemplateBased = !!template
-
   return (
     <div className="bg-background flex h-svh flex-col select-none">
-      {/* Rest timer bar */}
+      {/* Rest progress bar */}
       {restTimer !== null && (
         <div className="bg-muted h-1 shrink-0">
           <div
@@ -524,11 +531,12 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         </div>
       )}
 
-      {/* Current exercise header */}
+      {/* Exercise header */}
       {isTemplateBased && currentExercise ? (
         <div className="border-border shrink-0 border-b px-4 py-3">
           <p className="text-muted-foreground mb-0.5 text-xs font-semibold tracking-widest uppercase">
             Exercise {activeExerciseIndex + 1} of {exercises.length}
+            {' · '}{loggedCount}/{totalPlannedSets} sets
           </p>
           <p className="font-display font-700 text-3xl leading-tight tracking-wide">
             {currentExercise.name.toUpperCase()}
@@ -555,151 +563,106 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         </div>
       ) : null}
 
-      {/* Set list */}
-      <div className="flex-1 overflow-y-auto">
-        {isTemplateBased && currentExercise ? (
-          <>
-            {/* Planned + extra set rows */}
-            {Array.from({
-              length: Math.max(currentExercise.defaultSets, currentExercise.loggedSets.length) +
-                (extraSets[currentExercise.id] ?? 0),
-            }).map((_, i) => {
-              const setNumber = i + 1
-              const loggedSet = currentExercise.loggedSets.find(s => s.setNumber === setNumber) ?? null
-              return (
-                <SetRow
-                  key={`${currentExercise.id}-${setNumber}`}
-                  defaultReps={currentExercise.defaultReps}
-                  defaultWeight={currentExercise.defaultWeightKg}
-                  exerciseId={currentExercise.id}
-                  isWarmup={currentExercise.isWarmup}
-                  loggedSet={loggedSet}
-                  sessionId={sessionId}
-                  setNumber={setNumber}
-                  onLogged={handleSetLogged}
-                />
-              )
-            })}
+      {/* Input panel */}
+      <InputPanel
+        weight={panelWeight}
+        reps={panelReps}
+        onWeightChange={setPanelWeight}
+        onRepsChange={setPanelReps}
+        editingSet={editingSet}
+        nextSetLabel={nextSetLabel}
+        onLog={() => isTemplateBased ? logSet.mutate() : freeLogSet.mutate()}
+        onUpdate={() => updateSet.mutate()}
+        onDelete={() => editingSet && deleteSet.mutate(editingSet.id)}
+        isPending={isPanelPending}
+      />
 
-            {/* Add / remove extra set */}
-            {(() => {
-              const totalSets = Math.max(currentExercise.defaultSets, currentExercise.loggedSets.length) +
-                (extraSets[currentExercise.id] ?? 0)
-              const lastSetLogged = currentExercise.loggedSets.some(s => s.setNumber === totalSets)
-              const canRemove = (extraSets[currentExercise.id] ?? 0) > 0 && !lastSetLogged
-              return (
-                <div className="flex items-center border-t border-border/40">
-                  <button
-                    className="flex flex-1 items-center gap-2 px-4 py-3 text-primary active:bg-muted/50 transition-colors"
-                    onClick={() =>
-                      setExtraSets(prev => ({
-                        ...prev,
-                        [currentExercise.id]: (prev[currentExercise.id] ?? 0) + 1,
-                      }))
-                    }
-                  >
-                    <Plus size={16} strokeWidth={2.5} />
-                    <span className="text-sm font-medium">Add set</span>
-                  </button>
-                  {canRemove && (
-                    <button
-                      className="flex h-11 w-11 items-center justify-center text-destructive active:bg-muted/50 transition-colors shrink-0"
-                      onClick={() =>
-                        setExtraSets(prev => ({
-                          ...prev,
-                          [currentExercise.id]: (prev[currentExercise.id] ?? 1) - 1,
-                        }))
-                      }
-                    >
-                      <X size={16} strokeWidth={2.5} />
-                    </button>
-                  )}
-                </div>
-              )
-            })()}
-          </>
-        ) : !isTemplateBased ? (
-          /* Free workout: existing set list */
-          <>
-            {currentExercise?.loggedSets.length ? (
-              <div className="px-4 py-2">
-                {currentExercise.loggedSets.map((s: WorkoutSet, i: number) => (
-                  <div key={s.id} className="border-border/50 flex items-center justify-between border-b py-2.5">
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground w-8 text-xs font-semibold uppercase">S{i + 1}</span>
-                      <span className="text-sm font-medium">{s.weightKg} kg × {s.reps}</span>
-                    </div>
-                    <CheckCircle2 className="text-accent" size={16} />
-                  </div>
-                ))}
+      {/* Rest timer strip */}
+      {restTimer !== null && !restDone && (
+        <div className="bg-primary/10 border-primary/20 shrink-0 flex items-center justify-between border-b px-4 py-2.5">
+          <span className="text-primary text-sm font-medium">Rest</span>
+          <span className="font-display font-700 text-primary text-xl tabular-nums">
+            {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
+          </span>
+        </div>
+      )}
+      {restDone && (
+        <div className="bg-accent/10 border-accent/20 shrink-0 flex items-center gap-2 border-b px-4 py-2.5">
+          <CheckCircle2 className="text-accent" size={16} />
+          <span className="text-accent text-sm font-medium">Rest complete — go!</span>
+        </div>
+      )}
+
+      {/* Scrollable set list */}
+      <div className="flex-1 overflow-y-auto">
+        {currentExercise?.loggedSets.map((s: WorkoutSet) => (
+          <SwipeableSetRow
+            key={s.id}
+            set={s}
+            isSelected={editingSet?.id === s.id}
+            isDeletePending={deleteSet.isPending && deleteSet.variables === s.id}
+            onTap={() => enterEditMode(s)}
+            onDelete={() => deleteSet.mutate(s.id)}
+          />
+        ))}
+
+        {/* Add / remove extra set (template only) */}
+        {isTemplateBased && currentExercise && (() => {
+          const lastSetLogged = currentExercise.loggedSets.some(s => s.setNumber === totalPlannedSets)
+          const canRemove = (extraSets[currentExercise.id] ?? 0) > 0 && !lastSetLogged
+          return (
+            <div className="flex items-center border-t border-border/40">
+              <button
+                className="flex flex-1 items-center gap-2 px-4 py-3 text-primary active:bg-muted/50 transition-colors"
+                onClick={() =>
+                  setExtraSets(prev => ({
+                    ...prev,
+                    [currentExercise.id]: (prev[currentExercise.id] ?? 0) + 1,
+                  }))
+                }
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                <span className="text-sm font-medium">Add set</span>
+              </button>
+              {canRemove && (
+                <button
+                  className="flex h-11 w-11 items-center justify-center text-destructive active:bg-muted/50 transition-colors shrink-0"
+                  onClick={() =>
+                    setExtraSets(prev => ({
+                      ...prev,
+                      [currentExercise.id]: (prev[currentExercise.id] ?? 1) - 1,
+                    }))
+                  }
+                >
+                  <X size={16} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* Free workout: empty state */}
+        {!isTemplateBased && !currentExercise?.loggedSets.length && (
+          <div className="flex h-full flex-col items-center justify-center gap-3 pb-8">
+            <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+              <Plus className="text-muted-foreground" size={24} />
+            </div>
+            {!(selectedExerciseId ?? currentExercise?.id) ? (
+              <div className="text-center">
+                <p className="font-semibold">No exercise selected</p>
+                <p className="text-muted-foreground mt-1 text-sm">Tap "Add" to select one</p>
               </div>
             ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-3 pb-8">
-                <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
-                  <Plus className="text-muted-foreground" size={24} />
-                </div>
-                {!(selectedExerciseId ?? currentExercise?.id) ? (
-                  <div className="text-center">
-                    <p className="font-semibold">No exercise selected</p>
-                    <p className="text-muted-foreground mt-1 text-sm">Tap "Add" to select one</p>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Log your first set</p>
-                )}
-              </div>
+              <p className="text-muted-foreground text-sm">Log your first set</p>
             )}
-          </>
-        ) : null}
-
-        {/* Rest timer card */}
-        {restTimer !== null && !restDone && (
-          <div className="bg-primary/10 border-primary/20 mx-4 my-2 flex items-center justify-between rounded-xl border px-4 py-2.5">
-            <span className="text-primary text-sm font-medium">Rest timer</span>
-            <span className="font-display font-700 text-primary text-xl tabular-nums">
-              {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
-            </span>
-          </div>
-        )}
-        {restDone && (
-          <div className="bg-accent/10 border-accent/20 mx-4 my-2 flex items-center gap-2 rounded-xl border px-4 py-2.5">
-            <CheckCircle2 className="text-accent" size={16} />
-            <span className="text-accent text-sm font-medium">Rest complete — go!</span>
           </div>
         )}
       </div>
 
-      {/* Free workout: LOG SET button */}
+      {/* Free workout: prev/next nav */}
       {!isTemplateBased && (
         <div className="border-border shrink-0 border-t">
-          <div className="grid grid-cols-2 gap-3 px-4 pt-3 pb-2">
-            <NumericInput
-              bigStep={10}
-              fieldKey="weight"
-              label="WEIGHT"
-              max={300}
-              min={0}
-              step={2.5}
-              unit="kg"
-              value={weight}
-              onChange={setWeight}
-            />
-            <NumericInput fieldKey="reps" label="REPS" max={50} min={1} step={1} value={reps} onChange={setReps} />
-          </div>
-          <div className="px-4 pb-2">
-            <button
-              className={cn(
-                'font-display font-700 h-16 w-full rounded-xl text-2xl tracking-widest transition-all active:scale-[0.97]',
-                (selectedExerciseId ?? currentExercise?.id)
-                  ? 'bg-primary text-primary-foreground shadow-primary/30 shadow-lg'
-                  : 'bg-muted text-muted-foreground cursor-not-allowed',
-              )}
-              disabled={freeLogSet.isPending || !(selectedExerciseId ?? currentExercise?.id)}
-              onClick={() => freeLogSet.mutate()}
-            >
-              {freeLogSet.isPending ? '...' : 'LOG SET'}
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+          <div className="grid grid-cols-2 gap-2 px-4 py-3">
             <button
               className="border-border text-muted-foreground active:bg-muted flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-medium transition-colors disabled:opacity-40"
               disabled={activeExerciseIndex === 0}
@@ -713,7 +676,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
               onClick={nextExercise}
             >
               Next
-              <ChevronUp size={16} className="rotate-90"  />
+              <ChevronUp size={16} className="rotate-90" />
             </button>
           </div>
         </div>
