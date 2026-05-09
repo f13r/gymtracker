@@ -121,15 +121,19 @@ function SwipeableSetRow({
   isDeletePending: boolean
 }) {
   const [offsetX, setOffsetX] = useState(0)
+  const [isAnimating, setIsAnimating] = useState(false)
   const startX = useRef(0)
+  const startOffset = useRef(0)
   const isDragging = useRef(false)
   const hasMoved = useRef(false)
   const DELETE_WIDTH = 80
 
   const handlePointerDown = (e: React.PointerEvent) => {
     startX.current = e.clientX
+    startOffset.current = offsetX
     isDragging.current = true
     hasMoved.current = false
+    setIsAnimating(false)
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }
 
@@ -137,19 +141,29 @@ function SwipeableSetRow({
     if (!isDragging.current) return
     const dx = e.clientX - startX.current
     if (Math.abs(dx) > 5) hasMoved.current = true
-    if (dx < 0) setOffsetX(Math.max(dx, -DELETE_WIDTH))
-    else setOffsetX(Math.min(0, offsetX + dx))
+    const newOffset = Math.min(0, Math.max(startOffset.current + dx, -DELETE_WIDTH))
+    setOffsetX(newOffset)
   }
 
   const handlePointerUp = () => {
     isDragging.current = false
-    const wasOpen = offsetX < -DELETE_WIDTH / 2
-    if (wasOpen) {
-      setOffsetX(-DELETE_WIDTH)
+    setIsAnimating(true)
+    if (hasMoved.current) {
+      setOffsetX(offsetX < -DELETE_WIDTH / 2 ? -DELETE_WIDTH : 0)
     } else {
-      setOffsetX(0)
-      if (!hasMoved.current) onTap()
+      if (startOffset.current < 0) {
+        setOffsetX(0)
+      } else {
+        setOffsetX(0)
+        onTap()
+      }
     }
+  }
+
+  const handlePointerCancel = () => {
+    isDragging.current = false
+    setIsAnimating(true)
+    setOffsetX(0)
   }
 
   return (
@@ -157,7 +171,7 @@ function SwipeableSetRow({
       {/* Delete zone revealed behind sliding content */}
       <div className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-destructive">
         <button
-          className="text-destructive-foreground text-sm font-semibold disabled:opacity-40 w-full h-full"
+          className="h-full w-full text-sm font-semibold text-destructive-foreground disabled:opacity-40"
           disabled={isDeletePending}
           onClick={onDelete}
         >
@@ -173,11 +187,13 @@ function SwipeableSetRow({
         )}
         style={{
           transform: `translateX(${offsetX}px)`,
-          transition: isDragging.current ? 'none' : 'transform 200ms ease-out',
+          transition: isAnimating ? 'transform 200ms ease-out' : 'none',
+          touchAction: 'pan-y',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         <span className="flex-1 text-base font-medium tabular-nums">
           {set.weightKg} kg × {set.reps}
