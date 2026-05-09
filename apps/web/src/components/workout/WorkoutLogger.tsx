@@ -246,10 +246,12 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const { activeExerciseIndex, nextExercise, prevExercise } = useWorkoutStore()
   const { restTimerSeconds } = usePreferencesStore()
 
-  // free-workout state (only used when no template)
-  const [weight, setWeight] = useState(0)
-  const [reps, setReps] = useState(8)
-  const [lastExerciseIndex, setLastExerciseIndex] = useState(activeExerciseIndex)
+  // shared input panel state
+  const [panelWeight, setPanelWeight] = useState(0)
+  const [panelReps, setPanelReps] = useState(8)
+  const [editingSet, setEditingSet] = useState<WorkoutSet | null>(null)
+  const panelInitialized = useRef(false)
+
   const [showPicker, setShowPicker] = useState(false)
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null)
   const [selectedExerciseName, setSelectedExerciseName] = useState<string | null>(null)
@@ -319,6 +321,38 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const prevExerciseData = activeExerciseIndex > 0 ? exercises[activeExerciseIndex - 1] : null
   const nextExerciseData = activeExerciseIndex < exercises.length - 1 ? exercises[activeExerciseIndex + 1] : null
 
+  const loggedCount = currentExercise?.loggedSets.length ?? 0
+
+  // Initialize panel from last logged set or template defaults when data first loads
+  useEffect(() => {
+    if (currentExercise && !panelInitialized.current) {
+      panelInitialized.current = true
+      const last = currentExercise.loggedSets.at(-1)
+      setPanelWeight(last?.weightKg ?? currentExercise.defaultWeightKg)
+      setPanelReps(last?.reps ?? currentExercise.defaultReps)
+    }
+  }, [currentExercise])
+
+  // Re-sync panel when navigating to a different exercise
+  useEffect(() => {
+    if (!currentExercise) return
+    const last = currentExercise.loggedSets.at(-1)
+    setPanelWeight(last?.weightKg ?? currentExercise.defaultWeightKg)
+    setPanelReps(last?.reps ?? currentExercise.defaultReps)
+    setEditingSet(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeExerciseIndex])
+
+  const enterEditMode = (set: WorkoutSet) => {
+    setEditingSet(set)
+    setPanelWeight(set.weightKg)
+    setPanelReps(set.reps)
+  }
+
+  const exitEditMode = () => {
+    setEditingSet(null)
+  }
+
   // All-done detection for template workouts
   const allDone = !!template &&
     !!currentExercise &&
@@ -331,14 +365,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     }
     prevAllDoneRef.current = allDone
   }, [allDone])
-
-  // Free workout: sync weight/reps when switching exercises
-  if (!template && activeExerciseIndex !== lastExerciseIndex) {
-    setLastExerciseIndex(activeExerciseIndex)
-    const last = currentExercise?.loggedSets?.at(-1)
-    setWeight(last?.weightKg ?? 0)
-    setReps(last?.reps ?? 8)
-  }
 
   // Rest timer
   useEffect(() => {
@@ -365,8 +391,8 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       return setsApi.logSet(sessionId, {
         exerciseId: id,
         setNumber: (currentExercise?.loggedSets.length ?? 0) + 1,
-        reps,
-        weightKg: weight,
+        reps: panelReps,
+        weightKg: panelWeight,
         isWarmup: false,
       })
     },
@@ -376,6 +402,41 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       handleSetLogged()
       setSelectedExerciseId(null)
       setSelectedExerciseName(null)
+    },
+  })
+
+  const logSet = useMutation({
+    mutationFn: () => {
+      if (!currentExercise) throw new Error('No exercise')
+      return setsApi.logSet(sessionId, {
+        exerciseId: currentExercise.id,
+        setNumber: loggedCount + 1,
+        reps: panelReps,
+        weightKg: panelWeight,
+        isWarmup: currentExercise.isWarmup,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      if ('vibrate' in navigator) navigator.vibrate(50)
+      handleSetLogged()
+    },
+  })
+
+  const updateSet = useMutation({
+    mutationFn: () =>
+      setsApi.updateSet(sessionId, editingSet!.id, { weightKg: panelWeight, reps: panelReps }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      exitEditMode()
+    },
+  })
+
+  const deleteSet = useMutation({
+    mutationFn: (setId: string) => setsApi.deleteSet(sessionId, setId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      exitEditMode()
     },
   })
 
