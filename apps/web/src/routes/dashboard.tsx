@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { Dumbbell, ChevronRight, Clock, Zap, CheckCircle2, Circle, Loader2 } from 'lucide-react'
+import { Dumbbell, Clock, Zap, CheckCircle2, Circle, Loader2 } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 
 import type { WorkoutSession, WorkoutSet } from '@gymtracker/shared'
@@ -98,6 +98,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activeSession'] })
       queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      navigate({ to: '/dashboard' })
     },
   })
 
@@ -270,35 +271,15 @@ export function DashboardPage() {
         </h1>
       </div>
 
-      {active ? (
-        <button
-          className="bg-primary/10 border-primary/30 w-full rounded-xl border p-4 text-left transition-transform active:scale-[0.98]"
-          onClick={() => navigate({ to: '/workout/$sessionId', params: { sessionId: active.id } })}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="bg-primary absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
-                <span className="bg-primary relative inline-flex h-2.5 w-2.5 rounded-full" />
-              </span>
-              <span className="text-primary text-xs font-semibold tracking-widest uppercase">Active Session</span>
-            </div>
-            <ChevronRight className="text-primary" size={16} />
-          </div>
-          <p className="font-display font-700 mt-1 text-2xl tracking-wide">{active.name}</p>
-          <p className="text-muted-foreground mt-0.5 text-sm">Tap to resume your workout</p>
-        </button>
-      ) : (
-        <Button
-          className="font-display font-700 shadow-primary/20 h-14 w-full rounded-xl text-xl tracking-widest shadow-lg transition-transform active:scale-[0.98]"
-          asChild
-        >
-          <Link to="/workout/start">
-            <Zap className="mr-1" size={20} />
-            START WORKOUT
-          </Link>
-        </Button>
-      )}
+      <Button
+        className="font-display font-700 shadow-primary/20 h-14 w-full rounded-xl text-xl tracking-widest shadow-lg transition-transform active:scale-[0.98]"
+        asChild
+      >
+        <Link to="/workout/start">
+          <Zap className="mr-1" size={20} />
+          START WORKOUT
+        </Link>
+      </Button>
 
       {recent.length > 0 && (
         <div className="space-y-2">
