@@ -105,12 +105,8 @@
           "name": "body_measurements_user_id_users_id_fk",
           "tableFrom": "body_measurements",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -164,12 +160,8 @@
           "name": "body_weights_user_id_users_id_fk",
           "tableFrom": "body_weights",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -245,12 +237,8 @@
           "name": "exercises_user_id_users_id_fk",
           "tableFrom": "exercises",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -325,12 +313,8 @@
           "name": "progress_photos_user_id_users_id_fk",
           "tableFrom": "progress_photos",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -420,12 +404,8 @@
           "name": "sets_session_id_workout_sessions_id_fk",
           "tableFrom": "sets",
           "tableTo": "workout_sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -433,12 +413,8 @@
           "name": "sets_exercise_id_exercises_id_fk",
           "tableFrom": "sets",
           "tableTo": "exercises",
-          "columnsFrom": [
-            "exercise_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exercise_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -506,12 +482,8 @@
           "name": "template_exercises_template_id_workout_templates_id_fk",
           "tableFrom": "template_exercises",
           "tableTo": "workout_templates",
-          "columnsFrom": [
-            "template_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["template_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -519,12 +491,8 @@
           "name": "template_exercises_exercise_id_exercises_id_fk",
           "tableFrom": "template_exercises",
           "tableTo": "exercises",
-          "columnsFrom": [
-            "exercise_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exercise_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -623,12 +591,8 @@
           "name": "workout_sessions_user_id_users_id_fk",
           "tableFrom": "workout_sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -636,12 +600,8 @@
           "name": "workout_sessions_template_id_workout_templates_id_fk",
           "tableFrom": "workout_sessions",
           "tableTo": "workout_templates",
-          "columnsFrom": [
-            "template_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["template_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -695,12 +655,8 @@
           "name": "workout_templates_user_id_users_id_fk",
           "tableFrom": "workout_templates",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

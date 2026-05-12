@@ -1,35 +1,51 @@
-import { Link, useRouterState } from '@tanstack/react-router';
-import { Home, Dumbbell, BarChart2, Activity, Settings } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Link, useRouterState } from '@tanstack/react-router'
+import { Home, Dumbbell, BookOpen, BarChart2, Activity, Settings } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
 
 const NAV = [
   { to: '/dashboard', label: 'Home', Icon: Home },
-  { to: '/workout/start', label: 'Workout', Icon: Dumbbell },
+  { to: '/workout/start', label: 'Workouts', Icon: Dumbbell },
+  { to: '/exercises', label: 'Exercises', Icon: BookOpen },
   { to: '/stats', label: 'Stats', Icon: BarChart2 },
   { to: '/body', label: 'Body', Icon: Activity },
   { to: '/settings', label: 'Settings', Icon: Settings },
-] as const;
+] as const
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { location } = useRouterState();
+  const { location } = useRouterState()
   return (
-    <div className="flex flex-col h-svh">
+    <div className="bg-background flex h-svh flex-col">
       <main className="flex-1 overflow-y-auto">{children}</main>
-      <nav className="border-t bg-background grid grid-cols-5 pb-safe">
-        {NAV.map(({ to, label, Icon }) => (
-          <Link
-            key={to}
-            to={to}
-            className={cn(
-              'flex flex-col items-center py-2 text-xs gap-1',
-              location.pathname.startsWith(to) ? 'text-primary' : 'text-muted-foreground'
-            )}
-          >
-            <Icon size={22} />
-            {label}
-          </Link>
-        ))}
+      <nav className="border-border bg-card pb-safe grid grid-cols-6 border-t">
+        {NAV.map(({ to, label, Icon }) => {
+          const active = location.pathname.startsWith(to)
+          return (
+            <Link
+              key={to}
+              className="relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 pt-2 pb-1"
+              to={to}
+            >
+              {active && (
+                <span className="bg-primary absolute top-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full" />
+              )}
+              <Icon
+                className={cn('transition-colors', active ? 'text-primary' : 'text-muted-foreground')}
+                size={22}
+                strokeWidth={active ? 2.5 : 1.75}
+              />
+              <span
+                className={cn(
+                  'text-[10px] font-medium tracking-wide transition-colors',
+                  active ? 'text-primary' : 'text-muted-foreground',
+                )}
+              >
+                {label}
+              </span>
+            </Link>
+          )
+        })}
       </nav>
     </div>
-  );
+  )
 }

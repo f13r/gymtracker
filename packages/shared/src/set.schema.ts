@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const CreateSetSchema = z.object({
   exerciseId: z.string().uuid(),
@@ -8,9 +8,13 @@ export const CreateSetSchema = z.object({
   durationSec: z.number().int().min(0).optional(),
   rpe: z.number().min(1).max(10).optional(),
   isWarmup: z.boolean().default(false),
-});
+  done: z.boolean().optional(),
+})
 
-export const UpdateSetSchema = CreateSetSchema.omit({ exerciseId: true, setNumber: true }).partial();
+export const UpdateSetSchema = CreateSetSchema
+  .omit({ exerciseId: true, setNumber: true })
+  .extend({ done: z.boolean().optional() })
+  .partial()
 
-export type CreateSetDto = z.infer<typeof CreateSetSchema>;
-export type UpdateSetDto = z.infer<typeof UpdateSetSchema>;
+export type CreateSetDto = z.infer<typeof CreateSetSchema>
+export type UpdateSetDto = z.infer<typeof UpdateSetSchema>

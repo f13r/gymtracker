@@ -3,6 +3,7 @@
 ## Overview
 
 Two features:
+
 1. Redesign `WorkoutLogger` so template-based workouts show pre-planned sets with per-set checkboxes and contextual prev/next exercise strips.
 2. Add workout scheduling — one-time dates or recurring weekly days — with a full-screen prompt on scheduled days.
 
@@ -69,6 +70,7 @@ const exercises = useMemo(() => {
 **Set rows per exercise:**
 
 For each planned slot `i` in `[0 .. defaultSets - 1]`:
+
 - If `loggedSets.find(s => s.setNumber === i + 1)` exists → show actual weight/reps, checkbox checked, row non-editable.
 - Otherwise → show `defaultWeightKg` / `defaultReps` as local editable state, checkbox unchecked.
 
@@ -135,12 +137,12 @@ CREATE TABLE workout_schedules (
 
 ### API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/schedules/today` | Returns the scheduled template for today, or null. Checks `once` where `scheduledDate = today` and `weekly` where `dayOfWeek = today.getDay()`. Excludes templates that already have a session started today. |
-| `GET` | `/schedules` | Lists all schedules for the user |
-| `POST` | `/schedules` | Creates a schedule |
-| `DELETE` | `/schedules/:id` | Removes a schedule |
+| Method   | Path               | Description                                                                                                                                                                                                   |
+| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/schedules/today` | Returns the scheduled template for today, or null. Checks `once` where `scheduledDate = today` and `weekly` where `dayOfWeek = today.getDay()`. Excludes templates that already have a session started today. |
+| `GET`    | `/schedules`       | Lists all schedules for the user                                                                                                                                                                              |
+| `POST`   | `/schedules`       | Creates a schedule                                                                                                                                                                                            |
+| `DELETE` | `/schedules/:id`   | Removes a schedule                                                                                                                                                                                            |
 
 ### Schedule Creation UI
 

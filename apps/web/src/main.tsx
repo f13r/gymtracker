@@ -1,12 +1,15 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { RouterProvider } from '@tanstack/react-router';
-import { queryClient } from './lib/query';
-import { router } from './router';
-import './index.css';
+import { QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider } from '@tanstack/react-router'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 
-queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
+import { queryClient } from './lib/query'
+import { router } from './router'
+import 'react-grab'
+
+import './index.css'
+
+queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -14,4 +17,4 @@ createRoot(document.getElementById('root')!).render(
       <RouterProvider router={router} />
     </QueryClientProvider>
   </StrictMode>,
-);
+)

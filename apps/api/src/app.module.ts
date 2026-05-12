@@ -1,17 +1,19 @@
-import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
-import { DrizzleModule } from './drizzle/drizzle.module';
-import { AuthModule } from './auth/auth.module';
-import { SeedModule } from './seed/seed.module';
-import { ExercisesModule } from './exercises/exercises.module';
-import { WorkoutsModule } from './workouts/workouts.module';
-import { SetsModule } from './sets/sets.module';
-import { BodyModule } from './body/body.module';
-import { StatsModule } from './stats/stats.module';
-import { PhotosModule } from './photos/photos.module';
-import { CacheControlInterceptor } from './cache-control.interceptor';
-import { HealthController } from './health.controller';
+import { Module } from '@nestjs/common'
+import { ConfigModule } from '@nestjs/config'
+import { APP_INTERCEPTOR } from '@nestjs/core'
+
+import { AuthModule } from './auth/auth.module'
+import { BodyModule } from './body/body.module'
+import { CacheControlInterceptor } from './cache-control.interceptor'
+import { DrizzleModule } from './drizzle/drizzle.module'
+import { ExercisesModule } from './exercises/exercises.module'
+import { HealthController } from './health.controller'
+import { PhotosModule } from './photos/photos.module'
+import { SchedulesModule } from './schedules/schedules.module'
+import { SeedModule } from './seed/seed.module'
+import { SetsModule } from './sets/sets.module'
+import { StatsModule } from './stats/stats.module'
+import { WorkoutsModule } from './workouts/workouts.module'
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { HealthController } from './health.controller';
     SeedModule,
     ExercisesModule,
     WorkoutsModule,
+    SchedulesModule,
     SetsModule,
     BodyModule,
     StatsModule,

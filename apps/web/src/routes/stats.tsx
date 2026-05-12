@@ -1,96 +1,173 @@
-import { useQuery } from '@tanstack/react-query';
-import { statsApi } from '@/api/stats';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useQuery } from '@tanstack/react-query'
+import { Flame, Trophy, TrendingUp } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts'
+
+import type { BodyWeight, FrequencyPoint, PersonalRecord, VolumePoint } from '@gymtracker/shared'
+
+import { statsApi } from '@/api/stats'
+
+function StatCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`bg-card border-border rounded-xl border ${className}`}>{children}</div>
+}
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-border border-b px-4 py-3">
+      <h2 className="font-display font-600 text-muted-foreground text-sm tracking-widest uppercase">{children}</h2>
+    </div>
+  )
+}
+
+const chartProps = {
+  tick: { fill: '#94A3B8', fontSize: 11, fontFamily: 'Barlow' },
+  axisLine: { stroke: '#334155' },
+  tickLine: false,
+}
 
 export function StatsPage() {
-  const { data: prs = [] } = useQuery({ queryKey: ['stats', 'prs'], queryFn: () => statsApi.getPRs() });
-  const { data: volume = [] } = useQuery({ queryKey: ['stats', 'volume'], queryFn: () => statsApi.getVolume() });
-  const { data: streak } = useQuery({ queryKey: ['stats', 'streak'], queryFn: statsApi.getStreak });
-  const { data: bodyWeight = [] } = useQuery({ queryKey: ['stats', 'bodyweight'], queryFn: () => statsApi.getBodyWeight() });
-  const { data: frequency = [] } = useQuery({ queryKey: ['stats', 'frequency'], queryFn: statsApi.getFrequency });
+  const { data: prs = [] } = useQuery({ queryKey: ['stats', 'prs'], queryFn: () => statsApi.getPRs() })
+  const { data: volume = [] } = useQuery({ queryKey: ['stats', 'volume'], queryFn: () => statsApi.getVolume() })
+  const { data: streak } = useQuery({ queryKey: ['stats', 'streak'], queryFn: statsApi.getStreak })
+  const { data: bodyWeight = [] } = useQuery({
+    queryKey: ['stats', 'bodyweight'],
+    queryFn: () => statsApi.getBodyWeight(),
+  })
+  const { data: frequency = [] } = useQuery({ queryKey: ['stats', 'frequency'], queryFn: statsApi.getFrequency })
 
   return (
-    <div className="p-4 space-y-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold">Stats</h1>
+    <div className="mx-auto max-w-2xl space-y-4 p-4">
+      <div className="pt-2">
+        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Overview</p>
+        <h1 className="font-display font-700 text-3xl tracking-wide">STATISTICS</h1>
+      </div>
 
       {streak && (
-        <Card>
-          <CardHeader><CardTitle>Streak</CardTitle></CardHeader>
-          <CardContent className="flex gap-8">
-            <div className="text-center">
-              <p className="text-3xl font-bold">{streak.current}</p>
-              <p className="text-sm text-muted-foreground">Current</p>
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard>
+            <div className="flex flex-col items-center gap-1 p-4">
+              <div className="text-primary mb-1 flex items-center gap-1.5">
+                <Flame size={16} />
+                <span className="text-muted-foreground text-[10px] font-semibold tracking-widest uppercase">
+                  Current
+                </span>
+              </div>
+              <p className="font-display font-700 text-primary text-5xl">{streak.current}</p>
+              <p className="text-muted-foreground text-xs">day streak</p>
             </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold">{streak.longest}</p>
-              <p className="text-sm text-muted-foreground">Longest</p>
+          </StatCard>
+          <StatCard>
+            <div className="flex flex-col items-center gap-1 p-4">
+              <div className="mb-1 flex items-center gap-1.5">
+                <Trophy className="text-yellow-500" size={16} />
+                <span className="text-muted-foreground text-[10px] font-semibold tracking-widest uppercase">Best</span>
+              </div>
+              <p className="font-display font-700 text-foreground text-5xl">{streak.longest}</p>
+              <p className="text-muted-foreground text-xs">day streak</p>
             </div>
-          </CardContent>
-        </Card>
+          </StatCard>
+        </div>
       )}
 
-      {(prs as any[]).length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Personal Records</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {(prs as any[]).map((pr: any) => (
-              <div key={pr.exercise_id} className="flex justify-between text-sm">
-                <span>{pr.name}</span>
-                <span className="font-medium">{pr.maxWeightKg} kg × {pr.repsAtMax}</span>
+      {prs.length > 0 && (
+        <StatCard>
+          <SectionHeader>
+            <div className="flex items-center gap-2">
+              <Trophy className="text-yellow-500" size={14} />
+              Personal Records
+            </div>
+          </SectionHeader>
+          <div className="divide-border/50 divide-y">
+            {prs.map((pr: PersonalRecord) => (
+              <div key={pr.exercise_id} className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm font-medium">{pr.name}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-display font-700 text-primary text-lg">{pr.maxWeightKg}</span>
+                  <span className="text-muted-foreground text-xs">kg × {pr.repsAtMax}</span>
+                </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </StatCard>
       )}
 
-      {(volume as any[]).length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Volume Over Time</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={volume as any[]}>
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="volume" stroke="#22c55e" dot={false} />
+      {volume.length > 0 && (
+        <StatCard>
+          <SectionHeader>
+            <div className="flex items-center gap-2">
+              <TrendingUp size={14} />
+              Volume Over Time
+            </div>
+          </SectionHeader>
+          <div className="p-4">
+            <ResponsiveContainer height={180} width="100%">
+              <LineChart data={volume as VolumePoint[]}>
+                <CartesianGrid stroke="#1E293B" strokeDasharray="3 3" />
+                <XAxis dataKey="date" {...chartProps} />
+                <YAxis {...chartProps} />
+                <Tooltip
+                  contentStyle={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: '#F8FAFC' }}
+                />
+                <Line dataKey="volume" dot={false} stroke="#F97316" strokeWidth={2} type="monotone" />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </StatCard>
       )}
 
-      {(bodyWeight as any[]).length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Body Weight</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={bodyWeight as any[]}>
-                <XAxis dataKey="recordedAt" tickFormatter={(v) => new Date(v * 1000).toLocaleDateString()} tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip labelFormatter={(v) => new Date((v as number) * 1000).toLocaleDateString()} />
-                <Line type="monotone" dataKey="weightKg" stroke="#3b82f6" dot={false} />
+      {bodyWeight.length > 0 && (
+        <StatCard>
+          <SectionHeader>Body Weight</SectionHeader>
+          <div className="p-4">
+            <ResponsiveContainer height={180} width="100%">
+              <LineChart data={bodyWeight as BodyWeight[]}>
+                <CartesianGrid stroke="#1E293B" strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="recordedAt"
+                  tickFormatter={(v: number) =>
+                    new Date(v * 1000).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+                  }
+                  {...chartProps}
+                />
+                <YAxis {...chartProps} domain={['auto', 'auto']} />
+                <Tooltip
+                  contentStyle={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                  labelFormatter={(v: number) => new Date(v * 1000).toLocaleDateString()}
+                  labelStyle={{ color: '#F8FAFC' }}
+                />
+                <Line dataKey="weightKg" dot={false} stroke="#22C55E" strokeWidth={2} type="monotone" />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </StatCard>
       )}
 
-      {(frequency as any[]).length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Weekly Frequency</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={frequency as any[]}>
-                <XAxis dataKey="week" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#8b5cf6" />
+      {frequency.length > 0 && (
+        <StatCard>
+          <SectionHeader>Weekly Frequency</SectionHeader>
+          <div className="p-4">
+            <ResponsiveContainer height={160} width="100%">
+              <BarChart data={frequency as FrequencyPoint[]}>
+                <CartesianGrid stroke="#1E293B" strokeDasharray="3 3" />
+                <XAxis dataKey="week" {...chartProps} />
+                <YAxis {...chartProps} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: '#F8FAFC' }}
+                />
+                <Bar dataKey="count" fill="#F97316" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </StatCard>
+      )}
+
+      {!prs.length && !volume.length && !streak?.current && (
+        <div className="border-border rounded-xl border border-dashed p-10 text-center">
+          <TrendingUp className="text-muted-foreground mx-auto mb-2" size={32} />
+          <p className="text-muted-foreground text-sm">Complete workouts to see your stats</p>
+        </div>
       )}
     </div>
-  );
+  )
 }

@@ -11,7 +11,7 @@ import { workoutsApi } from '@/api/workouts'
 import { NumericInput } from '@/components/inputs/NumericInput'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
-import { cn } from '@/lib/utils'
+import { cn, formatElapsed } from '@/lib/utils'
 import { useWorkoutStore } from '@/stores/workout.store'
 
 interface WorkoutLoggerProps {
@@ -517,6 +517,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         reps: newSetReps,
         weightKg: newSetWeight,
         isWarmup: false,
+        done: true,
       })
     },
     onSuccess: () => {
@@ -536,11 +537,17 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         reps,
         weightKg,
         isWarmup: currentExercise.isWarmup,
+        done: true,
       })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
       if ('vibrate' in navigator) { navigator.vibrate(50) }
+      if (template && currentExercise && currentExercise.defaultSets > 0) {
+        const newLength = currentExercise.loggedSets.length + 1
+        const allOtherDone = currentExercise.loggedSets.every((s: WorkoutSet) => s.done !== 0)
+        if (newLength >= currentExercise.defaultSets && allOtherDone) { setAllDoneOpen(true) }
+      }
     },
   })
 
@@ -561,8 +568,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     },
   })
 
-  const mm = String(Math.floor(workoutSeconds / 60)).padStart(2, '0')
-  const ss = String(workoutSeconds % 60).padStart(2, '0')
 
 
   const isTemplateBased = !!template
@@ -594,7 +599,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         </button>
         <span className="max-w-[160px] truncate text-sm font-semibold">{session?.name ?? 'Workout'}</span>
         <div className="flex min-w-[60px] items-center justify-end gap-3">
-          <span className="text-muted-foreground font-mono text-sm tabular-nums">{mm}:{ss}</span>
+          <span className="text-muted-foreground font-mono text-sm tabular-nums">{formatElapsed(workoutSeconds)}</span>
           <button
             className="text-destructive"
             disabled={finishWorkout.isPending}

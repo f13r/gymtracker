@@ -1,0 +1,41 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll.ts": "always",
+    "source.fixAll.eslint": "explicit",
+    "source.fixAll.stylelint": "explicit"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[postcss]": {
+    "editor.defaultFormatter": "stylelint.vscode-stylelint"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "stylelint.vscode-stylelint"
+  },
+  "stylelint.validate": ["postcss"],
+  "stylelint.reportNeedlessDisables": true,
+  "cssVariables.lookupFiles": [],
+  "editor.gotoLocation.multipleDefinitions": "goto",
+  "editor.gotoLocation.multipleTypeDefinitions": "goto",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "search.exclude": {
+    "dist/": true
+  }
+}

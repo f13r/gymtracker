@@ -1,1 +1,1 @@
-export const DATABASE = 'DATABASE' as const;
+export const DATABASE = 'DATABASE' as const

@@ -15,6 +15,7 @@
 ### Task 1: Root monorepo setup
 
 **Files:**
+
 - Create: `package.json`
 - Create: `tsconfig.base.json`
 - Create: `.gitignore`
@@ -92,6 +93,7 @@ git commit -m "chore: init monorepo root"
 ### Task 2: packages/shared scaffold
 
 **Files:**
+
 - Create: `packages/shared/package.json`
 - Create: `packages/shared/tsconfig.json`
 - Create: `packages/shared/src/index.ts`
@@ -142,10 +144,10 @@ git commit -m "chore: init monorepo root"
 **Step 3: Create `packages/shared/src/index.ts`** (empty barrel for now)
 
 ```typescript
-export * from './exercise.schema.js';
-export * from './workout.schema.js';
-export * from './set.schema.js';
-export * from './body.schema.js';
+export * from './exercise.schema.js'
+export * from './workout.schema.js'
+export * from './set.schema.js'
+export * from './body.schema.js'
 ```
 
 **Step 4: Create stub schema files** (will be filled in Phase 2):
@@ -169,6 +171,7 @@ git commit -m "chore: add packages/shared scaffold"
 ### Task 3: apps/api NestJS scaffold
 
 **Files:**
+
 - Create: `apps/api/package.json`
 - Create: `apps/api/tsconfig.json`
 - Create: `apps/api/src/main.ts`
@@ -235,40 +238,35 @@ git commit -m "chore: add packages/shared scaffold"
 **Step 3: Create `apps/api/src/main.ts`**
 
 ```typescript
-import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { ZodValidationPipe } from 'nestjs-zod';
-import { AppModule } from './app.module';
-import multipart from '@fastify/multipart';
+import { NestFactory } from '@nestjs/core'
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify'
+import { ZodValidationPipe } from 'nestjs-zod'
+import { AppModule } from './app.module'
+import multipart from '@fastify/multipart'
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter(),
-  );
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter())
 
-  await app.register(multipart, { limits: { fileSize: 15 * 1024 * 1024 } });
-  app.useGlobalPipes(new ZodValidationPipe());
-  app.setGlobalPrefix('api');
+  await app.register(multipart, { limits: { fileSize: 15 * 1024 * 1024 } })
+  app.useGlobalPipes(new ZodValidationPipe())
+  app.setGlobalPrefix('api')
 
-  const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-  await app.listen(port, '0.0.0.0');
-  console.log(`API running on http://localhost:${port}`);
+  const port = process.env.PORT ? parseInt(process.env.PORT) : 3000
+  await app.listen(port, '0.0.0.0')
+  console.log(`API running on http://localhost:${port}`)
 }
 
-bootstrap();
+bootstrap()
 ```
 
 **Step 4: Create `apps/api/src/app.module.ts`** (minimal for now)
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Module } from '@nestjs/common'
+import { ConfigModule } from '@nestjs/config'
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-  ],
+  imports: [ConfigModule.forRoot({ isGlobal: true })],
 })
 export class AppModule {}
 ```
@@ -318,6 +316,7 @@ git commit -m "chore: scaffold NestJS API"
 ### Task 4: apps/web Vite React scaffold
 
 **Files:**
+
 - Create: `apps/web/package.json`
 - Create: `apps/web/vite.config.ts`
 - Create: `apps/web/tsconfig.json`
@@ -380,10 +379,10 @@ cd ../..
 **Step 3: Create `apps/web/vite.config.ts`**
 
 ```typescript
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import path from 'path';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -399,27 +398,27 @@ export default defineConfig({
       },
     },
   },
-});
+})
 ```
 
 **Step 4: Create `apps/web/src/main.tsx`** (minimal)
 
 ```tsx
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import './index.css';
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <div>GymTracker</div>
   </StrictMode>,
-);
+)
 ```
 
 **Step 5: Create `apps/web/src/index.css`**
 
 ```css
-@import "tailwindcss";
+@import 'tailwindcss';
 ```
 
 **Step 6: Install web deps**
@@ -433,6 +432,7 @@ npm install --workspace=apps/web
 ```bash
 npm run dev --workspace=apps/web
 ```
+
 Expected: Vite dev server at http://localhost:5173
 
 **Step 8: Commit**
@@ -474,19 +474,20 @@ git commit -m "feat: init shadcn/ui with core components"
 ### Task 6: Drizzle schema
 
 **Files:**
+
 - Create: `apps/api/src/drizzle/schema.ts`
 - Create: `apps/api/src/drizzle/drizzle.config.ts`
 
 **Step 1: Create `apps/api/src/drizzle/schema.ts`**
 
 ```typescript
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   displayName: text('display_name').notNull(),
   createdAt: integer('created_at').notNull(),
-});
+})
 
 export const exercises = sqliteTable('exercises', {
   id: text('id').primaryKey(),
@@ -497,7 +498,7 @@ export const exercises = sqliteTable('exercises', {
   notes: text('notes'),
   isDefault: integer('is_default').default(0),
   createdAt: integer('created_at').notNull(),
-});
+})
 
 export const workoutTemplates = sqliteTable('workout_templates', {
   id: text('id').primaryKey(),
@@ -505,7 +506,7 @@ export const workoutTemplates = sqliteTable('workout_templates', {
   name: text('name').notNull(),
   notes: text('notes'),
   createdAt: integer('created_at').notNull(),
-});
+})
 
 export const templateExercises = sqliteTable('template_exercises', {
   id: text('id').primaryKey(),
@@ -515,7 +516,7 @@ export const templateExercises = sqliteTable('template_exercises', {
   defaultSets: integer('default_sets'),
   defaultReps: integer('default_reps'),
   defaultWeightKg: real('default_weight_kg'),
-});
+})
 
 export const workoutSessions = sqliteTable('workout_sessions', {
   id: text('id').primaryKey(),
@@ -525,7 +526,7 @@ export const workoutSessions = sqliteTable('workout_sessions', {
   startedAt: integer('started_at').notNull(),
   finishedAt: integer('finished_at'),
   notes: text('notes'),
-});
+})
 
 export const sets = sqliteTable('sets', {
   id: text('id').primaryKey(),
@@ -538,7 +539,7 @@ export const sets = sqliteTable('sets', {
   rpe: real('rpe'),
   isWarmup: integer('is_warmup').default(0),
   completedAt: integer('completed_at').notNull(),
-});
+})
 
 export const bodyWeights = sqliteTable('body_weights', {
   id: text('id').primaryKey(),
@@ -546,7 +547,7 @@ export const bodyWeights = sqliteTable('body_weights', {
   weightKg: real('weight_kg').notNull(),
   recordedAt: integer('recorded_at').notNull(),
   notes: text('notes'),
-});
+})
 
 export const bodyMeasurements = sqliteTable('body_measurements', {
   id: text('id').primaryKey(),
@@ -562,7 +563,7 @@ export const bodyMeasurements = sqliteTable('body_measurements', {
   shoulders: real('shoulders'),
   neck: real('neck'),
   notes: text('notes'),
-});
+})
 
 export const progressPhotos = sqliteTable('progress_photos', {
   id: text('id').primaryKey(),
@@ -573,15 +574,15 @@ export const progressPhotos = sqliteTable('progress_photos', {
   bodyWeight: real('body_weight'),
   tags: text('tags'),
   notes: text('notes'),
-});
+})
 ```
 
 **Step 2: Create `apps/api/drizzle.config.ts`** (note: at apps/api root, not src)
 
 ```typescript
-import type { Config } from 'drizzle-kit';
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env' });
+import type { Config } from 'drizzle-kit'
+import * as dotenv from 'dotenv'
+dotenv.config({ path: '.env' })
 
 export default {
   schema: './src/drizzle/schema.ts',
@@ -590,7 +591,7 @@ export default {
   dbCredentials: {
     url: process.env.DATABASE_URL ?? '../../data/sqlite/app.db',
   },
-} satisfies Config;
+} satisfies Config
 ```
 
 **Step 3: Commit**
@@ -605,24 +606,25 @@ git commit -m "feat: add Drizzle schema for all tables"
 ### Task 7: DrizzleModule + migrations
 
 **Files:**
+
 - Create: `apps/api/src/drizzle/drizzle.module.ts`
 - Create: `apps/api/src/drizzle/drizzle.constants.ts`
 
 **Step 1: Create `apps/api/src/drizzle/drizzle.constants.ts`**
 
 ```typescript
-export const DATABASE = 'DATABASE' as const;
+export const DATABASE = 'DATABASE' as const
 ```
 
 **Step 2: Create `apps/api/src/drizzle/drizzle.module.ts`**
 
 ```typescript
-import { Global, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import * as schema from './schema';
-import { DATABASE } from './drizzle.constants';
+import { Global, Module } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import * as schema from './schema'
+import { DATABASE } from './drizzle.constants'
 
 @Global()
 @Module({
@@ -631,15 +633,15 @@ import { DATABASE } from './drizzle.constants';
       provide: DATABASE,
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const url = config.getOrThrow<string>('DATABASE_URL');
-        const sqlite = new Database(url);
-        sqlite.pragma('journal_mode = WAL');
-        sqlite.pragma('synchronous = NORMAL');
-        sqlite.pragma('foreign_keys = ON');
-        sqlite.pragma('busy_timeout = 5000');
-        sqlite.pragma('cache_size = -64000');
-        sqlite.pragma('temp_store = MEMORY');
-        return drizzle(sqlite, { schema });
+        const url = config.getOrThrow<string>('DATABASE_URL')
+        const sqlite = new Database(url)
+        sqlite.pragma('journal_mode = WAL')
+        sqlite.pragma('synchronous = NORMAL')
+        sqlite.pragma('foreign_keys = ON')
+        sqlite.pragma('busy_timeout = 5000')
+        sqlite.pragma('cache_size = -64000')
+        sqlite.pragma('temp_store = MEMORY')
+        return drizzle(sqlite, { schema })
       },
     },
   ],
@@ -653,15 +655,12 @@ export class DrizzleModule {}
 Edit `apps/api/src/app.module.ts`:
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { DrizzleModule } from './drizzle/drizzle.module';
+import { Module } from '@nestjs/common'
+import { ConfigModule } from '@nestjs/config'
+import { DrizzleModule } from './drizzle/drizzle.module'
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    DrizzleModule,
-  ],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), DrizzleModule],
 })
 export class AppModule {}
 ```
@@ -686,6 +685,7 @@ git commit -m "feat: add DrizzleModule with SQLite pragmas"
 ### Task 8: Auth stub + seed default user
 
 **Files:**
+
 - Create: `apps/api/src/auth/auth.module.ts`
 - Create: `apps/api/src/auth/mock-auth.guard.ts`
 - Create: `apps/api/src/seed/seed.service.ts`
@@ -693,14 +693,14 @@ git commit -m "feat: add DrizzleModule with SQLite pragmas"
 **Step 1: Create `apps/api/src/auth/mock-auth.guard.ts`**
 
 ```typescript
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common'
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   canActivate(ctx: ExecutionContext): boolean {
-    const req = ctx.switchToHttp().getRequest();
-    req.user = { id: 'default-user', displayName: 'Viktor' };
-    return true;
+    const req = ctx.switchToHttp().getRequest()
+    req.user = { id: 'default-user', displayName: 'Viktor' }
+    return true
   }
 }
 ```
@@ -708,9 +708,9 @@ export class AuthGuard implements CanActivate {
 **Step 2: Create `apps/api/src/auth/auth.module.ts`**
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard } from './mock-auth.guard';
+import { Module } from '@nestjs/common'
+import { APP_GUARD } from '@nestjs/core'
+import { AuthGuard } from './mock-auth.guard'
 
 @Module({
   providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
@@ -721,12 +721,12 @@ export class AuthModule {}
 **Step 3: Create `apps/api/src/seed/seed.service.ts`**
 
 ```typescript
-import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { eq } from 'drizzle-orm';
-import { DATABASE } from '../drizzle/drizzle.constants';
-import * as schema from '../drizzle/schema';
-import { randomUUID } from 'crypto';
+import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common'
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { eq } from 'drizzle-orm'
+import { DATABASE } from '../drizzle/drizzle.constants'
+import * as schema from '../drizzle/schema'
+import { randomUUID } from 'crypto'
 
 const DEFAULT_EXERCISES = [
   { name: 'Bench Press', category: 'push', equipment: 'barbell' },
@@ -761,42 +761,47 @@ const DEFAULT_EXERCISES = [
   { name: 'Cycling', category: 'cardio', equipment: 'other' },
   { name: 'Rowing (erg)', category: 'cardio', equipment: 'other' },
   { name: 'Jump Rope', category: 'cardio', equipment: 'other' },
-];
+]
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
   constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
 
   async onApplicationBootstrap() {
-    await this.seedUser();
-    await this.seedExercises();
+    await this.seedUser()
+    await this.seedExercises()
   }
 
   private async seedUser() {
-    const existing = this.db.select().from(schema.users)
-      .where(eq(schema.users.id, 'default-user')).get();
-    if (existing) return;
-    this.db.insert(schema.users).values({
-      id: 'default-user',
-      displayName: 'Viktor',
-      createdAt: Math.floor(Date.now() / 1000),
-    }).run();
+    const existing = this.db.select().from(schema.users).where(eq(schema.users.id, 'default-user')).get()
+    if (existing) return
+    this.db
+      .insert(schema.users)
+      .values({
+        id: 'default-user',
+        displayName: 'Viktor',
+        createdAt: Math.floor(Date.now() / 1000),
+      })
+      .run()
   }
 
   private async seedExercises() {
-    const existing = this.db.select().from(schema.exercises).limit(1).get();
-    if (existing) return;
-    const now = Math.floor(Date.now() / 1000);
+    const existing = this.db.select().from(schema.exercises).limit(1).get()
+    if (existing) return
+    const now = Math.floor(Date.now() / 1000)
     for (const ex of DEFAULT_EXERCISES) {
-      this.db.insert(schema.exercises).values({
-        id: randomUUID(),
-        userId: 'default-user',
-        name: ex.name,
-        category: ex.category,
-        equipment: ex.equipment,
-        isDefault: 1,
-        createdAt: now,
-      }).run();
+      this.db
+        .insert(schema.exercises)
+        .values({
+          id: randomUUID(),
+          userId: 'default-user',
+          name: ex.name,
+          category: ex.category,
+          equipment: ex.equipment,
+          isDefault: 1,
+          createdAt: now,
+        })
+        .run()
     }
   }
 }
@@ -805,8 +810,8 @@ export class SeedService implements OnApplicationBootstrap {
 **Step 4: Create `apps/api/src/seed/seed.module.ts`**
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { SeedService } from './seed.service';
+import { Module } from '@nestjs/common'
+import { SeedService } from './seed.service'
 
 @Module({ providers: [SeedService] })
 export class SeedModule {}
@@ -815,19 +820,14 @@ export class SeedModule {}
 **Step 5: Update AppModule to include AuthModule and SeedModule**
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { DrizzleModule } from './drizzle/drizzle.module';
-import { AuthModule } from './auth/auth.module';
-import { SeedModule } from './seed/seed.module';
+import { Module } from '@nestjs/common'
+import { ConfigModule } from '@nestjs/config'
+import { DrizzleModule } from './drizzle/drizzle.module'
+import { AuthModule } from './auth/auth.module'
+import { SeedModule } from './seed/seed.module'
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    DrizzleModule,
-    AuthModule,
-    SeedModule,
-  ],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), DrizzleModule, AuthModule, SeedModule],
 })
 export class AppModule {}
 ```
@@ -837,12 +837,14 @@ export class AppModule {}
 Create `apps/api/src/health.controller.ts`:
 
 ```typescript
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common'
 
 @Controller('health')
 export class HealthController {
   @Get()
-  check() { return { status: 'ok' }; }
+  check() {
+    return { status: 'ok' }
+  }
 }
 ```
 
@@ -854,6 +856,7 @@ Add to AppModule controllers: `controllers: [HealthController]`
 npm run dev --workspace=apps/api
 curl http://localhost:3000/api/health
 ```
+
 Expected: `{"status":"ok"}`
 
 **Step 8: Commit**
@@ -870,6 +873,7 @@ git commit -m "feat: add auth stub, seed user, seed exercises, health endpoint"
 ### Task 9: Write shared Zod schemas
 
 **Files:**
+
 - Modify: `packages/shared/src/exercise.schema.ts`
 - Modify: `packages/shared/src/workout.schema.ts`
 - Modify: `packages/shared/src/set.schema.ts`
@@ -878,58 +882,60 @@ git commit -m "feat: add auth stub, seed user, seed exercises, health endpoint"
 **Step 1: `packages/shared/src/exercise.schema.ts`**
 
 ```typescript
-import { z } from 'zod';
+import { z } from 'zod'
 
-export const ExerciseCategorySchema = z.enum(['push', 'pull', 'legs', 'core', 'cardio', 'other']);
-export const ExerciseEquipmentSchema = z.enum(['barbell', 'dumbbell', 'machine', 'bodyweight', 'cable', 'other']);
+export const ExerciseCategorySchema = z.enum(['push', 'pull', 'legs', 'core', 'cardio', 'other'])
+export const ExerciseEquipmentSchema = z.enum(['barbell', 'dumbbell', 'machine', 'bodyweight', 'cable', 'other'])
 
 export const CreateExerciseSchema = z.object({
   name: z.string().min(1).max(100),
   category: ExerciseCategorySchema.optional(),
   equipment: ExerciseEquipmentSchema.optional(),
   notes: z.string().max(500).optional(),
-});
+})
 
-export const UpdateExerciseSchema = CreateExerciseSchema.partial();
+export const UpdateExerciseSchema = CreateExerciseSchema.partial()
 
-export type CreateExerciseDto = z.infer<typeof CreateExerciseSchema>;
-export type UpdateExerciseDto = z.infer<typeof UpdateExerciseSchema>;
+export type CreateExerciseDto = z.infer<typeof CreateExerciseSchema>
+export type UpdateExerciseDto = z.infer<typeof UpdateExerciseSchema>
 ```
 
 **Step 2: `packages/shared/src/workout.schema.ts`**
 
 ```typescript
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const CreateTemplateSchema = z.object({
   name: z.string().min(1).max(100),
   notes: z.string().max(500).optional(),
-  exercises: z.array(z.object({
-    exerciseId: z.string().uuid(),
-    orderIndex: z.number().int().min(0),
-    defaultSets: z.number().int().min(1).optional(),
-    defaultReps: z.number().int().min(1).optional(),
-    defaultWeightKg: z.number().min(0).optional(),
-  })),
-});
+  exercises: z.array(
+    z.object({
+      exerciseId: z.string().uuid(),
+      orderIndex: z.number().int().min(0),
+      defaultSets: z.number().int().min(1).optional(),
+      defaultReps: z.number().int().min(1).optional(),
+      defaultWeightKg: z.number().min(0).optional(),
+    }),
+  ),
+})
 
 export const StartSessionSchema = z.object({
   templateId: z.string().uuid().optional(),
   name: z.string().min(1).max(100),
-});
+})
 
 export const FinishSessionSchema = z.object({
   notes: z.string().max(500).optional(),
-});
+})
 
-export type CreateTemplateDto = z.infer<typeof CreateTemplateSchema>;
-export type StartSessionDto = z.infer<typeof StartSessionSchema>;
+export type CreateTemplateDto = z.infer<typeof CreateTemplateSchema>
+export type StartSessionDto = z.infer<typeof StartSessionSchema>
 ```
 
 **Step 3: `packages/shared/src/set.schema.ts`**
 
 ```typescript
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const CreateSetSchema = z.object({
   exerciseId: z.string().uuid(),
@@ -939,24 +945,24 @@ export const CreateSetSchema = z.object({
   durationSec: z.number().int().min(0).optional(),
   rpe: z.number().min(1).max(10).optional(),
   isWarmup: z.boolean().default(false),
-});
+})
 
-export const UpdateSetSchema = CreateSetSchema.omit({ exerciseId: true, setNumber: true }).partial();
+export const UpdateSetSchema = CreateSetSchema.omit({ exerciseId: true, setNumber: true }).partial()
 
-export type CreateSetDto = z.infer<typeof CreateSetSchema>;
-export type UpdateSetDto = z.infer<typeof UpdateSetSchema>;
+export type CreateSetDto = z.infer<typeof CreateSetSchema>
+export type UpdateSetDto = z.infer<typeof UpdateSetSchema>
 ```
 
 **Step 4: `packages/shared/src/body.schema.ts`**
 
 ```typescript
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const CreateBodyWeightSchema = z.object({
   weightKg: z.number().min(20).max(500),
   recordedAt: z.number().int().optional(),
   notes: z.string().max(200).optional(),
-});
+})
 
 export const CreateMeasurementSchema = z.object({
   recordedAt: z.number().int().optional(),
@@ -970,10 +976,10 @@ export const CreateMeasurementSchema = z.object({
   shoulders: z.number().min(0).optional(),
   neck: z.number().min(0).optional(),
   notes: z.string().max(200).optional(),
-});
+})
 
-export type CreateBodyWeightDto = z.infer<typeof CreateBodyWeightSchema>;
-export type CreateMeasurementDto = z.infer<typeof CreateMeasurementSchema>;
+export type CreateBodyWeightDto = z.infer<typeof CreateBodyWeightSchema>
+export type CreateMeasurementDto = z.infer<typeof CreateMeasurementSchema>
 ```
 
 **Step 5: Build shared package**
@@ -996,6 +1002,7 @@ git commit -m "feat: add shared Zod schemas"
 ### Task 10: ExercisesModule (CRUD)
 
 **Files:**
+
 - Create: `apps/api/src/exercises/exercises.module.ts`
 - Create: `apps/api/src/exercises/exercises.controller.ts`
 - Create: `apps/api/src/exercises/exercises.service.ts`
@@ -1003,61 +1010,72 @@ git commit -m "feat: add shared Zod schemas"
 **Step 1: Create `apps/api/src/exercises/exercises.service.ts`**
 
 ```typescript
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { eq, and, or } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import { DATABASE } from '../drizzle/drizzle.constants';
-import * as schema from '../drizzle/schema';
-import { CreateExerciseDto, UpdateExerciseDto } from '@gymtracker/shared';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common'
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { eq, and, or } from 'drizzle-orm'
+import { randomUUID } from 'crypto'
+import { DATABASE } from '../drizzle/drizzle.constants'
+import * as schema from '../drizzle/schema'
+import { CreateExerciseDto, UpdateExerciseDto } from '@gymtracker/shared'
 
 @Injectable()
 export class ExercisesService {
   constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
 
   findAll(userId: string) {
-    return this.db.select().from(schema.exercises)
+    return this.db
+      .select()
+      .from(schema.exercises)
       .where(or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1)))
-      .all();
+      .all()
   }
 
   findOne(id: string, userId: string) {
-    const ex = this.db.select().from(schema.exercises)
-      .where(and(eq(schema.exercises.id, id),
-        or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1))))
-      .get();
-    if (!ex) throw new NotFoundException('Exercise not found');
-    return ex;
+    const ex = this.db
+      .select()
+      .from(schema.exercises)
+      .where(
+        and(eq(schema.exercises.id, id), or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1))),
+      )
+      .get()
+    if (!ex) throw new NotFoundException('Exercise not found')
+    return ex
   }
 
   create(userId: string, dto: CreateExerciseDto) {
-    const id = randomUUID();
-    this.db.insert(schema.exercises).values({
-      id,
-      userId,
-      name: dto.name,
-      category: dto.category ?? null,
-      equipment: dto.equipment ?? null,
-      notes: dto.notes ?? null,
-      isDefault: 0,
-      createdAt: Math.floor(Date.now() / 1000),
-    }).run();
-    return this.db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).get()!;
+    const id = randomUUID()
+    this.db
+      .insert(schema.exercises)
+      .values({
+        id,
+        userId,
+        name: dto.name,
+        category: dto.category ?? null,
+        equipment: dto.equipment ?? null,
+        notes: dto.notes ?? null,
+        isDefault: 0,
+        createdAt: Math.floor(Date.now() / 1000),
+      })
+      .run()
+    return this.db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).get()!
   }
 
   update(id: string, userId: string, dto: UpdateExerciseDto) {
-    this.findOne(id, userId);
-    this.db.update(schema.exercises).set(dto).where(
-      and(eq(schema.exercises.id, id), eq(schema.exercises.userId, userId))
-    ).run();
-    return this.db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).get()!;
+    this.findOne(id, userId)
+    this.db
+      .update(schema.exercises)
+      .set(dto)
+      .where(and(eq(schema.exercises.id, id), eq(schema.exercises.userId, userId)))
+      .run()
+    return this.db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).get()!
   }
 
   remove(id: string, userId: string) {
-    this.findOne(id, userId);
-    this.db.delete(schema.exercises).where(
-      and(eq(schema.exercises.id, id), eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 0))
-    ).run();
+    this.findOne(id, userId)
+    this.db
+      .delete(schema.exercises)
+      .where(and(eq(schema.exercises.id, id), eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 0)))
+      .run()
   }
 }
 ```
@@ -1065,10 +1083,10 @@ export class ExercisesService {
 **Step 2: Create `apps/api/src/exercises/exercises.controller.ts`**
 
 ```typescript
-import { Controller, Get, Post, Patch, Delete, Param, Body, Req } from '@nestjs/common';
-import { ExercisesService } from './exercises.service';
-import { createZodDto } from 'nestjs-zod';
-import { CreateExerciseSchema, UpdateExerciseSchema } from '@gymtracker/shared';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Req } from '@nestjs/common'
+import { ExercisesService } from './exercises.service'
+import { createZodDto } from 'nestjs-zod'
+import { CreateExerciseSchema, UpdateExerciseSchema } from '@gymtracker/shared'
 
 class CreateExerciseDto extends createZodDto(CreateExerciseSchema) {}
 class UpdateExerciseDto extends createZodDto(UpdateExerciseSchema) {}
@@ -1077,20 +1095,30 @@ class UpdateExerciseDto extends createZodDto(UpdateExerciseSchema) {}
 export class ExercisesController {
   constructor(private readonly svc: ExercisesService) {}
 
-  @Get() findAll(@Req() req: any) { return this.svc.findAll(req.user.id); }
-  @Get(':id') findOne(@Param('id') id: string, @Req() req: any) { return this.svc.findOne(id, req.user.id); }
-  @Post() create(@Body() dto: CreateExerciseDto, @Req() req: any) { return this.svc.create(req.user.id, dto); }
-  @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateExerciseDto, @Req() req: any) { return this.svc.update(id, req.user.id, dto); }
-  @Delete(':id') remove(@Param('id') id: string, @Req() req: any) { return this.svc.remove(id, req.user.id); }
+  @Get() findAll(@Req() req: any) {
+    return this.svc.findAll(req.user.id)
+  }
+  @Get(':id') findOne(@Param('id') id: string, @Req() req: any) {
+    return this.svc.findOne(id, req.user.id)
+  }
+  @Post() create(@Body() dto: CreateExerciseDto, @Req() req: any) {
+    return this.svc.create(req.user.id, dto)
+  }
+  @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateExerciseDto, @Req() req: any) {
+    return this.svc.update(id, req.user.id, dto)
+  }
+  @Delete(':id') remove(@Param('id') id: string, @Req() req: any) {
+    return this.svc.remove(id, req.user.id)
+  }
 }
 ```
 
 **Step 3: Create `apps/api/src/exercises/exercises.module.ts`**
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ExercisesController } from './exercises.controller';
-import { ExercisesService } from './exercises.service';
+import { Module } from '@nestjs/common'
+import { ExercisesController } from './exercises.controller'
+import { ExercisesService } from './exercises.service'
 
 @Module({ controllers: [ExercisesController], providers: [ExercisesService] })
 export class ExercisesModule {}
@@ -1103,6 +1131,7 @@ export class ExercisesModule {}
 ```bash
 curl http://localhost:3000/api/exercises | jq length
 ```
+
 Expected: 32 (seeded exercises)
 
 **Step 6: Commit**
@@ -1119,6 +1148,7 @@ git commit -m "feat: add ExercisesModule CRUD API"
 ### Task 11: WorkoutsModule (templates + sessions)
 
 **Files:**
+
 - Create: `apps/api/src/workouts/workouts.module.ts`
 - Create: `apps/api/src/workouts/workouts.controller.ts`
 - Create: `apps/api/src/workouts/workouts.service.ts`
@@ -1126,14 +1156,14 @@ git commit -m "feat: add ExercisesModule CRUD API"
 **Step 1: Create `apps/api/src/workouts/workouts.service.ts`**
 
 ```typescript
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { eq, and, isNull, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import { DATABASE } from '../drizzle/drizzle.constants';
-import * as schema from '../drizzle/schema';
-import { CreateTemplateDto, StartSessionDto, FinishSessionSchema } from '@gymtracker/shared';
-import { z } from 'zod';
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { eq, and, isNull, desc } from 'drizzle-orm'
+import { randomUUID } from 'crypto'
+import { DATABASE } from '../drizzle/drizzle.constants'
+import * as schema from '../drizzle/schema'
+import { CreateTemplateDto, StartSessionDto, FinishSessionSchema } from '@gymtracker/shared'
+import { z } from 'zod'
 
 @Injectable()
 export class WorkoutsService {
@@ -1141,69 +1171,119 @@ export class WorkoutsService {
 
   // Templates
   getTemplates(userId: string) {
-    return this.db.select().from(schema.workoutTemplates)
+    return this.db
+      .select()
+      .from(schema.workoutTemplates)
       .where(eq(schema.workoutTemplates.userId, userId))
-      .orderBy(desc(schema.workoutTemplates.createdAt)).all();
+      .orderBy(desc(schema.workoutTemplates.createdAt))
+      .all()
   }
 
   getTemplate(id: string, userId: string) {
-    const t = this.db.select().from(schema.workoutTemplates)
-      .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId))).get();
-    if (!t) throw new NotFoundException('Template not found');
-    const exercises = this.db.select().from(schema.templateExercises)
-      .where(eq(schema.templateExercises.templateId, id)).all();
-    return { ...t, exercises };
+    const t = this.db
+      .select()
+      .from(schema.workoutTemplates)
+      .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
+      .get()
+    if (!t) throw new NotFoundException('Template not found')
+    const exercises = this.db
+      .select()
+      .from(schema.templateExercises)
+      .where(eq(schema.templateExercises.templateId, id))
+      .all()
+    return { ...t, exercises }
   }
 
   createTemplate(userId: string, dto: CreateTemplateDto) {
-    const id = randomUUID();
-    const now = Math.floor(Date.now() / 1000);
-    this.db.insert(schema.workoutTemplates).values({ id, userId, name: dto.name, notes: dto.notes ?? null, createdAt: now }).run();
+    const id = randomUUID()
+    const now = Math.floor(Date.now() / 1000)
+    this.db
+      .insert(schema.workoutTemplates)
+      .values({ id, userId, name: dto.name, notes: dto.notes ?? null, createdAt: now })
+      .run()
     for (const ex of dto.exercises) {
-      this.db.insert(schema.templateExercises).values({ id: randomUUID(), templateId: id, ...ex, defaultWeightKg: ex.defaultWeightKg ?? null, defaultSets: ex.defaultSets ?? null, defaultReps: ex.defaultReps ?? null }).run();
+      this.db
+        .insert(schema.templateExercises)
+        .values({
+          id: randomUUID(),
+          templateId: id,
+          ...ex,
+          defaultWeightKg: ex.defaultWeightKg ?? null,
+          defaultSets: ex.defaultSets ?? null,
+          defaultReps: ex.defaultReps ?? null,
+        })
+        .run()
     }
-    return this.getTemplate(id, userId);
+    return this.getTemplate(id, userId)
   }
 
   deleteTemplate(id: string, userId: string) {
-    this.getTemplate(id, userId);
-    this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id)).run();
-    this.db.delete(schema.workoutTemplates).where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId))).run();
+    this.getTemplate(id, userId)
+    this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id)).run()
+    this.db
+      .delete(schema.workoutTemplates)
+      .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
+      .run()
   }
 
   // Sessions
   getSessions(userId: string) {
-    return this.db.select().from(schema.workoutSessions)
+    return this.db
+      .select()
+      .from(schema.workoutSessions)
       .where(eq(schema.workoutSessions.userId, userId))
-      .orderBy(desc(schema.workoutSessions.startedAt)).all();
+      .orderBy(desc(schema.workoutSessions.startedAt))
+      .all()
   }
 
   getSession(id: string, userId: string) {
-    const s = this.db.select().from(schema.workoutSessions)
-      .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId))).get();
-    if (!s) throw new NotFoundException('Session not found');
-    const sessionSets = this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, id)).all();
-    return { ...s, sets: sessionSets };
+    const s = this.db
+      .select()
+      .from(schema.workoutSessions)
+      .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId)))
+      .get()
+    if (!s) throw new NotFoundException('Session not found')
+    const sessionSets = this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, id)).all()
+    return { ...s, sets: sessionSets }
   }
 
   getActiveSession(userId: string) {
-    return this.db.select().from(schema.workoutSessions)
-      .where(and(eq(schema.workoutSessions.userId, userId), isNull(schema.workoutSessions.finishedAt))).get() ?? null;
+    return (
+      this.db
+        .select()
+        .from(schema.workoutSessions)
+        .where(and(eq(schema.workoutSessions.userId, userId), isNull(schema.workoutSessions.finishedAt)))
+        .get() ?? null
+    )
   }
 
   startSession(userId: string, dto: StartSessionDto) {
-    const active = this.getActiveSession(userId);
-    if (active) throw new BadRequestException('A session is already active');
-    const id = randomUUID();
-    this.db.insert(schema.workoutSessions).values({ id, userId, templateId: dto.templateId ?? null, name: dto.name, startedAt: Math.floor(Date.now() / 1000), finishedAt: null, notes: null }).run();
-    return this.getSession(id, userId);
+    const active = this.getActiveSession(userId)
+    if (active) throw new BadRequestException('A session is already active')
+    const id = randomUUID()
+    this.db
+      .insert(schema.workoutSessions)
+      .values({
+        id,
+        userId,
+        templateId: dto.templateId ?? null,
+        name: dto.name,
+        startedAt: Math.floor(Date.now() / 1000),
+        finishedAt: null,
+        notes: null,
+      })
+      .run()
+    return this.getSession(id, userId)
   }
 
   finishSession(id: string, userId: string, dto: z.infer<typeof FinishSessionSchema>) {
-    this.getSession(id, userId);
-    this.db.update(schema.workoutSessions).set({ finishedAt: Math.floor(Date.now() / 1000), notes: dto.notes ?? null })
-      .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId))).run();
-    return this.getSession(id, userId);
+    this.getSession(id, userId)
+    this.db
+      .update(schema.workoutSessions)
+      .set({ finishedAt: Math.floor(Date.now() / 1000), notes: dto.notes ?? null })
+      .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId)))
+      .run()
+    return this.getSession(id, userId)
   }
 }
 ```
@@ -1211,10 +1291,10 @@ export class WorkoutsService {
 **Step 2: Create `apps/api/src/workouts/workouts.controller.ts`**
 
 ```typescript
-import { Controller, Get, Post, Delete, Param, Body, Req } from '@nestjs/common';
-import { WorkoutsService } from './workouts.service';
-import { createZodDto } from 'nestjs-zod';
-import { CreateTemplateSchema, StartSessionSchema, FinishSessionSchema } from '@gymtracker/shared';
+import { Controller, Get, Post, Delete, Param, Body, Req } from '@nestjs/common'
+import { WorkoutsService } from './workouts.service'
+import { createZodDto } from 'nestjs-zod'
+import { CreateTemplateSchema, StartSessionSchema, FinishSessionSchema } from '@gymtracker/shared'
 
 class CreateTemplateDto extends createZodDto(CreateTemplateSchema) {}
 class StartSessionDto extends createZodDto(StartSessionSchema) {}
@@ -1224,16 +1304,34 @@ class FinishSessionDto extends createZodDto(FinishSessionSchema) {}
 export class WorkoutsController {
   constructor(private readonly svc: WorkoutsService) {}
 
-  @Get('templates') getTemplates(@Req() req: any) { return this.svc.getTemplates(req.user.id); }
-  @Get('templates/:id') getTemplate(@Param('id') id: string, @Req() req: any) { return this.svc.getTemplate(id, req.user.id); }
-  @Post('templates') createTemplate(@Body() dto: CreateTemplateDto, @Req() req: any) { return this.svc.createTemplate(req.user.id, dto); }
-  @Delete('templates/:id') deleteTemplate(@Param('id') id: string, @Req() req: any) { return this.svc.deleteTemplate(id, req.user.id); }
+  @Get('templates') getTemplates(@Req() req: any) {
+    return this.svc.getTemplates(req.user.id)
+  }
+  @Get('templates/:id') getTemplate(@Param('id') id: string, @Req() req: any) {
+    return this.svc.getTemplate(id, req.user.id)
+  }
+  @Post('templates') createTemplate(@Body() dto: CreateTemplateDto, @Req() req: any) {
+    return this.svc.createTemplate(req.user.id, dto)
+  }
+  @Delete('templates/:id') deleteTemplate(@Param('id') id: string, @Req() req: any) {
+    return this.svc.deleteTemplate(id, req.user.id)
+  }
 
-  @Get('sessions') getSessions(@Req() req: any) { return this.svc.getSessions(req.user.id); }
-  @Get('sessions/active') getActive(@Req() req: any) { return this.svc.getActiveSession(req.user.id); }
-  @Get('sessions/:id') getSession(@Param('id') id: string, @Req() req: any) { return this.svc.getSession(id, req.user.id); }
-  @Post('sessions') startSession(@Body() dto: StartSessionDto, @Req() req: any) { return this.svc.startSession(req.user.id, dto); }
-  @Post('sessions/:id/finish') finishSession(@Param('id') id: string, @Body() dto: FinishSessionDto, @Req() req: any) { return this.svc.finishSession(id, req.user.id, dto); }
+  @Get('sessions') getSessions(@Req() req: any) {
+    return this.svc.getSessions(req.user.id)
+  }
+  @Get('sessions/active') getActive(@Req() req: any) {
+    return this.svc.getActiveSession(req.user.id)
+  }
+  @Get('sessions/:id') getSession(@Param('id') id: string, @Req() req: any) {
+    return this.svc.getSession(id, req.user.id)
+  }
+  @Post('sessions') startSession(@Body() dto: StartSessionDto, @Req() req: any) {
+    return this.svc.startSession(req.user.id, dto)
+  }
+  @Post('sessions/:id/finish') finishSession(@Param('id') id: string, @Body() dto: FinishSessionDto, @Req() req: any) {
+    return this.svc.finishSession(id, req.user.id, dto)
+  }
 }
 ```
 
@@ -1253,6 +1351,7 @@ git commit -m "feat: add WorkoutsModule (templates + sessions API)"
 ### Task 12: SetsModule
 
 **Files:**
+
 - Create: `apps/api/src/sets/sets.module.ts`
 - Create: `apps/api/src/sets/sets.controller.ts`
 - Create: `apps/api/src/sets/sets.service.ts`
@@ -1260,63 +1359,76 @@ git commit -m "feat: add WorkoutsModule (templates + sessions API)"
 **Step 1: Create `apps/api/src/sets/sets.service.ts`**
 
 ```typescript
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { eq, and } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import { DATABASE } from '../drizzle/drizzle.constants';
-import * as schema from '../drizzle/schema';
-import { CreateSetDto, UpdateSetDto } from '@gymtracker/shared';
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { eq, and } from 'drizzle-orm'
+import { randomUUID } from 'crypto'
+import { DATABASE } from '../drizzle/drizzle.constants'
+import * as schema from '../drizzle/schema'
+import { CreateSetDto, UpdateSetDto } from '@gymtracker/shared'
 
 @Injectable()
 export class SetsService {
   constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
 
   private getActiveSession(sessionId: string, userId: string) {
-    const s = this.db.select().from(schema.workoutSessions)
-      .where(and(eq(schema.workoutSessions.id, sessionId), eq(schema.workoutSessions.userId, userId))).get();
-    if (!s) throw new NotFoundException('Session not found');
-    if (s.finishedAt) throw new BadRequestException('Session is already finished');
-    return s;
+    const s = this.db
+      .select()
+      .from(schema.workoutSessions)
+      .where(and(eq(schema.workoutSessions.id, sessionId), eq(schema.workoutSessions.userId, userId)))
+      .get()
+    if (!s) throw new NotFoundException('Session not found')
+    if (s.finishedAt) throw new BadRequestException('Session is already finished')
+    return s
   }
 
   getSessionSets(sessionId: string, userId: string) {
-    this.getActiveSession(sessionId, userId);
-    return this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, sessionId)).all();
+    this.getActiveSession(sessionId, userId)
+    return this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, sessionId)).all()
   }
 
   logSet(sessionId: string, userId: string, dto: CreateSetDto) {
-    this.getActiveSession(sessionId, userId);
-    const id = randomUUID();
-    this.db.insert(schema.sets).values({
-      id, sessionId,
-      exerciseId: dto.exerciseId,
-      setNumber: dto.setNumber,
-      reps: dto.reps ?? null,
-      weightKg: dto.weightKg ?? null,
-      durationSec: dto.durationSec ?? null,
-      rpe: dto.rpe ?? null,
-      isWarmup: dto.isWarmup ? 1 : 0,
-      completedAt: Math.floor(Date.now() / 1000),
-    }).run();
-    return this.db.select().from(schema.sets).where(eq(schema.sets.id, id)).get()!;
+    this.getActiveSession(sessionId, userId)
+    const id = randomUUID()
+    this.db
+      .insert(schema.sets)
+      .values({
+        id,
+        sessionId,
+        exerciseId: dto.exerciseId,
+        setNumber: dto.setNumber,
+        reps: dto.reps ?? null,
+        weightKg: dto.weightKg ?? null,
+        durationSec: dto.durationSec ?? null,
+        rpe: dto.rpe ?? null,
+        isWarmup: dto.isWarmup ? 1 : 0,
+        completedAt: Math.floor(Date.now() / 1000),
+      })
+      .run()
+    return this.db.select().from(schema.sets).where(eq(schema.sets.id, id)).get()!
   }
 
   updateSet(sessionId: string, setId: string, userId: string, dto: UpdateSetDto) {
-    this.getActiveSession(sessionId, userId);
-    const set = this.db.select().from(schema.sets)
-      .where(and(eq(schema.sets.id, setId), eq(schema.sets.sessionId, sessionId))).get();
-    if (!set) throw new NotFoundException('Set not found');
-    this.db.update(schema.sets).set(dto).where(eq(schema.sets.id, setId)).run();
-    return this.db.select().from(schema.sets).where(eq(schema.sets.id, setId)).get()!;
+    this.getActiveSession(sessionId, userId)
+    const set = this.db
+      .select()
+      .from(schema.sets)
+      .where(and(eq(schema.sets.id, setId), eq(schema.sets.sessionId, sessionId)))
+      .get()
+    if (!set) throw new NotFoundException('Set not found')
+    this.db.update(schema.sets).set(dto).where(eq(schema.sets.id, setId)).run()
+    return this.db.select().from(schema.sets).where(eq(schema.sets.id, setId)).get()!
   }
 
   deleteSet(sessionId: string, setId: string, userId: string) {
-    this.getActiveSession(sessionId, userId);
-    const set = this.db.select().from(schema.sets)
-      .where(and(eq(schema.sets.id, setId), eq(schema.sets.sessionId, sessionId))).get();
-    if (!set) throw new NotFoundException('Set not found');
-    this.db.delete(schema.sets).where(eq(schema.sets.id, setId)).run();
+    this.getActiveSession(sessionId, userId)
+    const set = this.db
+      .select()
+      .from(schema.sets)
+      .where(and(eq(schema.sets.id, setId), eq(schema.sets.sessionId, sessionId)))
+      .get()
+    if (!set) throw new NotFoundException('Set not found')
+    this.db.delete(schema.sets).where(eq(schema.sets.id, setId)).run()
   }
 }
 ```
@@ -1324,10 +1436,10 @@ export class SetsService {
 **Step 2: Create `apps/api/src/sets/sets.controller.ts`**
 
 ```typescript
-import { Controller, Get, Post, Patch, Delete, Param, Body, Req } from '@nestjs/common';
-import { SetsService } from './sets.service';
-import { createZodDto } from 'nestjs-zod';
-import { CreateSetSchema, UpdateSetSchema } from '@gymtracker/shared';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Req } from '@nestjs/common'
+import { SetsService } from './sets.service'
+import { createZodDto } from 'nestjs-zod'
+import { CreateSetSchema, UpdateSetSchema } from '@gymtracker/shared'
 
 class CreateSetDto extends createZodDto(CreateSetSchema) {}
 class UpdateSetDto extends createZodDto(UpdateSetSchema) {}
@@ -1337,16 +1449,21 @@ export class SetsController {
   constructor(private readonly svc: SetsService) {}
 
   @Get() getSets(@Param('sessionId') sessionId: string, @Req() req: any) {
-    return this.svc.getSessionSets(sessionId, req.user.id);
+    return this.svc.getSessionSets(sessionId, req.user.id)
   }
   @Post() logSet(@Param('sessionId') sessionId: string, @Body() dto: CreateSetDto, @Req() req: any) {
-    return this.svc.logSet(sessionId, req.user.id, dto);
+    return this.svc.logSet(sessionId, req.user.id, dto)
   }
-  @Patch(':setId') updateSet(@Param('sessionId') sessionId: string, @Param('setId') setId: string, @Body() dto: UpdateSetDto, @Req() req: any) {
-    return this.svc.updateSet(sessionId, setId, req.user.id, dto);
+  @Patch(':setId') updateSet(
+    @Param('sessionId') sessionId: string,
+    @Param('setId') setId: string,
+    @Body() dto: UpdateSetDto,
+    @Req() req: any,
+  ) {
+    return this.svc.updateSet(sessionId, setId, req.user.id, dto)
   }
   @Delete(':setId') deleteSet(@Param('sessionId') sessionId: string, @Param('setId') setId: string, @Req() req: any) {
-    return this.svc.deleteSet(sessionId, setId, req.user.id);
+    return this.svc.deleteSet(sessionId, setId, req.user.id)
   }
 }
 ```
@@ -1367,6 +1484,7 @@ git commit -m "feat: add SetsModule for logging sets in active sessions"
 ### Task 13: BodyModule
 
 **Files:**
+
 - Create: `apps/api/src/body/body.module.ts`
 - Create: `apps/api/src/body/body.controller.ts`
 - Create: `apps/api/src/body/body.service.ts`
@@ -1374,54 +1492,74 @@ git commit -m "feat: add SetsModule for logging sets in active sessions"
 **Step 1: Create `apps/api/src/body/body.service.ts`**
 
 ```typescript
-import { Injectable, Inject } from '@nestjs/common';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { eq, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import { DATABASE } from '../drizzle/drizzle.constants';
-import * as schema from '../drizzle/schema';
-import { CreateBodyWeightDto, CreateMeasurementDto } from '@gymtracker/shared';
+import { Injectable, Inject } from '@nestjs/common'
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { eq, desc } from 'drizzle-orm'
+import { randomUUID } from 'crypto'
+import { DATABASE } from '../drizzle/drizzle.constants'
+import * as schema from '../drizzle/schema'
+import { CreateBodyWeightDto, CreateMeasurementDto } from '@gymtracker/shared'
 
 @Injectable()
 export class BodyService {
   constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
 
   getWeights(userId: string) {
-    return this.db.select().from(schema.bodyWeights)
+    return this.db
+      .select()
+      .from(schema.bodyWeights)
       .where(eq(schema.bodyWeights.userId, userId))
-      .orderBy(desc(schema.bodyWeights.recordedAt)).all();
+      .orderBy(desc(schema.bodyWeights.recordedAt))
+      .all()
   }
 
   addWeight(userId: string, dto: CreateBodyWeightDto) {
-    const id = randomUUID();
-    const now = Math.floor(Date.now() / 1000);
-    this.db.insert(schema.bodyWeights).values({
-      id, userId, weightKg: dto.weightKg,
-      recordedAt: dto.recordedAt ?? now,
-      notes: dto.notes ?? null,
-    }).run();
-    return this.db.select().from(schema.bodyWeights).where(eq(schema.bodyWeights.id, id)).get()!;
+    const id = randomUUID()
+    const now = Math.floor(Date.now() / 1000)
+    this.db
+      .insert(schema.bodyWeights)
+      .values({
+        id,
+        userId,
+        weightKg: dto.weightKg,
+        recordedAt: dto.recordedAt ?? now,
+        notes: dto.notes ?? null,
+      })
+      .run()
+    return this.db.select().from(schema.bodyWeights).where(eq(schema.bodyWeights.id, id)).get()!
   }
 
   getMeasurements(userId: string) {
-    return this.db.select().from(schema.bodyMeasurements)
+    return this.db
+      .select()
+      .from(schema.bodyMeasurements)
       .where(eq(schema.bodyMeasurements.userId, userId))
-      .orderBy(desc(schema.bodyMeasurements.recordedAt)).all();
+      .orderBy(desc(schema.bodyMeasurements.recordedAt))
+      .all()
   }
 
   addMeasurement(userId: string, dto: CreateMeasurementDto) {
-    const id = randomUUID();
-    const now = Math.floor(Date.now() / 1000);
-    this.db.insert(schema.bodyMeasurements).values({
-      id, userId,
-      recordedAt: dto.recordedAt ?? now,
-      chest: dto.chest ?? null, waist: dto.waist ?? null, hips: dto.hips ?? null,
-      leftBicep: dto.leftBicep ?? null, rightBicep: dto.rightBicep ?? null,
-      leftThigh: dto.leftThigh ?? null, rightThigh: dto.rightThigh ?? null,
-      shoulders: dto.shoulders ?? null, neck: dto.neck ?? null,
-      notes: dto.notes ?? null,
-    }).run();
-    return this.db.select().from(schema.bodyMeasurements).where(eq(schema.bodyMeasurements.id, id)).get()!;
+    const id = randomUUID()
+    const now = Math.floor(Date.now() / 1000)
+    this.db
+      .insert(schema.bodyMeasurements)
+      .values({
+        id,
+        userId,
+        recordedAt: dto.recordedAt ?? now,
+        chest: dto.chest ?? null,
+        waist: dto.waist ?? null,
+        hips: dto.hips ?? null,
+        leftBicep: dto.leftBicep ?? null,
+        rightBicep: dto.rightBicep ?? null,
+        leftThigh: dto.leftThigh ?? null,
+        rightThigh: dto.rightThigh ?? null,
+        shoulders: dto.shoulders ?? null,
+        neck: dto.neck ?? null,
+        notes: dto.notes ?? null,
+      })
+      .run()
+    return this.db.select().from(schema.bodyMeasurements).where(eq(schema.bodyMeasurements.id, id)).get()!
   }
 }
 ```
@@ -1429,6 +1567,7 @@ export class BodyService {
 **Step 2: Create controller and module (follow the exercises pattern)**
 
 Controller routes:
+
 - `GET /body/weight` → getWeights
 - `POST /body/weight` → addWeight
 - `GET /body/measurements` → getMeasurements
@@ -1446,6 +1585,7 @@ git commit -m "feat: add BodyModule (weight + measurements)"
 ### Task 14: StatsModule
 
 **Files:**
+
 - Create: `apps/api/src/stats/stats.module.ts`
 - Create: `apps/api/src/stats/stats.controller.ts`
 - Create: `apps/api/src/stats/stats.service.ts`
@@ -1453,11 +1593,11 @@ git commit -m "feat: add BodyModule (weight + measurements)"
 **Step 1: Create `apps/api/src/stats/stats.service.ts`**
 
 ```typescript
-import { Injectable, Inject } from '@nestjs/common';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
-import { DATABASE } from '../drizzle/drizzle.constants';
-import * as schema from '../drizzle/schema';
+import { Injectable, Inject } from '@nestjs/common'
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { eq, and, gte, lte, desc } from 'drizzle-orm'
+import { DATABASE } from '../drizzle/drizzle.constants'
+import * as schema from '../drizzle/schema'
 
 @Injectable()
 export class StatsService {
@@ -1465,9 +1605,11 @@ export class StatsService {
 
   getPRs(userId: string, exerciseId?: string, limit = 10) {
     // Raw SQL for max weight grouped by exercise
-    const db = (this.db as any).session.client as import('better-sqlite3').Database;
-    const where = exerciseId ? `AND s.exercise_id = '${exerciseId}'` : '';
-    return db.prepare(`
+    const db = (this.db as any).session.client as import('better-sqlite3').Database
+    const where = exerciseId ? `AND s.exercise_id = '${exerciseId}'` : ''
+    return db
+      .prepare(
+        `
       SELECT s.exercise_id, e.name, MAX(s.weight_kg) as maxWeightKg,
              s.reps as repsAtMax, s.completed_at as achievedAt
       FROM sets s
@@ -1477,80 +1619,119 @@ export class StatsService {
       GROUP BY s.exercise_id
       ORDER BY maxWeightKg DESC
       LIMIT ?
-    `).all(userId, limit);
+    `,
+      )
+      .all(userId, limit)
   }
 
   getVolume(userId: string, exerciseId?: string, from?: number, to?: number) {
-    const db = (this.db as any).session.client as import('better-sqlite3').Database;
-    const conditions: string[] = ['ws.user_id = ?'];
-    const params: unknown[] = [userId];
-    if (exerciseId) { conditions.push(`s.exercise_id = ?`); params.push(exerciseId); }
-    if (from) { conditions.push(`s.completed_at >= ?`); params.push(from); }
-    if (to) { conditions.push(`s.completed_at <= ?`); params.push(to); }
-    const where = conditions.join(' AND ');
-    return db.prepare(`
+    const db = (this.db as any).session.client as import('better-sqlite3').Database
+    const conditions: string[] = ['ws.user_id = ?']
+    const params: unknown[] = [userId]
+    if (exerciseId) {
+      conditions.push(`s.exercise_id = ?`)
+      params.push(exerciseId)
+    }
+    if (from) {
+      conditions.push(`s.completed_at >= ?`)
+      params.push(from)
+    }
+    if (to) {
+      conditions.push(`s.completed_at <= ?`)
+      params.push(to)
+    }
+    const where = conditions.join(' AND ')
+    return db
+      .prepare(
+        `
       SELECT date(s.completed_at, 'unixepoch') as date,
              SUM(s.reps * s.weight_kg) as volume
       FROM sets s
       JOIN workout_sessions ws ON s.session_id = ws.id
       WHERE ${where} AND s.reps IS NOT NULL AND s.weight_kg IS NOT NULL
       GROUP BY date ORDER BY date ASC
-    `).all(...params);
+    `,
+      )
+      .all(...params)
   }
 
   getStreak(userId: string) {
-    const db = (this.db as any).session.client as import('better-sqlite3').Database;
-    const days = db.prepare(`
+    const db = (this.db as any).session.client as import('better-sqlite3').Database
+    const days = db
+      .prepare(
+        `
       SELECT DISTINCT date(started_at, 'unixepoch') as day
       FROM workout_sessions WHERE user_id = ? AND finished_at IS NOT NULL
       ORDER BY day DESC
-    `).all(userId) as { day: string }[];
+    `,
+      )
+      .all(userId) as { day: string }[]
 
-    let current = 0, longest = 0, streak = 0;
-    const today = new Date().toISOString().split('T')[0]!;
-    let prev: string | null = null;
+    let current = 0,
+      longest = 0,
+      streak = 0
+    const today = new Date().toISOString().split('T')[0]!
+    let prev: string | null = null
 
     for (const { day } of days) {
       if (!prev) {
-        streak = (day === today || day === new Date(Date.now() - 86400000).toISOString().split('T')[0]) ? 1 : 0;
+        streak = day === today || day === new Date(Date.now() - 86400000).toISOString().split('T')[0] ? 1 : 0
       } else {
-        const diff = (new Date(prev).getTime() - new Date(day).getTime()) / 86400000;
-        streak = diff === 1 ? streak + 1 : 1;
+        const diff = (new Date(prev).getTime() - new Date(day).getTime()) / 86400000
+        streak = diff === 1 ? streak + 1 : 1
       }
-      longest = Math.max(longest, streak);
-      if (!current) current = streak;
-      prev = day;
+      longest = Math.max(longest, streak)
+      if (!current) current = streak
+      prev = day
     }
-    return { current, longest };
+    return { current, longest }
   }
 
   getBodyWeight(userId: string, from?: number, to?: number) {
-    const conditions = [eq(schema.bodyWeights.userId, userId)];
-    if (from) conditions.push(gte(schema.bodyWeights.recordedAt, from));
-    if (to) conditions.push(lte(schema.bodyWeights.recordedAt, to));
-    return this.db.select().from(schema.bodyWeights)
-      .where(and(...conditions)).orderBy(schema.bodyWeights.recordedAt).all();
+    const conditions = [eq(schema.bodyWeights.userId, userId)]
+    if (from) conditions.push(gte(schema.bodyWeights.recordedAt, from))
+    if (to) conditions.push(lte(schema.bodyWeights.recordedAt, to))
+    return this.db
+      .select()
+      .from(schema.bodyWeights)
+      .where(and(...conditions))
+      .orderBy(schema.bodyWeights.recordedAt)
+      .all()
   }
 
   getMeasurements(userId: string, from?: number, to?: number) {
-    const conditions = [eq(schema.bodyMeasurements.userId, userId)];
-    if (from) conditions.push(gte(schema.bodyMeasurements.recordedAt, from));
-    if (to) conditions.push(lte(schema.bodyMeasurements.recordedAt, to));
-    return this.db.select().from(schema.bodyMeasurements)
-      .where(and(...conditions)).orderBy(schema.bodyMeasurements.recordedAt).all();
+    const conditions = [eq(schema.bodyMeasurements.userId, userId)]
+    if (from) conditions.push(gte(schema.bodyMeasurements.recordedAt, from))
+    if (to) conditions.push(lte(schema.bodyMeasurements.recordedAt, to))
+    return this.db
+      .select()
+      .from(schema.bodyMeasurements)
+      .where(and(...conditions))
+      .orderBy(schema.bodyMeasurements.recordedAt)
+      .all()
   }
 
   getFrequency(userId: string, from?: number, to?: number) {
-    const db = (this.db as any).session.client as import('better-sqlite3').Database;
-    const params: unknown[] = [userId];
-    let extra = '';
-    if (from) { extra += ' AND started_at >= ?'; params.push(from); }
-    if (to) { extra += ' AND started_at <= ?'; params.push(to); }
-    return db.prepare(`
+    const db = (this.db as any).session.client as import('better-sqlite3').Database
+    const params: unknown[] = [userId]
+    let extra = ''
+    if (from) {
+      extra += ' AND started_at >= ?'
+      params.push(from)
+    }
+    if (to) {
+      extra += ' AND started_at <= ?'
+      params.push(to)
+    }
+    return db
+      .prepare(
+        `
       SELECT strftime('%Y-W%W', started_at, 'unixepoch') as week, COUNT(*) as count
       FROM workout_sessions WHERE user_id = ? AND finished_at IS NOT NULL ${extra}
       GROUP BY week ORDER BY week ASC
-    `).all(...params);
+    `,
+      )
+      .all(...params)
   }
 }
 ```
@@ -1563,20 +1744,27 @@ export class StatsController {
   constructor(private readonly svc: StatsService) {}
 
   @Get('prs') getPRs(@Req() req: any, @Query('exerciseId') exerciseId?: string, @Query('limit') limit?: string) {
-    return this.svc.getPRs(req.user.id, exerciseId, limit ? parseInt(limit) : 10);
+    return this.svc.getPRs(req.user.id, exerciseId, limit ? parseInt(limit) : 10)
   }
-  @Get('volume') getVolume(@Req() req: any, @Query('exerciseId') exerciseId?: string, @Query('from') from?: string, @Query('to') to?: string) {
-    return this.svc.getVolume(req.user.id, exerciseId, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined);
+  @Get('volume') getVolume(
+    @Req() req: any,
+    @Query('exerciseId') exerciseId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.svc.getVolume(req.user.id, exerciseId, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined)
   }
-  @Get('streak') getStreak(@Req() req: any) { return this.svc.getStreak(req.user.id); }
+  @Get('streak') getStreak(@Req() req: any) {
+    return this.svc.getStreak(req.user.id)
+  }
   @Get('bodyweight') getBodyWeight(@Req() req: any, @Query('from') from?: string, @Query('to') to?: string) {
-    return this.svc.getBodyWeight(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined);
+    return this.svc.getBodyWeight(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined)
   }
   @Get('measurements') getMeasurements(@Req() req: any, @Query('from') from?: string, @Query('to') to?: string) {
-    return this.svc.getMeasurements(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined);
+    return this.svc.getMeasurements(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined)
   }
   @Get('frequency') getFrequency(@Req() req: any, @Query('from') from?: string, @Query('to') to?: string) {
-    return this.svc.getFrequency(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined);
+    return this.svc.getFrequency(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined)
   }
 }
 ```
@@ -1595,6 +1783,7 @@ git commit -m "feat: add StatsModule (PRs, volume, streak, body, frequency)"
 ### Task 15: PhotosModule
 
 **Files:**
+
 - Create: `apps/api/src/photos/photos.module.ts`
 - Create: `apps/api/src/photos/photos.controller.ts`
 - Create: `apps/api/src/photos/photos.service.ts`
@@ -1602,63 +1791,70 @@ git commit -m "feat: add StatsModule (PRs, volume, streak, body, frequency)"
 **Step 1: Create `apps/api/src/photos/photos.service.ts`**
 
 ```typescript
-import { Injectable, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { eq, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
-import { join } from 'path';
-import { mkdirSync } from 'fs';
-import sharp from 'sharp';
-import { DATABASE } from '../drizzle/drizzle.constants';
-import * as schema from '../drizzle/schema';
+import { Injectable, Inject } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { eq, desc } from 'drizzle-orm'
+import { randomUUID } from 'crypto'
+import { join } from 'path'
+import { mkdirSync } from 'fs'
+import sharp from 'sharp'
+import { DATABASE } from '../drizzle/drizzle.constants'
+import * as schema from '../drizzle/schema'
 
 @Injectable()
 export class PhotosService {
-  private readonly photosDir: string;
+  private readonly photosDir: string
 
   constructor(
     @Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>,
     private config: ConfigService,
   ) {
-    this.photosDir = config.getOrThrow<string>('PHOTOS_DIR');
+    this.photosDir = config.getOrThrow<string>('PHOTOS_DIR')
   }
 
   getPhotos(userId: string) {
-    return this.db.select().from(schema.progressPhotos)
+    return this.db
+      .select()
+      .from(schema.progressPhotos)
       .where(eq(schema.progressPhotos.userId, userId))
-      .orderBy(desc(schema.progressPhotos.recordedAt)).all();
+      .orderBy(desc(schema.progressPhotos.recordedAt))
+      .all()
   }
 
   async uploadPhoto(userId: string, buffer: Buffer, bodyWeight?: number, tags?: string[], notes?: string) {
-    const id = randomUUID();
-    const userDir = join(this.photosDir, userId);
-    mkdirSync(userDir, { recursive: true });
+    const id = randomUUID()
+    const userDir = join(this.photosDir, userId)
+    mkdirSync(userDir, { recursive: true })
 
-    const origPath = join(userDir, `${id}-orig.webp`);
-    const thumbPath = join(userDir, `${id}-thumb.webp`);
-    const relOrig = `${userId}/${id}-orig.webp`;
-    const relThumb = `${userId}/${id}-thumb.webp`;
+    const origPath = join(userDir, `${id}-orig.webp`)
+    const thumbPath = join(userDir, `${id}-thumb.webp`)
+    const relOrig = `${userId}/${id}-orig.webp`
+    const relThumb = `${userId}/${id}-thumb.webp`
 
-    await sharp(buffer).rotate().webp({ quality: 85 }).toFile(origPath);
-    await sharp(buffer).rotate().resize({ width: 400 }).webp({ quality: 75 }).toFile(thumbPath);
+    await sharp(buffer).rotate().webp({ quality: 85 }).toFile(origPath)
+    await sharp(buffer).rotate().resize({ width: 400 }).webp({ quality: 75 }).toFile(thumbPath)
 
-    const now = Math.floor(Date.now() / 1000);
-    this.db.insert(schema.progressPhotos).values({
-      id, userId,
-      recordedAt: now,
-      filePath: relOrig,
-      thumbPath: relThumb,
-      bodyWeight: bodyWeight ?? null,
-      tags: tags ? JSON.stringify(tags) : null,
-      notes: notes ?? null,
-    }).run();
+    const now = Math.floor(Date.now() / 1000)
+    this.db
+      .insert(schema.progressPhotos)
+      .values({
+        id,
+        userId,
+        recordedAt: now,
+        filePath: relOrig,
+        thumbPath: relThumb,
+        bodyWeight: bodyWeight ?? null,
+        tags: tags ? JSON.stringify(tags) : null,
+        notes: notes ?? null,
+      })
+      .run()
 
-    return this.db.select().from(schema.progressPhotos).where(eq(schema.progressPhotos.id, id)).get()!;
+    return this.db.select().from(schema.progressPhotos).where(eq(schema.progressPhotos.id, id)).get()!
   }
 
   getPhotoPath(userId: string, filename: string) {
-    return join(this.photosDir, userId, filename);
+    return join(this.photosDir, userId, filename)
   }
 }
 ```
@@ -1666,40 +1862,42 @@ export class PhotosService {
 **Step 2: Create `apps/api/src/photos/photos.controller.ts`**
 
 ```typescript
-import { Controller, Get, Post, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common';
-import { createReadStream } from 'fs';
-import { PhotosService } from './photos.service';
+import { Controller, Get, Post, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common'
+import { createReadStream } from 'fs'
+import { PhotosService } from './photos.service'
 
 @Controller('photos')
 export class PhotosController {
   constructor(private readonly svc: PhotosService) {}
 
-  @Get() getPhotos(@Req() req: any) { return this.svc.getPhotos(req.user.id); }
+  @Get() getPhotos(@Req() req: any) {
+    return this.svc.getPhotos(req.user.id)
+  }
 
   @Post()
   async upload(@Req() req: any, @Res() res: any) {
-    const data = await req.file();
-    if (!data) return res.code(400).send({ message: 'No file provided' });
+    const data = await req.file()
+    if (!data) return res.code(400).send({ message: 'No file provided' })
 
-    const buffer = await data.toBuffer();
+    const buffer = await data.toBuffer()
     if (buffer.byteLength > 15 * 1024 * 1024) {
-      throw new PayloadTooLargeException('File exceeds 15 MB limit');
+      throw new PayloadTooLargeException('File exceeds 15 MB limit')
     }
 
-    const fields = data.fields as Record<string, any>;
-    const bodyWeight = fields.bodyWeight?.value ? parseFloat(fields.bodyWeight.value) : undefined;
-    const tags = fields.tags?.value ? JSON.parse(fields.tags.value) : undefined;
-    const notes = fields.notes?.value ?? undefined;
+    const fields = data.fields as Record<string, any>
+    const bodyWeight = fields.bodyWeight?.value ? parseFloat(fields.bodyWeight.value) : undefined
+    const tags = fields.tags?.value ? JSON.parse(fields.tags.value) : undefined
+    const notes = fields.notes?.value ?? undefined
 
-    const photo = await this.svc.uploadPhoto(req.user.id, buffer, bodyWeight, tags, notes);
-    return res.send(photo);
+    const photo = await this.svc.uploadPhoto(req.user.id, buffer, bodyWeight, tags, notes)
+    return res.send(photo)
   }
 
   @Get('file/:filename')
   serveFile(@Param('filename') filename: string, @Req() req: any, @Res() res: any) {
-    const filePath = this.svc.getPhotoPath(req.user.id, filename);
-    const stream = createReadStream(filePath);
-    return res.type('image/webp').send(stream);
+    const filePath = this.svc.getPhotoPath(req.user.id, filename)
+    const stream = createReadStream(filePath)
+    return res.type('image/webp').send(stream)
   }
 }
 ```
@@ -1718,6 +1916,7 @@ git commit -m "feat: add PhotosModule (upload, thumbnail via Sharp, serve)"
 ### Task 16: API client + TanStack Query setup
 
 **Files:**
+
 - Create: `apps/web/src/api/client.ts`
 - Create: `apps/web/src/lib/query.ts`
 - Modify: `apps/web/src/main.tsx`
@@ -1725,18 +1924,18 @@ git commit -m "feat: add PhotosModule (upload, thumbnail via Sharp, serve)"
 **Step 1: Create `apps/web/src/api/client.ts`**
 
 ```typescript
-const BASE = '/api';
+const BASE = '/api'
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
-  });
+  })
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message ?? 'Request failed');
+    const error = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error(error.message ?? 'Request failed')
   }
-  return res.json();
+  return res.json()
 }
 
 export const api = {
@@ -1744,22 +1943,22 @@ export const api = {
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (path: string) => request<void>(path, { method: 'DELETE' }),
-};
+}
 ```
 
 **Step 2: Create `apps/web/src/lib/query.ts`**
 
 ```typescript
-import { QueryClient } from '@tanstack/react-query';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
-import { persistQueryClient } from '@tanstack/react-query-persist-client';
+import { QueryClient } from '@tanstack/react-query'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { persistQueryClient } from '@tanstack/react-query-persist-client'
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 5, retry: 1 } },
-});
+})
 
-const persister = createSyncStoragePersister({ storage: localStorage });
-persistQueryClient({ queryClient, persister });
+const persister = createSyncStoragePersister({ storage: localStorage })
+persistQueryClient({ queryClient, persister })
 ```
 
 **Step 3: Create TanStack Router root route `apps/web/src/router.tsx`**
@@ -1793,15 +1992,15 @@ declare module '@tanstack/react-router' {
 **Step 4: Update `apps/web/src/main.tsx`**
 
 ```tsx
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { RouterProvider } from '@tanstack/react-router';
-import { queryClient } from './lib/query';
-import { router } from './router';
-import './index.css';
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider } from '@tanstack/react-router'
+import { queryClient } from './lib/query'
+import { router } from './router'
+import './index.css'
 
-queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
+queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -1809,7 +2008,7 @@ createRoot(document.getElementById('root')!).render(
       <RouterProvider router={router} />
     </QueryClientProvider>
   </StrictMode>,
-);
+)
 ```
 
 **Step 5: Verify web app boots**
@@ -1817,6 +2016,7 @@ createRoot(document.getElementById('root')!).render(
 ```bash
 npm run dev --workspace=apps/web
 ```
+
 Expected: Browser shows "Dashboard (coming soon)"
 
 **Step 6: Commit**
@@ -1831,62 +2031,62 @@ git commit -m "feat: add API client, TanStack Query, and TanStack Router"
 ### Task 17: Zustand stores
 
 **Files:**
+
 - Create: `apps/web/src/stores/workout.store.ts`
 - Create: `apps/web/src/stores/preferences.store.ts`
 
 **Step 1: Create `apps/web/src/stores/workout.store.ts`**
 
 ```typescript
-import { create } from 'zustand';
+import { create } from 'zustand'
 
 interface WorkoutStore {
-  activeSessionId: string | null;
-  activeExerciseIndex: number;
-  setActiveSession: (id: string | null) => void;
-  nextExercise: () => void;
-  prevExercise: () => void;
-  resetExerciseIndex: () => void;
+  activeSessionId: string | null
+  activeExerciseIndex: number
+  setActiveSession: (id: string | null) => void
+  nextExercise: () => void
+  prevExercise: () => void
+  resetExerciseIndex: () => void
 }
 
-export const useWorkoutStore = create<WorkoutStore>((set) => ({
+export const useWorkoutStore = create<WorkoutStore>(set => ({
   activeSessionId: null,
   activeExerciseIndex: 0,
-  setActiveSession: (id) => set({ activeSessionId: id, activeExerciseIndex: 0 }),
-  nextExercise: () => set((s) => ({ activeExerciseIndex: s.activeExerciseIndex + 1 })),
-  prevExercise: () => set((s) => ({ activeExerciseIndex: Math.max(0, s.activeExerciseIndex - 1) })),
+  setActiveSession: id => set({ activeSessionId: id, activeExerciseIndex: 0 }),
+  nextExercise: () => set(s => ({ activeExerciseIndex: s.activeExerciseIndex + 1 })),
+  prevExercise: () => set(s => ({ activeExerciseIndex: Math.max(0, s.activeExerciseIndex - 1) })),
   resetExerciseIndex: () => set({ activeExerciseIndex: 0 }),
-}));
+}))
 ```
 
 **Step 2: Create `apps/web/src/stores/preferences.store.ts`**
 
 ```typescript
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface PreferencesStore {
-  unit: 'kg' | 'lb';
-  inputModes: Record<string, 'wheel' | 'buttons'>;
-  restTimerSeconds: number;
-  setUnit: (unit: 'kg' | 'lb') => void;
-  setInputMode: (fieldKey: string, mode: 'wheel' | 'buttons') => void;
-  setRestTimer: (seconds: number) => void;
+  unit: 'kg' | 'lb'
+  inputModes: Record<string, 'wheel' | 'buttons'>
+  restTimerSeconds: number
+  setUnit: (unit: 'kg' | 'lb') => void
+  setInputMode: (fieldKey: string, mode: 'wheel' | 'buttons') => void
+  setRestTimer: (seconds: number) => void
 }
 
 export const usePreferencesStore = create<PreferencesStore>()(
   persist(
-    (set) => ({
+    set => ({
       unit: 'kg',
       inputModes: {},
       restTimerSeconds: 90,
-      setUnit: (unit) => set({ unit }),
-      setInputMode: (fieldKey, mode) =>
-        set((s) => ({ inputModes: { ...s.inputModes, [fieldKey]: mode } })),
-      setRestTimer: (restTimerSeconds) => set({ restTimerSeconds }),
+      setUnit: unit => set({ unit }),
+      setInputMode: (fieldKey, mode) => set(s => ({ inputModes: { ...s.inputModes, [fieldKey]: mode } })),
+      setRestTimer: restTimerSeconds => set({ restTimerSeconds }),
     }),
     { name: 'gymtracker-preferences' },
   ),
-);
+)
 ```
 
 **Step 3: Commit**
@@ -1903,124 +2103,148 @@ git commit -m "feat: add Zustand workout and preferences stores"
 ### Task 18: NumericInput (wheel + buttons modes)
 
 **Files:**
+
 - Create: `apps/web/src/components/inputs/NumericInput.tsx`
 - Create: `apps/web/src/components/inputs/useLongPress.ts`
 
 **Step 1: Create `apps/web/src/components/inputs/useLongPress.ts`**
 
 ```typescript
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback } from 'react'
 
 export function useLongPress(callback: () => void, interval = 125) {
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const start = useCallback(() => {
-    callback();
-    timerRef.current = setInterval(callback, interval);
-  }, [callback, interval]);
+    callback()
+    timerRef.current = setInterval(callback, interval)
+  }, [callback, interval])
 
   const stop = useCallback(() => {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-  }, []);
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
 
-  return { onMouseDown: start, onMouseUp: stop, onMouseLeave: stop, onTouchStart: start, onTouchEnd: stop };
+  return { onMouseDown: start, onMouseUp: stop, onMouseLeave: stop, onTouchStart: start, onTouchEnd: stop }
 }
 ```
 
 **Step 2: Create `apps/web/src/components/inputs/NumericInput.tsx`**
 
 ```tsx
-import { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { usePreferencesStore } from '@/stores/preferences.store';
-import { useLongPress } from './useLongPress';
-import { cn } from '@/lib/utils';
+import { useState, useRef } from 'react'
+import { Button } from '@/components/ui/button'
+import { usePreferencesStore } from '@/stores/preferences.store'
+import { useLongPress } from './useLongPress'
+import { cn } from '@/lib/utils'
 
 interface NumericInputProps {
-  value: number;
-  onChange: (v: number) => void;
-  min: number;
-  max: number;
-  step: number;
-  bigStep?: number;
-  unit?: string;
-  fieldKey: string;
-  label?: string;
+  value: number
+  onChange: (v: number) => void
+  min: number
+  max: number
+  step: number
+  bigStep?: number
+  unit?: string
+  fieldKey: string
+  label?: string
 }
 
 function ButtonMode({ value, onChange, min, max, step, bigStep, unit, fieldKey }: NumericInputProps) {
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const clamp = (v: number) => Math.max(min, Math.min(max, v));
-  const decBig = useLongPress(() => onChange(clamp(value - (bigStep ?? step))));
-  const dec = useLongPress(() => onChange(clamp(value - step)));
-  const inc = useLongPress(() => onChange(clamp(value + step)));
-  const incBig = useLongPress(() => onChange(clamp(value + (bigStep ?? step))));
+  const clamp = (v: number) => Math.max(min, Math.min(max, v))
+  const decBig = useLongPress(() => onChange(clamp(value - (bigStep ?? step))))
+  const dec = useLongPress(() => onChange(clamp(value - step)))
+  const inc = useLongPress(() => onChange(clamp(value + step)))
+  const incBig = useLongPress(() => onChange(clamp(value + (bigStep ?? step))))
 
-  if (editing) return (
-    <input
-      ref={inputRef}
-      type="number"
-      defaultValue={value}
-      autoFocus
-      className="w-full text-center text-2xl font-bold border rounded-lg p-3"
-      onBlur={(e) => { onChange(clamp(parseFloat(e.target.value) || value)); setEditing(false); }}
-      onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.blur()}
-    />
-  );
+  if (editing)
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        defaultValue={value}
+        autoFocus
+        className="w-full rounded-lg border p-3 text-center text-2xl font-bold"
+        onBlur={e => {
+          onChange(clamp(parseFloat(e.target.value) || value))
+          setEditing(false)
+        }}
+        onKeyDown={e => e.key === 'Enter' && inputRef.current?.blur()}
+      />
+    )
 
   return (
     <div className="flex items-center gap-1">
-      {bigStep && <Button variant="outline" className="min-w-14 min-h-14 text-lg" {...decBig}>−{bigStep}</Button>}
-      <Button variant="outline" className="min-w-14 min-h-14 text-lg" {...dec}>−{step}</Button>
+      {bigStep && (
+        <Button variant="outline" className="min-h-14 min-w-14 text-lg" {...decBig}>
+          −{bigStep}
+        </Button>
+      )}
+      <Button variant="outline" className="min-h-14 min-w-14 text-lg" {...dec}>
+        −{step}
+      </Button>
       <button
         onClick={() => setEditing(true)}
-        className="flex-1 min-h-14 text-center font-bold text-xl px-3 rounded-lg bg-muted hover:bg-muted/80"
+        className="bg-muted hover:bg-muted/80 min-h-14 flex-1 rounded-lg px-3 text-center text-xl font-bold"
       >
-        {value}{unit ? ` ${unit}` : ''}
+        {value}
+        {unit ? ` ${unit}` : ''}
       </button>
-      <Button variant="outline" className="min-w-14 min-h-14 text-lg" {...inc}>+{step}</Button>
-      {bigStep && <Button variant="outline" className="min-w-14 min-h-14 text-lg" {...incBig}>+{bigStep}</Button>}
+      <Button variant="outline" className="min-h-14 min-w-14 text-lg" {...inc}>
+        +{step}
+      </Button>
+      {bigStep && (
+        <Button variant="outline" className="min-h-14 min-w-14 text-lg" {...incBig}>
+          +{bigStep}
+        </Button>
+      )}
     </div>
-  );
+  )
 }
 
 function WheelMode({ value, onChange, min, max, step, unit }: NumericInputProps) {
-  const items = [];
+  const items = []
   for (let v = min; v <= max; v = Math.round((v + step) * 100) / 100) {
-    items.push(v);
+    items.push(v)
   }
   return (
     <select
       value={value}
-      onChange={(e) => onChange(parseFloat(e.target.value))}
-      className="w-full text-center text-xl font-bold border rounded-lg p-3 bg-background"
+      onChange={e => onChange(parseFloat(e.target.value))}
+      className="bg-background w-full rounded-lg border p-3 text-center text-xl font-bold"
     >
-      {items.map((v) => (
-        <option key={v} value={v}>{v}{unit ? ` ${unit}` : ''}</option>
+      {items.map(v => (
+        <option key={v} value={v}>
+          {v}
+          {unit ? ` ${unit}` : ''}
+        </option>
       ))}
     </select>
-  );
+  )
 }
 
 export function NumericInput(props: NumericInputProps) {
-  const { inputModes, setInputMode } = usePreferencesStore();
-  const mode = inputModes[props.fieldKey] ?? 'buttons';
+  const { inputModes, setInputMode } = usePreferencesStore()
+  const mode = inputModes[props.fieldKey] ?? 'buttons'
 
   return (
     <div className="relative">
-      {props.label && <label className="text-sm text-muted-foreground mb-1 block">{props.label}</label>}
+      {props.label && <label className="text-muted-foreground mb-1 block text-sm">{props.label}</label>}
       {mode === 'buttons' ? <ButtonMode {...props} /> : <WheelMode {...props} />}
       <button
         onClick={() => setInputMode(props.fieldKey, mode === 'buttons' ? 'wheel' : 'buttons')}
-        className="absolute top-0 right-0 text-xs text-muted-foreground p-1"
+        className="text-muted-foreground absolute top-0 right-0 p-1 text-xs"
         title="Toggle input mode"
       >
         {mode === 'buttons' ? '≡' : '⟳'}
       </button>
     </div>
-  );
+  )
 }
 ```
 
@@ -2038,6 +2262,7 @@ git commit -m "feat: add NumericInput with buttons/wheel modes and long-press"
 ### Task 19: WorkoutLogger route + component
 
 **Files:**
+
 - Create: `apps/web/src/routes/workout.$sessionId.tsx`
 - Create: `apps/web/src/components/workout/WorkoutLogger.tsx`
 - Create: `apps/web/src/api/workouts.ts`
@@ -2046,7 +2271,7 @@ git commit -m "feat: add NumericInput with buttons/wheel modes and long-press"
 **Step 1: Create `apps/web/src/api/workouts.ts`**
 
 ```typescript
-import { api } from './client';
+import { api } from './client'
 
 export const workoutsApi = {
   getTemplates: () => api.get<any[]>('/templates'),
@@ -2054,19 +2279,20 @@ export const workoutsApi = {
   getSession: (id: string) => api.get<any>(`/sessions/${id}`),
   getActiveSession: () => api.get<any | null>('/sessions/active'),
   finishSession: (id: string, notes?: string) => api.post<any>(`/sessions/${id}/finish`, { notes }),
-};
+}
 ```
 
 **Step 2: Create `apps/web/src/api/sets.ts`**
 
 ```typescript
-import { api } from './client';
+import { api } from './client'
 
 export const setsApi = {
   logSet: (sessionId: string, data: object) => api.post<any>(`/sessions/${sessionId}/sets`, data),
-  updateSet: (sessionId: string, setId: string, data: object) => api.patch<any>(`/sessions/${sessionId}/sets/${setId}`, data),
+  updateSet: (sessionId: string, setId: string, data: object) =>
+    api.patch<any>(`/sessions/${sessionId}/sets/${setId}`, data),
   deleteSet: (sessionId: string, setId: string) => api.delete(`/sessions/${sessionId}/sets/${setId}`),
-};
+}
 ```
 
 **Step 3: Create `apps/web/src/components/workout/WorkoutLogger.tsx`**
@@ -2074,120 +2300,135 @@ export const setsApi = {
 This is the main mobile logger screen. Use the layout from the spec:
 
 ```tsx
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { NumericInput } from '@/components/inputs/NumericInput';
-import { Button } from '@/components/ui/button';
-import { setsApi } from '@/api/sets';
-import { workoutsApi } from '@/api/workouts';
-import { useWorkoutStore } from '@/stores/workout.store';
-import { usePreferencesStore } from '@/stores/preferences.store';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { NumericInput } from '@/components/inputs/NumericInput'
+import { Button } from '@/components/ui/button'
+import { setsApi } from '@/api/sets'
+import { workoutsApi } from '@/api/workouts'
+import { useWorkoutStore } from '@/stores/workout.store'
+import { usePreferencesStore } from '@/stores/preferences.store'
+import { cn } from '@/lib/utils'
 
-interface WorkoutLoggerProps { sessionId: string; }
+interface WorkoutLoggerProps {
+  sessionId: string
+}
 
 export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { activeExerciseIndex, nextExercise, prevExercise } = useWorkoutStore();
-  const { restTimerSeconds } = usePreferencesStore();
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { activeExerciseIndex, nextExercise, prevExercise } = useWorkoutStore()
+  const { restTimerSeconds } = usePreferencesStore()
 
-  const [weight, setWeight] = useState(0);
-  const [reps, setReps] = useState(8);
-  const [restTimer, setRestTimer] = useState<number | null>(null);
-  const [elapsed, setElapsed] = useState(0);
+  const [weight, setWeight] = useState(0)
+  const [reps, setReps] = useState(8)
+  const [restTimer, setRestTimer] = useState<number | null>(null)
+  const [elapsed, setElapsed] = useState(0)
 
   const { data: session } = useQuery({
     queryKey: ['session', sessionId],
     queryFn: () => workoutsApi.getSession(sessionId),
-  });
+  })
 
   const exercises = session?.sets
-    ? [...new Set(session.sets.map((s: any) => s.exerciseId))].map((id) => ({
+    ? [...new Set(session.sets.map((s: any) => s.exerciseId))].map(id => ({
         id,
         sets: session.sets.filter((s: any) => s.exerciseId === id),
       }))
-    : [];
+    : []
 
-  const currentExercise = exercises[activeExerciseIndex];
-
-  useEffect(() => {
-    if (!currentExercise?.sets?.length) return;
-    const last = currentExercise.sets.at(-1);
-    if (last?.weightKg) setWeight(last.weightKg);
-    if (last?.reps) setReps(last.reps);
-  }, [activeExerciseIndex, currentExercise]);
+  const currentExercise = exercises[activeExerciseIndex]
 
   useEffect(() => {
-    if (restTimer === null) return;
-    const id = setInterval(() => setElapsed((p) => p + 1), 1000);
-    return () => clearInterval(id);
-  }, [restTimer]);
+    if (!currentExercise?.sets?.length) return
+    const last = currentExercise.sets.at(-1)
+    if (last?.weightKg) setWeight(last.weightKg)
+    if (last?.reps) setReps(last.reps)
+  }, [activeExerciseIndex, currentExercise])
+
+  useEffect(() => {
+    if (restTimer === null) return
+    const id = setInterval(() => setElapsed(p => p + 1), 1000)
+    return () => clearInterval(id)
+  }, [restTimer])
 
   const logSet = useMutation({
-    mutationFn: () => setsApi.logSet(sessionId, {
-      exerciseId: currentExercise?.id ?? exercises[0]?.id,
-      setNumber: (currentExercise?.sets?.length ?? 0) + 1,
-      reps,
-      weightKg: weight,
-    }),
+    mutationFn: () =>
+      setsApi.logSet(sessionId, {
+        exerciseId: currentExercise?.id ?? exercises[0]?.id,
+        setNumber: (currentExercise?.sets?.length ?? 0) + 1,
+        reps,
+        weightKg: weight,
+      }),
     networkMode: 'offlineFirst',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session', sessionId] });
-      if ('vibrate' in navigator) navigator.vibrate(50);
-      setRestTimer(Date.now());
-      setElapsed(0);
+      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      if ('vibrate' in navigator) navigator.vibrate(50)
+      setRestTimer(Date.now())
+      setElapsed(0)
     },
-  });
+  })
 
-  const sessionDuration = session
-    ? Math.floor((Date.now() / 1000) - session.startedAt)
-    : 0;
-  const mm = String(Math.floor(sessionDuration / 60)).padStart(2, '0');
-  const ss = String(sessionDuration % 60).padStart(2, '0');
+  const sessionDuration = session ? Math.floor(Date.now() / 1000 - session.startedAt) : 0
+  const mm = String(Math.floor(sessionDuration / 60)).padStart(2, '0')
+  const ss = String(sessionDuration % 60).padStart(2, '0')
 
-  const restProgress = restTimer !== null ? Math.min(elapsed / restTimerSeconds, 1) : 0;
+  const restProgress = restTimer !== null ? Math.min(elapsed / restTimerSeconds, 1) : 0
 
   return (
-    <div className="flex flex-col h-svh bg-background">
+    <div className="bg-background flex h-svh flex-col">
       {/* Rest timer progress bar */}
       {restTimer !== null && (
-        <div className="h-1 bg-muted">
+        <div className="bg-muted h-1">
           <div className="h-1 bg-green-500 transition-all" style={{ width: `${restProgress * 100}%` }} />
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <Button variant="ghost" size="sm" onClick={() => navigate({ to: '/dashboard' })}>← Back</Button>
-        <span className="font-semibold truncate max-w-[200px]">{session?.name ?? 'Workout'}</span>
-        <span className="text-muted-foreground tabular-nums">{mm}:{ss}</span>
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <Button variant="ghost" size="sm" onClick={() => navigate({ to: '/dashboard' })}>
+          ← Back
+        </Button>
+        <span className="max-w-[200px] truncate font-semibold">{session?.name ?? 'Workout'}</span>
+        <span className="text-muted-foreground tabular-nums">
+          {mm}:{ss}
+        </span>
       </div>
 
       {/* Previous sets */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+      <div className="flex-1 space-y-1 overflow-y-auto px-4 py-2">
         {currentExercise?.sets?.map((s: any, i: number) => (
-          <div key={s.id} className="flex items-center justify-between py-2 border-b text-sm">
+          <div key={s.id} className="flex items-center justify-between border-b py-2 text-sm">
             <span className="text-muted-foreground">Set {i + 1}</span>
-            <span>{s.weightKg} kg × {s.reps} ✓</span>
+            <span>
+              {s.weightKg} kg × {s.reps} ✓
+            </span>
           </div>
         ))}
-        {!currentExercise && (
-          <p className="text-center text-muted-foreground py-8">Start logging sets!</p>
-        )}
+        {!currentExercise && <p className="text-muted-foreground py-8 text-center">Start logging sets!</p>}
       </div>
 
       {/* Inputs */}
-      <div className="px-4 pb-2 grid grid-cols-2 gap-3">
-        <NumericInput value={weight} onChange={setWeight} min={0} max={300} step={2.5} bigStep={10} unit="kg" fieldKey="weight" label="Weight" />
+      <div className="grid grid-cols-2 gap-3 px-4 pb-2">
+        <NumericInput
+          value={weight}
+          onChange={setWeight}
+          min={0}
+          max={300}
+          step={2.5}
+          bigStep={10}
+          unit="kg"
+          fieldKey="weight"
+          label="Weight"
+        />
         <NumericInput value={reps} onChange={setReps} min={1} max={50} step={1} fieldKey="reps" label="Reps" />
       </div>
 
       {/* Log Set */}
       <div className="px-4 pb-3">
         <Button
-          className="w-full h-[72px] text-xl bg-green-600 hover:bg-green-700 text-white"
+          className="h-[72px] w-full bg-green-600 text-xl text-white hover:bg-green-700"
           onClick={() => logSet.mutate()}
           disabled={logSet.isPending}
         >
@@ -2196,7 +2437,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       </div>
 
       {/* Navigation */}
-      <div className="grid grid-cols-2 gap-2 px-4 pb-safe pb-4">
+      <div className="pb-safe grid grid-cols-2 gap-2 px-4 pb-4">
         <Button variant="outline" onClick={prevExercise} disabled={activeExerciseIndex === 0}>
           ← Prev Exercise
         </Button>
@@ -2205,7 +2446,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }
 ```
 
@@ -2249,23 +2490,28 @@ git commit -m "feat: add WorkoutLogger screen with NumericInput, rest timer, hap
 Show: active session banner (if any), recent sessions list, "Start Workout" button, quick stats.
 
 ```tsx
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate, Link } from '@tanstack/react-router';
-import { workoutsApi } from '@/api/workouts';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate, Link } from '@tanstack/react-router'
+import { workoutsApi } from '@/api/workouts'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function DashboardPage() {
-  const navigate = useNavigate();
-  const { data: active } = useQuery({ queryKey: ['activeSession'], queryFn: workoutsApi.getActiveSession });
-  const { data: sessions = [] } = useQuery({ queryKey: ['sessions'], queryFn: () => workoutsApi.getSessions() as Promise<any[]> });
+  const navigate = useNavigate()
+  const { data: active } = useQuery({ queryKey: ['activeSession'], queryFn: workoutsApi.getActiveSession })
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['sessions'],
+    queryFn: () => workoutsApi.getSessions() as Promise<any[]>,
+  })
 
   return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto">
+    <div className="mx-auto max-w-lg space-y-4 p-4">
       <h1 className="text-2xl font-bold">GymTracker</h1>
       {active && (
         <Card className="border-green-500">
-          <CardHeader><CardTitle>Active: {active.name}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Active: {active.name}</CardTitle>
+          </CardHeader>
           <CardContent>
             <Button onClick={() => navigate({ to: '/workout/$sessionId', params: { sessionId: active.id } })}>
               Resume Workout
@@ -2280,7 +2526,7 @@ export function DashboardPage() {
         <h2 className="font-semibold">Recent Workouts</h2>
         {sessions.slice(0, 5).map((s: any) => (
           <Card key={s.id}>
-            <CardContent className="py-3 flex justify-between">
+            <CardContent className="flex justify-between py-3">
               <span>{s.name}</span>
               <span className="text-muted-foreground text-sm">{new Date(s.startedAt * 1000).toLocaleDateString()}</span>
             </CardContent>
@@ -2288,7 +2534,7 @@ export function DashboardPage() {
         ))}
       </div>
     </div>
-  );
+  )
 }
 ```
 
@@ -2337,6 +2583,7 @@ npm run --workspace=apps/web exec -- npx shadcn@latest add chart
 ```
 
 Each chart section:
+
 1. PR cards — `useQuery` → `GET /api/stats/prs`
 2. Volume area chart — `GET /api/stats/volume`
 3. Body weight line chart — `GET /api/stats/bodyweight`
@@ -2376,26 +2623,41 @@ Commit: `feat: add progress photos gallery and upload`
 **File:** `apps/web/src/routes/settings.tsx`
 
 ```tsx
-import { usePreferencesStore } from '@/stores/preferences.store';
+import { usePreferencesStore } from '@/stores/preferences.store'
 
 export function SettingsPage() {
-  const { unit, setUnit, restTimerSeconds, setRestTimer, inputModes, setInputMode } = usePreferencesStore();
+  const { unit, setUnit, restTimerSeconds, setRestTimer, inputModes, setInputMode } = usePreferencesStore()
   return (
-    <div className="p-4 space-y-6 max-w-lg mx-auto">
+    <div className="mx-auto max-w-lg space-y-6 p-4">
       <h1 className="text-2xl font-bold">Settings</h1>
       <div>
         <label className="font-medium">Units</label>
-        <div className="flex gap-2 mt-2">
-          <button onClick={() => setUnit('kg')} className={cn('px-4 py-2 rounded border', unit === 'kg' && 'bg-primary text-primary-foreground')}>kg</button>
-          <button onClick={() => setUnit('lb')} className={cn('px-4 py-2 rounded border', unit === 'lb' && 'bg-primary text-primary-foreground')}>lb</button>
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={() => setUnit('kg')}
+            className={cn('rounded border px-4 py-2', unit === 'kg' && 'bg-primary text-primary-foreground')}
+          >
+            kg
+          </button>
+          <button
+            onClick={() => setUnit('lb')}
+            className={cn('rounded border px-4 py-2', unit === 'lb' && 'bg-primary text-primary-foreground')}
+          >
+            lb
+          </button>
         </div>
       </div>
       <div>
         <label className="font-medium">Rest Timer (seconds)</label>
-        <input type="number" value={restTimerSeconds} onChange={(e) => setRestTimer(parseInt(e.target.value))} className="mt-2 block w-32 border rounded p-2" />
+        <input
+          type="number"
+          value={restTimerSeconds}
+          onChange={e => setRestTimer(parseInt(e.target.value))}
+          className="mt-2 block w-32 rounded border p-2"
+        />
       </div>
     </div>
-  );
+  )
 }
 ```
 
@@ -2413,9 +2675,9 @@ Mobile bottom nav with tabs: Dashboard, Workout, Stats, Body, Settings.
 Desktop: sidebar or top nav.
 
 ```tsx
-import { Link, useRouterState } from '@tanstack/react-router';
-import { Home, Dumbbell, BarChart2, Activity, Settings } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Link, useRouterState } from '@tanstack/react-router'
+import { Home, Dumbbell, BarChart2, Activity, Settings } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const NAV = [
   { to: '/dashboard', label: 'Home', Icon: Home },
@@ -2423,23 +2685,30 @@ const NAV = [
   { to: '/stats', label: 'Stats', Icon: BarChart2 },
   { to: '/body', label: 'Body', Icon: Activity },
   { to: '/settings', label: 'Settings', Icon: Settings },
-];
+]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { location } = useRouterState();
+  const { location } = useRouterState()
   return (
-    <div className="flex flex-col h-svh">
+    <div className="flex h-svh flex-col">
       <main className="flex-1 overflow-y-auto">{children}</main>
-      <nav className="border-t bg-background grid grid-cols-5 pb-safe">
+      <nav className="bg-background pb-safe grid grid-cols-5 border-t">
         {NAV.map(({ to, label, Icon }) => (
-          <Link key={to} to={to} className={cn('flex flex-col items-center py-2 text-xs gap-1', location.pathname.startsWith(to) ? 'text-primary' : 'text-muted-foreground')}>
+          <Link
+            key={to}
+            to={to}
+            className={cn(
+              'flex flex-col items-center gap-1 py-2 text-xs',
+              location.pathname.startsWith(to) ? 'text-primary' : 'text-muted-foreground',
+            )}
+          >
             <Icon size={22} />
             {label}
           </Link>
         ))}
       </nav>
     </div>
-  );
+  )
 }
 ```
 
@@ -2483,16 +2752,16 @@ Commit: `feat: add PWA manifest for add-to-home-screen`
 **File:** `apps/api/src/cache-control.interceptor.ts`
 
 ```typescript
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common'
+import { Observable } from 'rxjs'
+import { tap } from 'rxjs/operators'
 
 @Injectable()
 export class CacheControlInterceptor implements NestInterceptor {
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
-    const res = ctx.switchToHttp().getResponse();
-    res.header('Cache-Control', 'private, no-store');
-    return next.handle();
+    const res = ctx.switchToHttp().getResponse()
+    res.header('Cache-Control', 'private, no-store')
+    return next.handle()
   }
 }
 ```
@@ -2520,6 +2789,7 @@ curl http://localhost:3000/api/health
 ```
 
 **Step 3: Open http://localhost:5173 and test:**
+
 - [ ] Dashboard loads with "Start New Workout"
 - [ ] Start an ad-hoc workout → WorkoutLogger opens
 - [ ] Log 3 sets on an exercise
@@ -2542,14 +2812,14 @@ git commit -m "feat: complete GymTracker v1 implementation"
 
 ## Local Dev Reference
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Start both API (3000) and web (5173) |
-| `npm run dev --workspace=apps/api` | API only |
-| `npm run dev --workspace=apps/web` | Web only |
-| `npm run db:migrate` | Run Drizzle migrations |
-| `npm run db:studio` | Open Drizzle Studio at http://local.drizzle.studio |
-| `npm run build` | Build all workspaces |
+| Command                            | What it does                                       |
+| ---------------------------------- | -------------------------------------------------- |
+| `npm run dev`                      | Start both API (3000) and web (5173)               |
+| `npm run dev --workspace=apps/api` | API only                                           |
+| `npm run dev --workspace=apps/web` | Web only                                           |
+| `npm run db:migrate`               | Run Drizzle migrations                             |
+| `npm run db:studio`                | Open Drizzle Studio at http://local.drizzle.studio |
+| `npm run build`                    | Build all workspaces                               |
 
 API base: `http://localhost:3000/api`
 Web dev server: `http://localhost:5173` (proxies `/api` to API)

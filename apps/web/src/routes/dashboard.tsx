@@ -9,13 +9,9 @@ import { exercisesApi } from '@/api/exercises'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
 import { useWorkoutStore } from '@/stores/workout.store'
 
-function formatDuration(start: number, end: number) {
-  const mins = Math.round((end - start) / 60)
-  return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`
-}
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -242,9 +238,6 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     },
   })
 
-  const mm = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')
-  const ss = String(elapsedSeconds % 60).padStart(2, '0')
-
   if (!session) {
     return (
       <div className="flex h-svh items-center justify-center">
@@ -263,7 +256,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
             {session.name.toUpperCase()}
           </h1>
         </div>
-        <span className="text-muted-foreground font-mono text-xl tabular-nums">{mm}:{ss}</span>
+        <span className="text-muted-foreground font-mono text-xl tabular-nums">{formatElapsed(elapsedSeconds)}</span>
       </div>
 
       {/* Exercise list */}
@@ -471,7 +464,7 @@ export function DashboardPage() {
                   </div>
                   <div className="text-muted-foreground flex items-center gap-1.5">
                     <Clock size={12} />
-                    <span className="text-xs font-medium">{formatDuration(s.startedAt, s.finishedAt!)}</span>
+                    <span className="text-xs font-medium">{formatSessionDuration(s.startedAt, s.finishedAt!)}</span>
                   </div>
                 </div>
               </Link>

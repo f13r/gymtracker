@@ -1,91 +1,88 @@
-import { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { usePreferencesStore } from '@/stores/preferences.store';
-import { useLongPress } from './useLongPress';
+import { Minus, Plus } from 'lucide-react'
+import { useState, useRef } from 'react'
+
+import { useLongPress } from './useLongPress'
 
 interface NumericInputProps {
-  value: number;
-  onChange: (v: number) => void;
-  min: number;
-  max: number;
-  step: number;
-  bigStep?: number;
-  unit?: string;
-  fieldKey: string;
-  label?: string;
+  value: number
+  onChange: (v: number) => void
+  min: number
+  max: number
+  step: number
+  bigStep?: number
+  unit?: string
+  fieldKey: string
+  label?: string
+  size?: 'md' | 'lg'
+  highlighted?: boolean
+  readOnly?: boolean
 }
 
-function ButtonMode({ value, onChange, min, max, step, bigStep, unit }: NumericInputProps) {
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+export function NumericInput({ value, onChange, min, max, step, unit, label, size = 'md', highlighted = false, readOnly = false }: NumericInputProps) {
+  const [editing, setEditing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const clamp = (v: number) => Math.max(min, Math.min(max, v));
-  const decBig = useLongPress(() => onChange(clamp(value - (bigStep ?? step))));
-  const dec = useLongPress(() => onChange(clamp(value - step)));
-  const inc = useLongPress(() => onChange(clamp(value + step)));
-  const incBig = useLongPress(() => onChange(clamp(value + (bigStep ?? step))));
+  const clamp = (v: number) => Math.max(min, Math.min(max, parseFloat(v.toFixed(2))))
 
-  if (editing) return (
-    <input
-      ref={inputRef}
-      type="number"
-      defaultValue={value}
-      autoFocus
-      className="w-full text-center text-2xl font-bold border rounded-lg p-3"
-      onBlur={(e) => { onChange(clamp(parseFloat(e.target.value) || value)); setEditing(false); }}
-      onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.blur()}
-    />
-  );
+  const decPress = useLongPress(() => onChange(clamp(value - step)))
+  const incPress = useLongPress(() => onChange(clamp(value + step)))
+
+  const lg = size === 'lg'
 
   return (
-    <div className="flex items-center gap-1">
-      {bigStep && <Button variant="outline" className="min-w-14 min-h-14 text-lg" {...decBig}>−{bigStep}</Button>}
-      <Button variant="outline" className="min-w-14 min-h-14 text-lg" {...dec}>−{step}</Button>
-      <button
-        onClick={() => setEditing(true)}
-        className="flex-1 min-h-14 text-center font-bold text-xl px-3 rounded-lg bg-muted hover:bg-muted/80"
-      >
-        {value}{unit ? ` ${unit}` : ''}
-      </button>
-      <Button variant="outline" className="min-w-14 min-h-14 text-lg" {...inc}>+{step}</Button>
-      {bigStep && <Button variant="outline" className="min-w-14 min-h-14 text-lg" {...incBig}>+{bigStep}</Button>}
+    <div className="flex flex-col gap-1">
+      {label && (
+        <span className={`text-center text-[10px] font-semibold tracking-widest uppercase ${highlighted ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+          {label}
+          {unit ? ` (${unit})` : ''}
+        </span>
+      )}
+      <div className={`bg-card border-border flex items-center overflow-hidden rounded-xl border ${lg ? 'h-16' : 'h-14'}`}>
+        {!readOnly && (
+          <button
+            className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-14' : 'w-12'}`}
+            {...decPress}
+          >
+            <Minus size={lg ? 20 : 16} strokeWidth={2.5} />
+          </button>
+        )}
+
+        <div className="flex h-full flex-1 items-center justify-center">
+          {!readOnly && editing ? (
+            <input
+              ref={inputRef}
+              className={`h-full w-full bg-transparent text-center font-bold tabular-nums outline-none ${lg ? 'text-2xl' : 'text-xl'}`}
+              defaultValue={value === 0 ? '' : value}
+              type="number"
+              autoFocus
+              onBlur={e => {
+                onChange(clamp(parseFloat(e.target.value) || value))
+                setEditing(false)
+              }}
+              onKeyDown={e => e.key === 'Enter' && inputRef.current?.blur()}
+            />
+          ) : (
+            <button
+              className="flex h-full w-full items-center justify-center"
+              disabled={readOnly}
+              onClick={() => !readOnly && setEditing(true)}
+            >
+              <span className={`font-display font-700 tracking-wide tabular-nums ${lg ? 'text-3xl' : 'text-2xl'}`}>
+                {value % 1 === 0 ? value : value.toFixed(1)}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {!readOnly && (
+          <button
+            className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-14' : 'w-12'}`}
+            {...incPress}
+          >
+            <Plus size={lg ? 20 : 16} strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
     </div>
-  );
-}
-
-function WheelMode({ value, onChange, min, max, step, unit }: NumericInputProps) {
-  const items: number[] = [];
-  for (let v = min; v <= max; v = Math.round((v + step) * 100) / 100) {
-    items.push(v);
-  }
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(parseFloat(e.target.value))}
-      className="w-full text-center text-xl font-bold border rounded-lg p-3 bg-background"
-    >
-      {items.map((v) => (
-        <option key={v} value={v}>{v}{unit ? ` ${unit}` : ''}</option>
-      ))}
-    </select>
-  );
-}
-
-export function NumericInput(props: NumericInputProps) {
-  const { inputModes, setInputMode } = usePreferencesStore();
-  const mode = inputModes[props.fieldKey] ?? 'buttons';
-
-  return (
-    <div className="relative">
-      {props.label && <label className="text-sm text-muted-foreground mb-1 block">{props.label}</label>}
-      {mode === 'buttons' ? <ButtonMode {...props} /> : <WheelMode {...props} />}
-      <button
-        onClick={() => setInputMode(props.fieldKey, mode === 'buttons' ? 'wheel' : 'buttons')}
-        className="absolute top-0 right-0 text-xs text-muted-foreground p-1"
-        title="Toggle input mode"
-      >
-        {mode === 'buttons' ? '≡' : '⟳'}
-      </button>
-    </div>
-  );
+  )
 }

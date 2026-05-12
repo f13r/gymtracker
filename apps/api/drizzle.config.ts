@@ -1,6 +1,6 @@
-import type { Config } from 'drizzle-kit';
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env' });
+import type { Config } from 'drizzle-kit'
+import * as dotenv from 'dotenv'
+dotenv.config({ path: '.env' })
 
 export default {
   schema: './src/drizzle/schema.ts',
@@ -9,4 +9,4 @@ export default {
   dbCredentials: {
     url: process.env.DATABASE_URL ?? '../../data/sqlite/app.db',
   },
-} satisfies Config;
+} satisfies Config

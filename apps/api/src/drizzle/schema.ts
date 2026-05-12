@@ -1,10 +1,10 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   displayName: text('display_name').notNull(),
   createdAt: integer('created_at').notNull(),
-});
+})
 
 export const exercises = sqliteTable('exercises', {
   id: text('id').primaryKey(),
@@ -15,7 +15,7 @@ export const exercises = sqliteTable('exercises', {
   notes: text('notes'),
   isDefault: integer('is_default').default(0),
   createdAt: integer('created_at').notNull(),
-});
+})
 
 export const workoutTemplates = sqliteTable('workout_templates', {
   id: text('id').primaryKey(),
@@ -23,7 +23,7 @@ export const workoutTemplates = sqliteTable('workout_templates', {
   name: text('name').notNull(),
   notes: text('notes'),
   createdAt: integer('created_at').notNull(),
-});
+})
 
 export const templateExercises = sqliteTable('template_exercises', {
   id: text('id').primaryKey(),
@@ -33,7 +33,8 @@ export const templateExercises = sqliteTable('template_exercises', {
   defaultSets: integer('default_sets'),
   defaultReps: integer('default_reps'),
   defaultWeightKg: real('default_weight_kg'),
-});
+  isWarmup: integer('is_warmup').default(0),
+})
 
 export const workoutSessions = sqliteTable('workout_sessions', {
   id: text('id').primaryKey(),
@@ -43,7 +44,7 @@ export const workoutSessions = sqliteTable('workout_sessions', {
   startedAt: integer('started_at').notNull(),
   finishedAt: integer('finished_at'),
   notes: text('notes'),
-});
+})
 
 export const sets = sqliteTable('sets', {
   id: text('id').primaryKey(),
@@ -56,7 +57,8 @@ export const sets = sqliteTable('sets', {
   rpe: real('rpe'),
   isWarmup: integer('is_warmup').default(0),
   completedAt: integer('completed_at').notNull(),
-});
+  done: integer('done').default(0),
+})
 
 export const bodyWeights = sqliteTable('body_weights', {
   id: text('id').primaryKey(),
@@ -64,7 +66,7 @@ export const bodyWeights = sqliteTable('body_weights', {
   weightKg: real('weight_kg').notNull(),
   recordedAt: integer('recorded_at').notNull(),
   notes: text('notes'),
-});
+})
 
 export const bodyMeasurements = sqliteTable('body_measurements', {
   id: text('id').primaryKey(),
@@ -80,7 +82,17 @@ export const bodyMeasurements = sqliteTable('body_measurements', {
   shoulders: real('shoulders'),
   neck: real('neck'),
   notes: text('notes'),
-});
+})
+
+export const workoutSchedules = sqliteTable('workout_schedules', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').references(() => users.id),
+  templateId: text('template_id').references(() => workoutTemplates.id),
+  type: text('type', { enum: ['once', 'weekly'] }).notNull(),
+  scheduledDate: text('scheduled_date'),
+  dayOfWeek: integer('day_of_week'),
+  createdAt: integer('created_at').notNull(),
+})
 
 export const progressPhotos = sqliteTable('progress_photos', {
   id: text('id').primaryKey(),
@@ -91,4 +103,4 @@ export const progressPhotos = sqliteTable('progress_photos', {
   bodyWeight: real('body_weight'),
   tags: text('tags'),
   notes: text('notes'),
-});
+})

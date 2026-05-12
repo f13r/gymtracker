@@ -8,6 +8,27 @@
       "when": 1778164165126,
       "tag": "0000_chubby_terrax",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1778200000000,
+      "tag": "0001_add_warmup_to_template_exercises",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778300000000,
+      "tag": "0002_add_workout_schedules",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778400000000,
+      "tag": "0003_add_done_to_sets",
+      "breakpoints": true
     }
   ]
 }

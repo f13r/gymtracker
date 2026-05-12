@@ -1,9 +1,10 @@
-import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { eq } from 'drizzle-orm';
-import { DATABASE } from '../drizzle/drizzle.constants';
-import * as schema from '../drizzle/schema';
-import { randomUUID } from 'crypto';
+import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common'
+import { eq } from 'drizzle-orm'
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+
+import { DATABASE } from '../drizzle/drizzle.constants'
+import * as schema from '../drizzle/schema'
+import { randomUUID } from 'crypto'
 
 const DEFAULT_EXERCISES = [
   { name: 'Bench Press', category: 'push', equipment: 'barbell' },
@@ -38,42 +39,51 @@ const DEFAULT_EXERCISES = [
   { name: 'Cycling', category: 'cardio', equipment: 'other' },
   { name: 'Rowing (erg)', category: 'cardio', equipment: 'other' },
   { name: 'Jump Rope', category: 'cardio', equipment: 'other' },
-];
+]
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
   constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
 
-  async onApplicationBootstrap() {
-    await this.seedUser();
-    await this.seedExercises();
+  onApplicationBootstrap() {
+    this.seedUser()
+    this.seedExercises()
   }
 
-  private async seedUser() {
-    const existing = this.db.select().from(schema.users)
-      .where(eq(schema.users.id, 'default-user')).get();
-    if (existing) return;
-    this.db.insert(schema.users).values({
-      id: 'default-user',
-      displayName: 'Viktor',
-      createdAt: Math.floor(Date.now() / 1000),
-    }).run();
+  private seedUser() {
+    const existing = this.db.select().from(schema.users).where(eq(schema.users.id, 'default-user')).get()
+    if (existing) {
+      return
+    }
+    this.db
+      .insert(schema.users)
+      .values({
+        id: 'default-user',
+        displayName: 'Viktor',
+        createdAt: Math.floor(Date.now() / 1000),
+      })
+      .run()
   }
 
-  private async seedExercises() {
-    const existing = this.db.select().from(schema.exercises).limit(1).get();
-    if (existing) return;
-    const now = Math.floor(Date.now() / 1000);
+  private seedExercises() {
+    const existing = this.db.select().from(schema.exercises).where(eq(schema.exercises.isDefault, 1)).limit(1).get()
+    if (existing) {
+      return
+    }
+    const now = Math.floor(Date.now() / 1000)
     for (const ex of DEFAULT_EXERCISES) {
-      this.db.insert(schema.exercises).values({
-        id: randomUUID(),
-        userId: 'default-user',
-        name: ex.name,
-        category: ex.category,
-        equipment: ex.equipment,
-        isDefault: 1,
-        createdAt: now,
-      }).run();
+      this.db
+        .insert(schema.exercises)
+        .values({
+          id: randomUUID(),
+          userId: 'default-user',
+          name: ex.name,
+          category: ex.category,
+          equipment: ex.equipment,
+          isDefault: 1,
+          createdAt: now,
+        })
+        .run()
     }
   }
 }

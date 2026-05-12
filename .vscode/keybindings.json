@@ -1,0 +1,7 @@
+[
+  {
+    "key": "u",
+    "command": "undo",
+    "when": "editorTextFocus && vim.mode == 'Normal'"
+  }
+]

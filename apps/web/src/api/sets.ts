@@ -1,7 +1,10 @@
-import { api } from './client';
+import type { CreateSetDto, UpdateSetDto, WorkoutSet } from '@gymtracker/shared'
+
+import { api } from './client'
 
 export const setsApi = {
-  logSet: (sessionId: string, data: object) => api.post<any>(`/sessions/${sessionId}/sets`, data),
-  updateSet: (sessionId: string, setId: string, data: object) => api.patch<any>(`/sessions/${sessionId}/sets/${setId}`, data),
+  logSet: (sessionId: string, data: CreateSetDto) => api.post<WorkoutSet>(`/sessions/${sessionId}/sets`, data),
+  updateSet: (sessionId: string, setId: string, data: UpdateSetDto) =>
+    api.patch<WorkoutSet>(`/sessions/${sessionId}/sets/${setId}`, data),
   deleteSet: (sessionId: string, setId: string) => api.delete(`/sessions/${sessionId}/sets/${setId}`),
-};
+}
