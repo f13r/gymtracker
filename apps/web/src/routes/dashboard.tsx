@@ -34,6 +34,94 @@ function getSkippedKey(templateId: string) {
   return `${SKIP_KEY}:${templateId}:${new Date().toISOString().slice(0, 10)}`
 }
 
+function WorkoutSummaryCard({
+  currentVolume,
+  prevVolume,
+  completedCount,
+  totalExercises,
+  exceededExercises,
+}: {
+  currentVolume: number
+  prevVolume: number | null
+  completedCount: number
+  totalExercises: number
+  exceededExercises: { name: string; delta: number }[]
+}) {
+  const fmtVol = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`)
+  const fmtDelta = (v: number) => {
+    const abs = Math.abs(v)
+    return abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : Math.round(abs).toString()
+  }
+
+  const deltaVol = prevVolume !== null ? currentVolume - prevVolume : null
+  const hasPrev = prevVolume !== null
+
+  return (
+    <div className="border-border/30 rounded-2xl border px-4 pt-3 pb-4">
+      {hasPrev && (
+        <p className="mb-2.5 text-[9px] font-semibold tracking-widest text-muted-foreground/50 uppercase">
+          vs last session
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-muted/30 rounded-xl px-3 py-2.5">
+          <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">VOLUME</p>
+          <p className="font-display font-700 text-[26px] leading-none tabular-nums">
+            {currentVolume > 0 ? (
+              <>{fmtVol(currentVolume)}<span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">kg</span></>
+            ) : (
+              '—'
+            )}
+          </p>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              was {hasPrev ? `${fmtVol(prevVolume!)}kg` : '—'}
+            </span>
+            {deltaVol !== null && deltaVol !== 0 && (
+              <span className={cn('text-[10px] font-bold tabular-nums', deltaVol > 0 ? 'text-accent' : 'text-destructive')}>
+                {deltaVol > 0 ? '+' : '−'}{fmtDelta(deltaVol)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-muted/30 rounded-xl px-3 py-2.5">
+          <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">DONE</p>
+          <p className="font-display font-700 text-[26px] leading-none tabular-nums">
+            {completedCount > 0 ? (
+              <>
+                {completedCount}
+                <span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">/{totalExercises}</span>
+              </>
+            ) : (
+              `0/${totalExercises}`
+            )}
+          </p>
+          <div className="mt-1.5">
+            <span className="text-[11px] text-muted-foreground">exercises complete</span>
+          </div>
+        </div>
+      </div>
+
+      {exceededExercises.length > 0 && (
+        <div className="border-border/20 mt-3 border-t pt-3">
+          <p className="mb-2 text-[9px] font-semibold tracking-widest text-muted-foreground/50 uppercase">
+            beat last time ({exceededExercises.length})
+          </p>
+          <div className="space-y-1">
+            {exceededExercises.map(ex => (
+              <div key={ex.name} className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">{ex.name}</span>
+                <span className="text-accent text-[10px] font-bold tabular-nums">+{fmtVol(ex.delta)}kg</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function WorkoutHub({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -54,6 +142,26 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   const { data: allExercises = [] } = useQuery({
     queryKey: ['exercises'],
     queryFn: exercisesApi.getAll,
+  })
+
+  const { data: allSessions = [] } = useQuery({
+    queryKey: ['sessions'],
+    queryFn: workoutsApi.getSessions,
+  })
+
+  const prevSession = useMemo(() => {
+    if (!session?.templateId) { return null }
+    return (
+      allSessions
+        .filter((s: WorkoutSession) => s.templateId === session.templateId && s.finishedAt && s.id !== sessionId)
+        .sort((a: WorkoutSession, b: WorkoutSession) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0] ?? null
+    )
+  }, [allSessions, session?.templateId, sessionId])
+
+  const { data: prevSessionData } = useQuery({
+    queryKey: ['session', prevSession?.id],
+    queryFn: () => workoutsApi.getSession(prevSession!.id),
+    enabled: !!prevSession?.id,
   })
 
   const exerciseNameMap = useMemo(() => {
@@ -83,6 +191,35 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
       loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === id),
     }))
   }, [template, session, exerciseNameMap])
+
+  const summaryStats = useMemo(() => {
+    const currentSets = session?.sets ?? []
+    const prevSets = prevSessionData?.sets ?? []
+
+    const currentVolume = currentSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+    const prevVolume = prevSets.length > 0
+      ? prevSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+      : null
+
+    const completedCount = exercises.filter(ex => ex.defaultSets > 0 && ex.loggedSets.length >= ex.defaultSets).length
+
+    const exceededExercises = exercises
+      .map(ex => {
+        const currentExVol = ex.loggedSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+        const prevExVol = prevSets.length > 0
+          ? prevSets
+              .filter((s: WorkoutSet) => s.exerciseId === ex.id)
+              .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+          : null
+        const delta = prevExVol !== null ? currentExVol - prevExVol : null
+        return { name: ex.name, delta, currentVol: currentExVol }
+      })
+      .filter((ex): ex is { name: string; delta: number; currentVol: number } =>
+        ex.delta !== null && ex.delta > 0 && ex.currentVol > 0,
+      )
+
+    return { currentVolume, prevVolume, completedCount, exceededExercises }
+  }, [session?.sets, prevSessionData?.sets, exercises])
 
   useEffect(() => {
     if (!session?.startedAt) { return }
@@ -176,6 +313,17 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
           })
         )}
       </div>
+
+      {/* Workout summary */}
+      {exercises.length > 0 && (
+        <WorkoutSummaryCard
+          completedCount={summaryStats.completedCount}
+          currentVolume={summaryStats.currentVolume}
+          exceededExercises={summaryStats.exceededExercises}
+          prevVolume={summaryStats.prevVolume}
+          totalExercises={exercises.length}
+        />
+      )}
 
       {/* Finish button */}
       <button
