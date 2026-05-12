@@ -19,5 +19,8 @@ jobs:
             cd /var/www/gymtracker
             git pull origin main
             npm ci
-            npm run build
+            npm run build --workspace=packages/shared
+            npm run build --workspace=apps/api
+            npm run build --workspace=apps/web
+            npm run db:migrate
             pm2 reload ecosystem.config.js --env production
