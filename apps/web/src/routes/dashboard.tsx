@@ -37,7 +37,7 @@ function getSkippedKey(templateId: string) {
 function WorkoutHub({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { activeExerciseIndex, setActiveExerciseIndex } = useWorkoutStore()
+  const { activeExerciseIndex, setActiveExerciseIndex, setActiveSession } = useWorkoutStore()
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   const { data: session } = useQuery({
@@ -96,6 +96,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   const finishWorkout = useMutation({
     mutationFn: () => workoutsApi.finishSession(sessionId),
     onSuccess: () => {
+      setActiveSession(null)
       queryClient.invalidateQueries({ queryKey: ['activeSession'] })
       queryClient.invalidateQueries({ queryKey: ['sessions'] })
       navigate({ to: '/dashboard' })
@@ -135,9 +136,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
           </div>
         ) : (
           exercises.map((ex, i) => {
-            const doneSets = ex.loggedSets.filter((s: WorkoutSet) => s.done !== 0).length
-            const totalSets = ex.defaultSets > 0 ? ex.defaultSets : ex.loggedSets.length
-            const isComplete = totalSets > 0 && doneSets >= totalSets
+            const loggedCount = ex.loggedSets.length
+            const totalSets = ex.defaultSets > 0 ? ex.defaultSets : loggedCount
+            const isComplete = totalSets > 0 && loggedCount >= totalSets
             const isCurrent = i === activeExerciseIndex
 
             return (
@@ -168,7 +169,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                   </span>
                 </div>
                 <span className={cn('text-xs font-semibold tabular-nums', isComplete ? 'text-accent' : 'text-muted-foreground')}>
-                  {doneSets}/{totalSets > 0 ? totalSets : '?'}
+                  {loggedCount}/{totalSets > 0 ? totalSets : '?'}
                 </span>
               </button>
             )
