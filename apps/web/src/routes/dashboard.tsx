@@ -40,12 +40,14 @@ function WorkoutSummaryCard({
   completedCount,
   totalExercises,
   exceededExercises,
+  hasTemplate,
 }: {
   currentVolume: number
   prevVolume: number | null
   completedCount: number
   totalExercises: number
-  exceededExercises: { name: string; delta: number }[]
+  exceededExercises: { id: string; name: string; delta: number }[]
+  hasTemplate: boolean
 }) {
   const fmtVol = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`)
   const fmtDelta = (v: number) => {
@@ -85,22 +87,18 @@ function WorkoutSummaryCard({
           </div>
         </div>
 
-        <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-          <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">DONE</p>
-          <p className="font-display font-700 text-[26px] leading-none tabular-nums">
-            {completedCount > 0 ? (
-              <>
-                {completedCount}
-                <span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">/{totalExercises}</span>
-              </>
-            ) : (
-              `0/${totalExercises}`
-            )}
-          </p>
-          <div className="mt-1.5">
-            <span className="text-[11px] text-muted-foreground">exercises complete</span>
+        {hasTemplate && (
+          <div className="bg-muted/30 rounded-xl px-3 py-2.5">
+            <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">DONE</p>
+            <p className="font-display font-700 text-[26px] leading-none tabular-nums">
+              {completedCount}
+              <span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">/{totalExercises}</span>
+            </p>
+            <div className="mt-1.5">
+              <span className="text-[11px] text-muted-foreground">exercises complete</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {exceededExercises.length > 0 && (
@@ -110,7 +108,7 @@ function WorkoutSummaryCard({
           </p>
           <div className="space-y-1">
             {exceededExercises.map(ex => (
-              <div key={ex.name} className="flex items-center justify-between">
+              <div key={ex.id} className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">{ex.name}</span>
                 <span className="text-accent text-[10px] font-bold tabular-nums">+{fmtVol(ex.delta)}kg</span>
               </div>
@@ -196,7 +194,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     const currentSets = session?.sets ?? []
     const prevSets = prevSessionData?.sets ?? []
 
-    const currentVolume = currentSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+    const currentVolume = currentSets
+      .filter((s: WorkoutSet) => s.done)
+      .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
     const prevVolume = prevSets.length > 0
       ? prevSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
       : null
@@ -205,16 +205,18 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
 
     const exceededExercises = exercises
       .map(ex => {
-        const currentExVol = ex.loggedSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+        const currentExVol = ex.loggedSets
+          .filter((s: WorkoutSet) => s.done)
+          .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
         const prevExVol = prevSets.length > 0
           ? prevSets
               .filter((s: WorkoutSet) => s.exerciseId === ex.id)
               .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
           : null
         const delta = prevExVol !== null ? currentExVol - prevExVol : null
-        return { name: ex.name, delta, currentVol: currentExVol }
+        return { id: ex.id, name: ex.name, delta, currentVol: currentExVol }
       })
-      .filter((ex): ex is { name: string; delta: number; currentVol: number } =>
+      .filter((ex): ex is { id: string; name: string; delta: number; currentVol: number } =>
         ex.delta !== null && ex.delta > 0 && ex.currentVol > 0,
       )
 
@@ -320,6 +322,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
           completedCount={summaryStats.completedCount}
           currentVolume={summaryStats.currentVolume}
           exceededExercises={summaryStats.exceededExercises}
+          hasTemplate={!!template}
           prevVolume={summaryStats.prevVolume}
           totalExercises={exercises.length}
         />
