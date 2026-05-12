@@ -276,8 +276,10 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
         ) : (
           exercises.map((ex, i) => {
             const loggedCount = ex.loggedSets.length
+            const doneCount = ex.loggedSets.filter((s: WorkoutSet) => s.done).length
             const totalSets = ex.defaultSets > 0 ? ex.defaultSets : loggedCount
-            const isComplete = totalSets > 0 && loggedCount >= totalSets
+            const isComplete = totalSets > 0 && doneCount >= totalSets
+            const isInProgress = !isComplete && loggedCount > 0
             const isCurrent = i === activeExerciseIndex
 
             return (
@@ -285,7 +287,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                 key={ex.id}
                 className={cn(
                   'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left last:border-b-0 transition-colors',
-                  isCurrent && 'bg-primary/5',
+                  isCurrent && !isComplete && 'bg-primary/5',
                 )}
                 onClick={() => {
                   setActiveExerciseIndex(i)
@@ -300,6 +302,8 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                       <span className="bg-primary absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" />
                       <span className="bg-primary relative inline-flex h-2.5 w-2.5 rounded-full" />
                     </span>
+                  ) : isInProgress ? (
+                    <span className="bg-primary/60 relative flex h-2.5 w-2.5 shrink-0 rounded-full" />
                   ) : (
                     <Circle className="text-muted-foreground/40 shrink-0" size={18} />
                   )}
@@ -308,7 +312,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                   </span>
                 </div>
                 <span className={cn('text-xs font-semibold tabular-nums', isComplete ? 'text-accent' : 'text-muted-foreground')}>
-                  {loggedCount}/{totalSets > 0 ? totalSets : '?'}
+                  {doneCount}/{totalSets > 0 ? totalSets : '?'}
                 </span>
               </button>
             )
