@@ -80,7 +80,7 @@ export function SettingsPage() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">Version</span>
-            <span className="text-muted-foreground font-mono text-sm">1.0.0</span>
+            <span className="text-muted-foreground font-mono text-sm">{__APP_VERSION__}</span>
           </div>
         </div>
       </div>

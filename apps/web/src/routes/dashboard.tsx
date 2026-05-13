@@ -25,9 +25,6 @@ function getGreeting() {
 
 const SKIP_KEY = 'skipped_today_schedule'
 
-function getSkippedKey(templateId: string) {
-  return `${SKIP_KEY}:${templateId}:${new Date().toISOString().slice(0, 10)}`
-}
 
 function WorkoutSummaryCard({
   currentVolume,
@@ -200,9 +197,11 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     }))
   }, [template, session, exerciseNameMap])
 
+  const sessionSets = session?.sets
+  const prevSessionDataSets = prevSessionData?.sets
   const summaryStats = useMemo(() => {
-    const currentSets = session?.sets ?? []
-    const prevSets = prevSessionData?.sets ?? []
+    const currentSets = sessionSets ?? []
+    const prevSets = prevSessionDataSets ?? []
 
     const currentVolume = currentSets
       .filter((s: WorkoutSet) => s.done)
@@ -234,7 +233,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
       )
 
     return { currentVolume, prevVolume, completedCount, exceededExercises }
-  }, [session?.sets, prevSessionData?.sets, exercises])
+  }, [sessionSets, prevSessionDataSets, exercises])
 
   useEffect(() => {
     if (!session?.startedAt) {
@@ -369,6 +368,9 @@ export function DashboardPage() {
   const queryClient = useQueryClient()
   const setActiveSession = useWorkoutStore(s => s.setActiveSession)
   const [promptDismissed, setPromptDismissed] = useState(false)
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const greeting = useMemo(() => getGreeting(), [])
+  const dayName = useMemo(() => new Date().toLocaleDateString('en', { weekday: 'long' }), [])
 
   const { data: active } = useQuery({ queryKey: ['activeSession'], queryFn: workoutsApi.getActiveSession })
   const { data: sessions = [] } = useQuery({ queryKey: ['sessions'], queryFn: workoutsApi.getSessions })
@@ -393,12 +395,12 @@ export function DashboardPage() {
 
   const dismissPrompt = () => {
     if (todaySchedule) {
-      localStorage.setItem(getSkippedKey(todaySchedule.schedule.templateId!), '1')
+      localStorage.setItem(`${SKIP_KEY}:${todaySchedule.schedule.templateId!}:${todayStr}`, '1')
     }
     setPromptDismissed(true)
   }
 
-  const isSkipped = todaySchedule && localStorage.getItem(getSkippedKey(todaySchedule.schedule.templateId!)) === '1'
+  const isSkipped = todaySchedule && localStorage.getItem(`${SKIP_KEY}:${todaySchedule.schedule.templateId!}:${todayStr}`) === '1'
 
   const showPrompt = !!todaySchedule && !promptDismissed && !isSkipped && !active
 
@@ -408,8 +410,6 @@ export function DashboardPage() {
 
   const finished = sessions.filter((s: WorkoutSession) => s.finishedAt)
   const recent = finished.slice(0, 5)
-
-  const dayName = new Date().toLocaleDateString('en', { weekday: 'long' })
 
   if (showPrompt) {
     return (
@@ -441,7 +441,7 @@ export function DashboardPage() {
   return (
     <div className="mx-auto max-w-lg space-y-5 p-4 pb-4">
       <div className="pt-2">
-        <p className="text-muted-foreground text-sm font-medium tracking-widest uppercase">{getGreeting()}</p>
+        <p className="text-muted-foreground text-sm font-medium tracking-widest uppercase">{greeting}</p>
         <h1 className="font-display font-700 mt-0.5 text-4xl leading-tight tracking-wide">
           GYM<span className="text-primary">TRACKER</span>
         </h1>

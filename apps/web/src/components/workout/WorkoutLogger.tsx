@@ -35,18 +35,18 @@ function InlineSetRow({
 }) {
   const [weight, setWeight] = useState(set.weightKg ?? 0)
   const [reps, setReps] = useState(set.reps ?? 8)
+  const [prevSet, setPrevSet] = useState(set)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDirtyRef = useRef(false)
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressDidFireRef = useRef(false)
 
-  useEffect(() => {
-    if (!isDirtyRef.current) {
-      setWeight(set.weightKg ?? 0)
-      setReps(set.reps ?? 8)
-    }
-  }, [set.weightKg, set.reps])
+  if (!isDirtyRef.current && (set.weightKg !== prevSet.weightKg || set.reps !== prevSet.reps)) {
+    setPrevSet(set)
+    setWeight(set.weightKg ?? 0)
+    setReps(set.reps ?? 8)
+  }
 
   useEffect(() => {
     return () => {
@@ -453,15 +453,12 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     staleTime: 60_000,
   })
 
-  // Initialize new-set defaults when data first loads
-  useEffect(() => {
-    if (currentExercise && !newSetInitialized.current) {
-      newSetInitialized.current = true
-      const last = currentExercise.loggedSets.at(-1)
-      setNewSetWeight(last?.weightKg ?? currentExercise.defaultWeightKg)
-      setNewSetReps(last?.reps ?? currentExercise.defaultReps)
-    }
-  }, [currentExercise])
+  if (currentExercise && !newSetInitialized.current) {
+    newSetInitialized.current = true
+    const last = currentExercise.loggedSets.at(-1)
+    setNewSetWeight(last?.weightKg ?? currentExercise.defaultWeightKg)
+    setNewSetReps(last?.reps ?? currentExercise.defaultReps)
+  }
 
   // Re-sync when navigating to a different exercise
   if (currentExercise && prevActiveExerciseIndex !== activeExerciseIndex) {

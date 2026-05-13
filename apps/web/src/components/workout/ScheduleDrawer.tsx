@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Calendar, Repeat, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import type { WorkoutSchedule } from '@gymtracker/shared'
 
@@ -22,6 +22,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
   const [type, setType] = useState<'once' | 'weekly'>('weekly')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedDays, setSelectedDays] = useState<number[]>([])
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   const { data: allSchedules = [] } = useQuery({
     queryKey: ['schedules'],
@@ -101,7 +102,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
           {type === 'once' ? (
             <input
               className="bg-card border-border focus:border-primary w-full rounded-xl border px-4 py-3 text-sm font-medium transition-colors outline-none"
-              min={new Date().toISOString().slice(0, 10)}
+              min={todayStr}
               type="date"
               value={selectedDate}
               onChange={e => setSelectedDate(e.target.value)}
