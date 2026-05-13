@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
 import { useWorkoutStore } from '@/stores/workout.store'
 
-
 function getGreeting() {
   const h = new Date().getHours()
   if (h < 12) {
@@ -57,27 +56,33 @@ function WorkoutSummaryCard({
   return (
     <div className="border-border/30 rounded-2xl border px-4 pt-3 pb-4">
       {hasPrev && (
-        <p className="mb-2.5 text-[9px] font-semibold tracking-widest text-muted-foreground/50 uppercase">
+        <p className="text-muted-foreground/50 mb-2.5 text-[9px] font-semibold tracking-widest uppercase">
           vs last session
         </p>
       )}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-          <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">VOLUME</p>
+          <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">VOLUME</p>
           <p className="font-display font-700 text-[26px] leading-none tabular-nums">
             {currentVolume > 0 ? (
-              <>{fmtVol(currentVolume)}<span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">kg</span></>
+              <>
+                {fmtVol(currentVolume)}
+                <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">kg</span>
+              </>
             ) : (
               '—'
             )}
           </p>
           <div className="mt-1.5 flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground tabular-nums">
+            <span className="text-muted-foreground text-[11px] tabular-nums">
               was {hasPrev ? `${fmtVol(prevVolume!)}kg` : '—'}
             </span>
             {deltaVol !== null && deltaVol !== 0 && (
-              <span className={cn('text-[10px] font-bold tabular-nums', deltaVol > 0 ? 'text-accent' : 'text-destructive')}>
-                {deltaVol > 0 ? '+' : '−'}{fmtDelta(deltaVol)}
+              <span
+                className={cn('text-[10px] font-bold tabular-nums', deltaVol > 0 ? 'text-accent' : 'text-destructive')}
+              >
+                {deltaVol > 0 ? '+' : '−'}
+                {fmtDelta(deltaVol)}
               </span>
             )}
           </div>
@@ -85,13 +90,13 @@ function WorkoutSummaryCard({
 
         {hasTemplate && (
           <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-            <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">DONE</p>
+            <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">DONE</p>
             <p className="font-display font-700 text-[26px] leading-none tabular-nums">
               {completedCount}
-              <span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">/{totalExercises}</span>
+              <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">/{totalExercises}</span>
             </p>
             <div className="mt-1.5">
-              <span className="text-[11px] text-muted-foreground">exercises complete</span>
+              <span className="text-muted-foreground text-[11px]">exercises complete</span>
             </div>
           </div>
         )}
@@ -99,13 +104,13 @@ function WorkoutSummaryCard({
 
       {exceededExercises.length > 0 && (
         <div className="border-border/20 mt-3 border-t pt-3">
-          <p className="mb-2 text-[9px] font-semibold tracking-widest text-muted-foreground/50 uppercase">
+          <p className="text-muted-foreground/50 mb-2 text-[9px] font-semibold tracking-widest uppercase">
             beat last time ({exceededExercises.length})
           </p>
           <div className="space-y-1">
             {exceededExercises.map(ex => (
               <div key={ex.id} className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">{ex.name}</span>
+                <span className="text-muted-foreground text-xs font-medium">{ex.name}</span>
                 <span className="text-accent text-[10px] font-bold tabular-nums">+{fmtVol(ex.delta)}kg</span>
               </div>
             ))}
@@ -143,14 +148,18 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     queryFn: workoutsApi.getSessions,
   })
 
+  const templateId = session?.templateId
+
   const prevSession = useMemo(() => {
-    if (!session?.templateId) { return null }
+    if (!templateId) {
+      return null
+    }
     return (
       allSessions
-        .filter((s: WorkoutSession) => s.templateId === session.templateId && s.finishedAt && s.id !== sessionId)
+        .filter((s: WorkoutSession) => s.templateId === templateId && s.finishedAt && s.id !== sessionId)
         .sort((a: WorkoutSession, b: WorkoutSession) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0] ?? null
     )
-  }, [allSessions, session?.templateId, sessionId])
+  }, [allSessions, templateId, sessionId])
 
   const { data: prevSessionData } = useQuery({
     queryKey: ['session', prevSession?.id],
@@ -160,19 +169,24 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
 
   const exerciseNameMap = useMemo(() => {
     const map: Record<string, string> = {}
-    allExercises.forEach((e: { id: string; name: string }) => { map[e.id] = e.name })
+    allExercises.forEach((e: { id: string; name: string }) => {
+      map[e.id] = e.name
+    })
     return map
   }, [allExercises])
 
   const exercises = useMemo(() => {
-    if (!session) { return [] }
+    if (!session) {
+      return []
+    }
     if (template) {
       return template.exercises
         .slice()
-        .sort((a: { orderIndex: number }, b: { orderIndex: number }) => a.orderIndex - b.orderIndex)
-        .map((te: { exerciseId: string; defaultSets?: number; orderIndex: number }) => ({
-          id: te.exerciseId,
-          name: exerciseNameMap[te.exerciseId] ?? 'Exercise',
+        .filter(te => te.exerciseId !== null)
+        .sort((a, b) => a.orderIndex - b.orderIndex)
+        .map(te => ({
+          id: te.exerciseId!,
+          name: exerciseNameMap[te.exerciseId!] ?? 'Exercise',
           defaultSets: te.defaultSets ?? 3,
           loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId),
         }))
@@ -193,9 +207,10 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     const currentVolume = currentSets
       .filter((s: WorkoutSet) => s.done)
       .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
-    const prevVolume = prevSets.length > 0
-      ? prevSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
-      : null
+    const prevVolume =
+      prevSets.length > 0
+        ? prevSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+        : null
 
     const completedCount = exercises.filter(ex => ex.defaultSets > 0 && ex.loggedSets.length >= ex.defaultSets).length
 
@@ -204,28 +219,35 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
         const currentExVol = ex.loggedSets
           .filter((s: WorkoutSet) => s.done)
           .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
-        const prevExVol = prevSets.length > 0
-          ? prevSets
-              .filter((s: WorkoutSet) => s.exerciseId === ex.id)
-              .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
-          : null
+        const prevExVol =
+          prevSets.length > 0
+            ? prevSets
+                .filter((s: WorkoutSet) => s.exerciseId === ex.id)
+                .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+            : null
         const delta = prevExVol !== null ? currentExVol - prevExVol : null
         return { id: ex.id, name: ex.name, delta, currentVol: currentExVol }
       })
-      .filter((ex): ex is { id: string; name: string; delta: number; currentVol: number } =>
-        ex.delta !== null && ex.delta > 0 && ex.currentVol > 0,
+      .filter(
+        (ex): ex is { id: string; name: string; delta: number; currentVol: number } =>
+          ex.delta !== null && ex.delta > 0 && ex.currentVol > 0,
       )
 
     return { currentVolume, prevVolume, completedCount, exceededExercises }
   }, [session?.sets, prevSessionData?.sets, exercises])
 
   useEffect(() => {
-    if (!session?.startedAt) { return }
-    setElapsedSeconds(Math.floor(Date.now() / 1000) - session.startedAt)
-    const id = setInterval(() => {
-      setElapsedSeconds(Math.floor(Date.now() / 1000) - session.startedAt)
-    }, 1000)
-    return () => clearInterval(id)
+    if (!session?.startedAt) {
+      return
+    }
+    const startedAt = session.startedAt
+    const tick = () => setElapsedSeconds(Math.floor(Date.now() / 1000) - startedAt)
+    const initId = setTimeout(tick, 0)
+    const id = setInterval(tick, 1000)
+    return () => {
+      clearTimeout(initId)
+      clearInterval(id)
+    }
   }, [session?.startedAt])
 
   const finishWorkout = useMutation({
@@ -279,7 +301,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
               <button
                 key={ex.id}
                 className={cn(
-                  'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left last:border-b-0 transition-colors',
+                  'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors last:border-b-0',
                   isCurrent && !isComplete && 'bg-primary/5',
                 )}
                 onClick={() => {
@@ -304,7 +326,12 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                     {ex.name}
                   </span>
                 </div>
-                <span className={cn('text-xs font-semibold tabular-nums', isComplete ? 'text-accent' : 'text-muted-foreground')}>
+                <span
+                  className={cn(
+                    'text-xs font-semibold tabular-nums',
+                    isComplete ? 'text-accent' : 'text-muted-foreground',
+                  )}
+                >
                   {doneCount}/{totalSets > 0 ? totalSets : '?'}
                 </span>
               </button>
