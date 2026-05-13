@@ -12,7 +12,8 @@ jobs:
         run: |
           set -e
           cd /var/www/gymtracker
-          git pull origin main
+          git fetch origin main
+          git reset --hard origin/main
           npm ci
           npm run build --workspace=packages/shared
           npm run build --workspace=apps/api
