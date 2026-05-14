@@ -18,8 +18,13 @@ export class StatsService {
   }
 
   getPRs(userId: string, exerciseId?: string, limit = 10): PersonalRecord[] {
-    if (exerciseId) {
-      return this.raw().prepare(`
+    // raw().prepare() is used here rather than Drizzle because better-sqlite3's
+    // .prepare() supports CTEs with window functions; Drizzle .with() is a follow-up
+    const exerciseFilter = exerciseId ? `AND s.exercise_id = ?` : ``
+    const params: unknown[] = exerciseId ? [userId, exerciseId, limit] : [userId, limit]
+    return this.raw()
+      .prepare(
+        `
         WITH ranked AS (
           SELECT s.exercise_id, e.name,
                  s.weight_kg AS maxWeightKg, s.reps AS repsAtMax, s.completed_at AS achievedAt,
@@ -27,35 +32,21 @@ export class StatsService {
           FROM sets s
           JOIN workout_sessions ws ON s.session_id = ws.id
           JOIN exercises e ON s.exercise_id = e.id
-          WHERE ws.user_id = ? AND s.done = 1 AND s.exercise_id = ?
+          WHERE ws.user_id = ? AND s.done = 1 ${exerciseFilter}
         )
         SELECT exercise_id, name, maxWeightKg, repsAtMax, achievedAt
         FROM ranked WHERE rn = 1
         ORDER BY maxWeightKg DESC
         LIMIT ?
-      `).all(userId, exerciseId, limit) as PersonalRecord[]
-    }
-    return this.raw().prepare(`
-      WITH ranked AS (
-        SELECT s.exercise_id, e.name,
-               s.weight_kg AS maxWeightKg, s.reps AS repsAtMax, s.completed_at AS achievedAt,
-               ROW_NUMBER() OVER (PARTITION BY s.exercise_id ORDER BY s.weight_kg DESC) AS rn
-        FROM sets s
-        JOIN workout_sessions ws ON s.session_id = ws.id
-        JOIN exercises e ON s.exercise_id = e.id
-        WHERE ws.user_id = ? AND s.done = 1
+      `,
       )
-      SELECT exercise_id, name, maxWeightKg, repsAtMax, achievedAt
-      FROM ranked WHERE rn = 1
-      ORDER BY maxWeightKg DESC
-      LIMIT ?
-    `).all(userId, limit) as PersonalRecord[]
+      .all(...params) as PersonalRecord[]
   }
 
   getVolume(userId: string, exerciseId?: string, from?: number, to?: number): VolumePoint[] {
     const conditions = [
       eq(schema.workoutSessions.userId, userId),
-      eq(schema.sets.done, 1),
+      eq(schema.sets.done, 1),  // only Done Sets count toward volume
       isNotNull(schema.sets.reps),
       isNotNull(schema.sets.weightKg),
     ]
