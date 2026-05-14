@@ -1,20 +1,16 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, gte, lt, count } from 'drizzle-orm'
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 
 import { CreateScheduleDto } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
-import { SessionRepository } from '../sessions/session.repository'
 import { randomUUID } from 'crypto'
 
 @Injectable()
 export class SchedulesService {
-  constructor(
-    @Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>,
-    private sessions: SessionRepository,
-  ) {}
+  constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
 
   getSchedules(userId: string) {
     return this.db.select().from(schema.workoutSchedules).where(eq(schema.workoutSchedules.userId, userId)).all()
@@ -77,9 +73,22 @@ export class SchedulesService {
 
     if (!match) {return null}
 
-    // Check if user already has an active session for this template
-    const activeSession = this.sessions.findActive(userId)
-    if (activeSession && activeSession.templateId === match.templateId) {return null}
+    // Check if user already started a session for this template today
+    const startOfDay = Math.floor(new Date(today).getTime() / 1000)
+    const endOfDay = startOfDay + 86400
+    const result = this.db
+      .select({ count: count() })
+      .from(schema.workoutSessions)
+      .where(
+        and(
+          eq(schema.workoutSessions.userId, userId),
+          eq(schema.workoutSessions.templateId, match.templateId!),
+          gte(schema.workoutSessions.startedAt, startOfDay),
+          lt(schema.workoutSessions.startedAt, endOfDay),
+        ),
+      )
+      .get()
+    if (result && result.count > 0) return null
 
     const template = this.db
       .select()
