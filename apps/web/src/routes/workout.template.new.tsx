@@ -7,7 +7,6 @@ import { workoutsApi } from '@/api/workouts'
 import { NumericInput } from '@/components/inputs/NumericInput'
 import { Input } from '@/components/ui/input'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
-import { cn } from '@/lib/utils'
 
 interface ExerciseRow {
   key: number
@@ -16,7 +15,6 @@ interface ExerciseRow {
   defaultSets: number
   defaultReps: number
   defaultWeightKg: number
-  isWarmup: boolean
 }
 
 let keyCounter = 0
@@ -29,7 +27,6 @@ function makeRow(exerciseId = '', exerciseName = ''): ExerciseRow {
     defaultSets: 3,
     defaultReps: 10,
     defaultWeightKg: 0,
-    isWarmup: false,
   }
 }
 
@@ -52,7 +49,6 @@ export function NewTemplatePage() {
             defaultSets: r.defaultSets,
             defaultReps: r.defaultReps,
             defaultWeightKg: r.defaultWeightKg || undefined,
-            isWarmup: r.isWarmup,
           })),
       }),
     onSuccess: () => {
@@ -122,16 +118,6 @@ export function NewTemplatePage() {
                   <p className="text-muted-foreground mt-0.5 text-xs">Exercise {idx + 1}</p>
                 </button>
                 <div className="flex items-center gap-1">
-                  {/* Warmup toggle */}
-                  <button
-                    className={cn(
-                      'rounded-lg px-2.5 py-1 text-xs font-semibold tracking-wide transition-colors',
-                      row.isWarmup ? 'bg-amber-500/20 text-amber-400' : 'bg-muted text-muted-foreground',
-                    )}
-                    onClick={() => updateRow(row.key, { isWarmup: !row.isWarmup })}
-                  >
-                    WARMUP
-                  </button>
                   {rows.length > 1 && (
                     <button
                       aria-label="Remove exercise"

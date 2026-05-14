@@ -1,15 +1,6 @@
 import type { WorkoutSet } from './models.js'
 
-/**
- * Check if a workout set is done.
- * Handles the current `done: number | null` type:
- * - 1 (Done Set) → true
- * - 0 (Planned Set) → false
- * - null → false
- *
- * @param s - WorkoutSet to check
- * @returns true if the set is done, false otherwise
- */
+/** Returns true if the set is a Done Set (done === true). */
 export const isDoneSet = (s: WorkoutSet): boolean => Boolean(s.done)
 
 /**

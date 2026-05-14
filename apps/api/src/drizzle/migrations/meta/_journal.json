@@ -29,6 +29,13 @@
       "when": 1778400000000,
       "tag": "0003_add_done_to_sets",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1747173600000,
+      "tag": "0004_remove_warmup_columns",
+      "breakpoints": true
     }
   ]
 }

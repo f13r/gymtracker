@@ -7,7 +7,6 @@ export const CreateSetSchema = z.object({
   weightKg: z.number().min(0).optional(),
   durationSec: z.number().int().min(0).optional(),
   rpe: z.number().min(1).max(10).optional(),
-  isWarmup: z.boolean().default(false),
   done: z.boolean().optional(),
 })
 

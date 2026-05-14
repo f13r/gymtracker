@@ -4,7 +4,7 @@ import type { WorkoutSet } from './models.js'
 
 describe('set.utils', () => {
   describe('isDoneSet', () => {
-    it('returns true when done=1', () => {
+    it('returns true when done is true', () => {
       const set: WorkoutSet = {
         id: '1',
         sessionId: 'session1',
@@ -15,12 +15,12 @@ describe('set.utils', () => {
         durationSec: null,
         rpe: null,
         completedAt: 1000,
-        done: 1,
+        done: true,
       }
       expect(isDoneSet(set)).toBe(true)
     })
 
-    it('returns false when done=0', () => {
+    it('returns false when done is false', () => {
       const set: WorkoutSet = {
         id: '2',
         sessionId: 'session1',
@@ -31,23 +31,7 @@ describe('set.utils', () => {
         durationSec: null,
         rpe: null,
         completedAt: 1000,
-        done: 0,
-      }
-      expect(isDoneSet(set)).toBe(false)
-    })
-
-    it('returns false when done=null', () => {
-      const set: WorkoutSet = {
-        id: '3',
-        sessionId: 'session1',
-        exerciseId: 'exercise1',
-        setNumber: 3,
-        reps: null,
-        weightKg: null,
-        durationSec: null,
-        rpe: null,
-        completedAt: 1000,
-        done: null,
+        done: false,
       }
       expect(isDoneSet(set)).toBe(false)
     })
@@ -70,7 +54,7 @@ describe('set.utils', () => {
           durationSec: null,
           rpe: null,
           completedAt: 1000,
-          done: 1,
+          done: true,
         },
         {
           id: '2',
@@ -82,7 +66,7 @@ describe('set.utils', () => {
           durationSec: null,
           rpe: null,
           completedAt: 1000,
-          done: 0,
+          done: false,
         },
         {
           id: '3',
@@ -94,7 +78,7 @@ describe('set.utils', () => {
           durationSec: null,
           rpe: null,
           completedAt: 1000,
-          done: 1,
+          done: true,
         },
       ]
       const result = getDoneSets(sets)
@@ -115,7 +99,7 @@ describe('set.utils', () => {
           durationSec: null,
           rpe: null,
           completedAt: 1000,
-          done: 1,
+          done: true,
         },
         {
           id: '2',
@@ -127,7 +111,7 @@ describe('set.utils', () => {
           durationSec: null,
           rpe: null,
           completedAt: 1000,
-          done: 1,
+          done: true,
         },
       ]
       const result = getDoneSets(sets)
@@ -147,7 +131,7 @@ describe('set.utils', () => {
           durationSec: null,
           rpe: null,
           completedAt: 1000,
-          done: 0,
+          done: false,
         },
         {
           id: '2',
@@ -159,7 +143,7 @@ describe('set.utils', () => {
           durationSec: null,
           rpe: null,
           completedAt: 1000,
-          done: null,
+          done: false,
         },
       ]
       const result = getDoneSets(sets)

@@ -10,7 +10,6 @@ export const CreateTemplateSchema = z.object({
       defaultSets: z.number().int().min(1).optional(),
       defaultReps: z.number().int().min(1).optional(),
       defaultWeightKg: z.number().min(0).optional(),
-      isWarmup: z.boolean().default(false),
     }),
   ),
 })

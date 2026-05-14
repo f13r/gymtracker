@@ -77,15 +77,15 @@ describe('calculateStreak', () => {
 function makeSet(overrides: Partial<WorkoutSet> = {}): WorkoutSet {
   return {
     id: 'test-id',
-    sessionId: null,
-    exerciseId: null,
+    sessionId: 'test-session',
+    exerciseId: 'test-exercise',
     setNumber: 1,
     reps: null,
     weightKg: null,
     durationSec: null,
     rpe: null,
     completedAt: 0,
-    done: 1,
+    done: true,
     ...overrides,
   }
 }

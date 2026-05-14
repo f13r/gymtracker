@@ -94,7 +94,6 @@ export function WorkoutStartPage() {
                     <p className="font-display font-700 text-lg tracking-wide">{t.name}</p>
                     <p className="text-muted-foreground mt-0.5 text-xs">
                       {(t.exercises ?? []).length} exercise{(t.exercises ?? []).length !== 1 ? 's' : ''}
-                      {(t.exercises ?? []).some(e => e.isWarmup) && ' · includes warmup'}
                     </p>
                   </div>
                   <div className="flex items-center gap-0.5">

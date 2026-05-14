@@ -33,7 +33,6 @@ export const templateExercises = sqliteTable('template_exercises', {
   defaultSets: integer('default_sets'),
   defaultReps: integer('default_reps'),
   defaultWeightKg: real('default_weight_kg'),
-  isWarmup: integer('is_warmup').default(0),
 })
 
 export const workoutSessions = sqliteTable('workout_sessions', {
@@ -55,7 +54,6 @@ export const sets = sqliteTable('sets', {
   weightKg: real('weight_kg'),
   durationSec: integer('duration_sec'),
   rpe: real('rpe'),
-  isWarmup: integer('is_warmup').default(0),
   completedAt: integer('completed_at').notNull(),
   done: integer('done').default(0),
 })
