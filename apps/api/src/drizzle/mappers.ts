@@ -7,6 +7,7 @@ export type DbSession = typeof schema.workoutSessions.$inferSelect
 export function toWorkoutSet(row: DbSet): WorkoutSet {
   return {
     id: row.id,
+    // sessionId and exerciseId are always set by the application; schema allows null for SQLite compatibility
     sessionId: row.sessionId!,
     exerciseId: row.exerciseId!,
     setNumber: row.setNumber,
@@ -22,6 +23,7 @@ export function toWorkoutSet(row: DbSet): WorkoutSet {
 export function toWorkoutSession(row: DbSession): WorkoutSession {
   return {
     id: row.id,
+    // userId is always set; schema allows null for SQLite compatibility
     userId: row.userId!,
     templateId: row.templateId,
     name: row.name,

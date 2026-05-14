@@ -188,7 +188,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
           loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId),
         }))
     }
-    const ids = [...new Set((session.sets ?? []).map((s: WorkoutSet) => s.exerciseId).filter(Boolean) as string[])]
+    const ids = [...new Set((session.sets ?? []).map((s: WorkoutSet) => s.exerciseId))]
     return ids.map(id => ({
       id,
       name: exerciseNameMap[id] ?? 'Exercise',

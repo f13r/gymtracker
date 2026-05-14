@@ -61,7 +61,7 @@ export function HistoryDetailPage() {
   const duration = session.finishedAt ? Math.round((session.finishedAt - session.startedAt) / 60) : null
 
   const setsByExercise = session.sets.reduce<Record<string, WorkoutSet[]>>((acc, s) => {
-    const key = s.exerciseId ?? 'unknown'
+    const key = s.exerciseId
     if (!acc[key]) {
       acc[key] = []
     }
@@ -127,11 +127,7 @@ export function HistoryDetailPage() {
               {sets.map((s, i) => (
                 <div key={s.id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
-                    {s.isWarmup ? (
-                      <span className="w-8 text-xs font-semibold text-amber-400">W</span>
-                    ) : (
-                      <span className="text-muted-foreground w-8 text-xs font-semibold">S{i + 1}</span>
-                    )}
+                    <span className="text-muted-foreground w-8 text-xs font-semibold">S{i + 1}</span>
                     <span className="text-sm font-medium">
                       {s.weightKg} kg × {s.reps}
                     </span>

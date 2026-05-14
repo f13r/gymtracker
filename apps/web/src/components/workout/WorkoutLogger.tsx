@@ -427,7 +427,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         }))
     }
     if (!session?.sets) { return [] }
-    const ids = [...new Set(session.sets.map((s: WorkoutSet) => s.exerciseId).filter(Boolean) as string[])]
+    const ids = [...new Set(session.sets.map((s: WorkoutSet) => s.exerciseId))]
     return ids.map(id => ({
       id,
       name: exerciseNameMap[id] ?? 'Exercise',
