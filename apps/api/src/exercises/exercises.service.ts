@@ -7,6 +7,8 @@ import { CreateExerciseDto, UpdateExerciseDto, WorkoutSet } from '@gymtracker/sh
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { randomUUID } from 'crypto'
+import type { DbSet } from '../drizzle/mappers'
+import { toWorkoutSet } from '../drizzle/mappers'
 
 @Injectable()
 export class ExercisesService {
@@ -73,10 +75,10 @@ export class ExercisesService {
 
   getLastSets(exerciseId: string, userId: string): WorkoutSet[] {
     const raw = (this.db as unknown as { $client: { prepare: (sql: string) => { all: (...args: unknown[]) => unknown[] } } }).$client
-    return raw.prepare(`
+    const rows = raw.prepare(`
       SELECT s.id, s.session_id AS sessionId, s.exercise_id AS exerciseId,
              s.set_number AS setNumber, s.reps, s.weight_kg AS weightKg,
-             s.duration_sec AS durationSec, s.rpe, s.is_warmup AS isWarmup,
+             s.duration_sec AS durationSec, s.rpe,
              s.completed_at AS completedAt, s.done
       FROM sets s
       WHERE s.session_id = (
@@ -86,6 +88,7 @@ export class ExercisesService {
         ORDER BY ws.finished_at DESC LIMIT 1
       ) AND s.exercise_id = ?
       ORDER BY s.set_number ASC
-    `).all(userId, exerciseId, exerciseId) as WorkoutSet[]
+    `).all(userId, exerciseId, exerciseId)
+    return rows.map(r => toWorkoutSet(r as DbSet))
   }
 }

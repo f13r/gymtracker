@@ -27,14 +27,13 @@ export type TemplateExercise = {
   defaultSets: number | null
   defaultReps: number | null
   defaultWeightKg: number | null
-  isWarmup: number | null
 }
 
 export type WorkoutTemplateWithExercises = WorkoutTemplate & { exercises: TemplateExercise[] }
 
 export type WorkoutSession = {
   id: string
-  userId: string | null
+  userId: string
   templateId: string | null
   name: string
   startedAt: number
@@ -44,16 +43,15 @@ export type WorkoutSession = {
 
 export type WorkoutSet = {
   id: string
-  sessionId: string | null
-  exerciseId: string | null
+  sessionId: string
+  exerciseId: string
   setNumber: number
   reps: number | null
   weightKg: number | null
   durationSec: number | null
   rpe: number | null
-  isWarmup: number | null
   completedAt: number
-  done: number | null
+  done: boolean
 }
 
 export type SessionWithSets = WorkoutSession & { sets: WorkoutSet[] }

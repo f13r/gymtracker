@@ -100,7 +100,7 @@ function InlineSetRow({
     onToggleDone()
   }
 
-  const isDone = set.done !== 0
+  const isDone = set.done
 
   return (
     <div
@@ -260,7 +260,7 @@ function ExerciseSummaryBar({
   defaultWeightKg: number
   defaultSets: number
 }) {
-  const doneSets = currentSets.filter(x => x.done !== 0)
+  const doneSets = currentSets.filter(s => s.done)
   const nowReps = doneSets.reduce((s, x) => s + (x.reps ?? 0), 0)
   const nowVol = doneSets.reduce((s, x) => s + (x.reps ?? 0) * (x.weightKg ?? 0), 0)
 
@@ -423,7 +423,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
           defaultSets: te.defaultSets ?? 3,
           defaultReps: te.defaultReps ?? 8,
           defaultWeightKg: te.defaultWeightKg ?? 0,
-          isWarmup: !!te.isWarmup,
           loggedSets: (session?.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId),
         }))
     }
@@ -435,7 +434,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       defaultSets: 0,
       defaultReps: 8,
       defaultWeightKg: 0,
-      isWarmup: false,
       loggedSets: session.sets.filter((s: WorkoutSet) => s.exerciseId === id),
     }))
   }, [template, session, exerciseNameMap])
@@ -444,7 +442,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const prevExerciseData = activeExerciseIndex > 0 ? exercises[activeExerciseIndex - 1] : null
   const nextExerciseData = activeExerciseIndex < exercises.length - 1 ? exercises[activeExerciseIndex + 1] : null
   const loggedCount = currentExercise?.loggedSets.length ?? 0
-  const doneCount = currentExercise?.loggedSets.filter((s: WorkoutSet) => s.done !== 0).length ?? 0
+  const doneCount = currentExercise?.loggedSets.filter((s: WorkoutSet) => s.done).length ?? 0
 
   const { data: prevSets = [] } = useQuery({
     queryKey: ['exercise-last-sets', currentExercise?.id],
@@ -473,7 +471,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     !!currentExercise &&
     currentExercise.defaultSets > 0 &&
     currentExercise.loggedSets.length >= currentExercise.defaultSets &&
-    currentExercise.loggedSets.every((s: WorkoutSet) => s.done !== 0)
+    currentExercise.loggedSets.every((s: WorkoutSet) => s.done)
 
   useEffect(() => {
     const startedAt = session?.startedAt
@@ -491,7 +489,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
       if (done && template && currentExercise && currentExercise.defaultSets > 0) {
         const allLogged = currentExercise.loggedSets.length >= currentExercise.defaultSets
-        const allOtherDone = currentExercise.loggedSets.every(s => s.id === setId || s.done !== 0)
+        const allOtherDone = currentExercise.loggedSets.every(s => s.id === setId || s.done)
         if (allLogged && allOtherDone) { setAllDoneOpen(true) }
       }
     },
@@ -513,7 +511,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         setNumber: (currentExercise?.loggedSets.length ?? 0) + 1,
         reps: newSetReps,
         weightKg: newSetWeight,
-        isWarmup: false,
         done: true,
       })
     },
@@ -533,7 +530,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         setNumber: loggedCount + 1,
         reps,
         weightKg,
-        isWarmup: currentExercise.isWarmup,
         done: true,
       })
     },
@@ -542,7 +538,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       if ('vibrate' in navigator) { navigator.vibrate(50) }
       if (template && currentExercise && currentExercise.defaultSets > 0) {
         const newLength = currentExercise.loggedSets.length + 1
-        const allOtherDone = currentExercise.loggedSets.every((s: WorkoutSet) => s.done !== 0)
+        const allOtherDone = currentExercise.loggedSets.every((s: WorkoutSet) => s.done)
         if (newLength >= currentExercise.defaultSets && allOtherDone) { setAllDoneOpen(true) }
       }
     },
@@ -664,7 +660,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
                     isDeletePending={deleteSet.isPending && deleteSet.variables === s.id}
                     set={s}
                     onDelete={() => deleteSet.mutate(s.id)}
-                    onToggleDone={() => toggleDone.mutate({ setId: s.id, done: s.done === 0 })}
+                    onToggleDone={() => toggleDone.mutate({ setId: s.id, done: !s.done })}
                     onUpdate={(data) => updateSet.mutate({ setId: s.id, data })}
                   />
                 )
@@ -685,7 +681,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
                 isDeletePending={deleteSet.isPending && deleteSet.variables === s.id}
                 set={s}
                 onDelete={() => deleteSet.mutate(s.id)}
-                onToggleDone={() => toggleDone.mutate({ setId: s.id, done: s.done === 0 })}
+                onToggleDone={() => toggleDone.mutate({ setId: s.id, done: !s.done })}
                 onUpdate={(data) => updateSet.mutate({ setId: s.id, data })}
               />
             ))

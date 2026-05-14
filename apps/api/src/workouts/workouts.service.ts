@@ -6,6 +6,7 @@ import { CreateTemplateDto, FinishSessionDto, StartSessionDto } from '@gymtracke
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+import { toWorkoutSession, toWorkoutSet } from '../drizzle/mappers'
 import { randomUUID } from 'crypto'
 
 @Injectable()
@@ -63,7 +64,6 @@ export class WorkoutsService {
           defaultWeightKg: ex.defaultWeightKg ?? null,
           defaultSets: ex.defaultSets ?? null,
           defaultReps: ex.defaultReps ?? null,
-          isWarmup: ex.isWarmup ? 1 : 0,
         })
         .run()
     }
@@ -92,6 +92,7 @@ export class WorkoutsService {
       .where(eq(schema.workoutSessions.userId, userId))
       .orderBy(desc(schema.workoutSessions.startedAt))
       .all()
+      .map(toWorkoutSession)
   }
 
   getSession(id: string, userId: string) {
@@ -104,17 +105,16 @@ export class WorkoutsService {
       throw new NotFoundException('Session not found')
     }
     const sessionSets = this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, id)).all()
-    return { ...s, sets: sessionSets }
+    return { ...toWorkoutSession(s), sets: sessionSets.map(toWorkoutSet) }
   }
 
   getActiveSession(userId: string) {
-    return (
-      this.db
-        .select()
-        .from(schema.workoutSessions)
-        .where(and(eq(schema.workoutSessions.userId, userId), isNull(schema.workoutSessions.finishedAt)))
-        .get() ?? null
-    )
+    const row = this.db
+      .select()
+      .from(schema.workoutSessions)
+      .where(and(eq(schema.workoutSessions.userId, userId), isNull(schema.workoutSessions.finishedAt)))
+      .get()
+    return row ? toWorkoutSession(row) : null
   }
 
   startSession(userId: string, dto: StartSessionDto) {

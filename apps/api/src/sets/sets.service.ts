@@ -6,6 +6,7 @@ import { CreateSetDto, UpdateSetDto } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+import { toWorkoutSet } from '../drizzle/mappers'
 import { randomUUID } from 'crypto'
 
 @Injectable()
@@ -29,7 +30,7 @@ export class SetsService {
 
   getSessionSets(sessionId: string, userId: string) {
     this.getActiveSession(sessionId, userId)
-    return this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, sessionId)).all()
+    return this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, sessionId)).all().map(toWorkoutSet)
   }
 
   logSet(sessionId: string, userId: string, dto: CreateSetDto) {
@@ -46,12 +47,11 @@ export class SetsService {
         weightKg: dto.weightKg ?? null,
         durationSec: dto.durationSec ?? null,
         rpe: dto.rpe ?? null,
-        isWarmup: dto.isWarmup ? 1 : 0,
         done: dto.done ? 1 : 0,
         completedAt: Math.floor(Date.now() / 1000),
       })
       .run()
-    return this.db.select().from(schema.sets).where(eq(schema.sets.id, id)).get()!
+    return toWorkoutSet(this.db.select().from(schema.sets).where(eq(schema.sets.id, id)).get()!)
   }
 
   updateSet(sessionId: string, setId: string, userId: string, dto: UpdateSetDto) {
@@ -68,7 +68,7 @@ export class SetsService {
       Object.entries(dto).map(([k, v]) => [k, k === 'done' ? (v ? 1 : 0) : (v ?? null)]),
     )
     this.db.update(schema.sets).set(patch).where(eq(schema.sets.id, setId)).run()
-    return this.db.select().from(schema.sets).where(eq(schema.sets.id, setId)).get()!
+    return toWorkoutSet(this.db.select().from(schema.sets).where(eq(schema.sets.id, setId)).get()!)
   }
 
   deleteSet(sessionId: string, setId: string, userId: string) {
