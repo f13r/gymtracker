@@ -1,5 +1,5 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
-import { eq, and, gte, lt, count } from 'drizzle-orm'
+import { eq, and, or, gte, lt, count } from 'drizzle-orm'
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 
 import { CreateScheduleDto } from '@gymtracker/shared'
@@ -59,17 +59,26 @@ export class SchedulesService {
     const today = now.toISOString().slice(0, 10)
     const dayOfWeek = now.getDay()
 
-    const schedules = this.db
+    // 0=Sun … 6=Sat, matching JS Date.getDay()
+    const match = this.db
       .select()
       .from(schema.workoutSchedules)
-      .where(eq(schema.workoutSchedules.userId, userId))
-      .all()
-
-    const match = schedules.find(s => {
-      if (s.type === 'once') {return s.scheduledDate === today}
-      if (s.type === 'weekly') {return s.dayOfWeek === dayOfWeek}
-      return false
-    })
+      .where(
+        and(
+          eq(schema.workoutSchedules.userId, userId),
+          or(
+            and(
+              eq(schema.workoutSchedules.type, 'once'),
+              eq(schema.workoutSchedules.scheduledDate, today),
+            ),
+            and(
+              eq(schema.workoutSchedules.type, 'weekly'),
+              eq(schema.workoutSchedules.dayOfWeek, dayOfWeek),
+            ),
+          ),
+        ),
+      )
+      .get()
 
     if (!match) {return null}
 
