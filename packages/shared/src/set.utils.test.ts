@@ -1,0 +1,169 @@
+import { describe, it, expect } from 'vitest'
+import { isDoneSet, getDoneSets } from './set.utils.js'
+import type { WorkoutSet } from './models.js'
+
+describe('set.utils', () => {
+  describe('isDoneSet', () => {
+    it('returns true when done=1', () => {
+      const set: WorkoutSet = {
+        id: '1',
+        sessionId: 'session1',
+        exerciseId: 'exercise1',
+        setNumber: 1,
+        reps: 10,
+        weightKg: 50,
+        durationSec: null,
+        rpe: null,
+        completedAt: 1000,
+        done: 1,
+      }
+      expect(isDoneSet(set)).toBe(true)
+    })
+
+    it('returns false when done=0', () => {
+      const set: WorkoutSet = {
+        id: '2',
+        sessionId: 'session1',
+        exerciseId: 'exercise1',
+        setNumber: 2,
+        reps: null,
+        weightKg: null,
+        durationSec: null,
+        rpe: null,
+        completedAt: 1000,
+        done: 0,
+      }
+      expect(isDoneSet(set)).toBe(false)
+    })
+
+    it('returns false when done=null', () => {
+      const set: WorkoutSet = {
+        id: '3',
+        sessionId: 'session1',
+        exerciseId: 'exercise1',
+        setNumber: 3,
+        reps: null,
+        weightKg: null,
+        durationSec: null,
+        rpe: null,
+        completedAt: 1000,
+        done: null,
+      }
+      expect(isDoneSet(set)).toBe(false)
+    })
+  })
+
+  describe('getDoneSets', () => {
+    it('returns empty array when input is empty', () => {
+      expect(getDoneSets([])).toEqual([])
+    })
+
+    it('filters done sets from mixed array', () => {
+      const sets: WorkoutSet[] = [
+        {
+          id: '1',
+          sessionId: 'session1',
+          exerciseId: 'exercise1',
+          setNumber: 1,
+          reps: 10,
+          weightKg: 50,
+          durationSec: null,
+          rpe: null,
+          completedAt: 1000,
+          done: 1,
+        },
+        {
+          id: '2',
+          sessionId: 'session1',
+          exerciseId: 'exercise1',
+          setNumber: 2,
+          reps: null,
+          weightKg: null,
+          durationSec: null,
+          rpe: null,
+          completedAt: 1000,
+          done: 0,
+        },
+        {
+          id: '3',
+          sessionId: 'session1',
+          exerciseId: 'exercise1',
+          setNumber: 3,
+          reps: 12,
+          weightKg: 52,
+          durationSec: null,
+          rpe: null,
+          completedAt: 1000,
+          done: 1,
+        },
+      ]
+      const result = getDoneSets(sets)
+      expect(result).toHaveLength(2)
+      expect(result[0]?.id).toBe('1')
+      expect(result[1]?.id).toBe('3')
+    })
+
+    it('returns all sets when all are done', () => {
+      const sets: WorkoutSet[] = [
+        {
+          id: '1',
+          sessionId: 'session1',
+          exerciseId: 'exercise1',
+          setNumber: 1,
+          reps: 10,
+          weightKg: 50,
+          durationSec: null,
+          rpe: null,
+          completedAt: 1000,
+          done: 1,
+        },
+        {
+          id: '2',
+          sessionId: 'session1',
+          exerciseId: 'exercise1',
+          setNumber: 2,
+          reps: 11,
+          weightKg: 51,
+          durationSec: null,
+          rpe: null,
+          completedAt: 1000,
+          done: 1,
+        },
+      ]
+      const result = getDoneSets(sets)
+      expect(result).toHaveLength(2)
+      expect(result).toEqual(sets)
+    })
+
+    it('returns empty array when no sets are done', () => {
+      const sets: WorkoutSet[] = [
+        {
+          id: '1',
+          sessionId: 'session1',
+          exerciseId: 'exercise1',
+          setNumber: 1,
+          reps: null,
+          weightKg: null,
+          durationSec: null,
+          rpe: null,
+          completedAt: 1000,
+          done: 0,
+        },
+        {
+          id: '2',
+          sessionId: 'session1',
+          exerciseId: 'exercise1',
+          setNumber: 2,
+          reps: null,
+          weightKg: null,
+          durationSec: null,
+          rpe: null,
+          completedAt: 1000,
+          done: null,
+        },
+      ]
+      const result = getDoneSets(sets)
+      expect(result).toHaveLength(0)
+    })
+  })
+})
