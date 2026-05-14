@@ -1,4 +1,4 @@
-import type { WorkoutSet } from './models.js'
+import type { WorkoutSet, WorkoutStreak } from './models.js'
 
 /**
  * Calculate workout streak from an array of finished session dates.
@@ -6,7 +6,7 @@ import type { WorkoutSet } from './models.js'
  * @param finishedDates - Sorted DESC array of unique 'YYYY-MM-DD' strings
  * @returns { current, longest } streak counts
  */
-export function calculateStreak(finishedDates: string[]): { current: number; longest: number } {
+export function calculateStreak(finishedDates: string[]): WorkoutStreak {
   if (finishedDates.length === 0) return { current: 0, longest: 0 }
 
   const today = new Date().toISOString().split('T')[0]!

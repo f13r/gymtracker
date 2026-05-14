@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { calculateStreak, calculateVolume } from './stats.utils.js'
 import type { WorkoutSet } from './models.js'
 
