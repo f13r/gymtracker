@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronUp, ChevronDown, Plus, CheckCircle2, Square } from 
 import { useState, useEffect, useMemo, useRef } from 'react'
 
 import type { Exercise, WorkoutSet } from '@gymtracker/shared'
+import { calculateVolume, getDoneSets } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { setsApi } from '@/api/sets'
@@ -260,9 +261,9 @@ function ExerciseSummaryBar({
   defaultWeightKg: number
   defaultSets: number
 }) {
-  const doneSets = currentSets.filter(s => s.done)
+  const doneSets = getDoneSets(currentSets)
   const nowReps = doneSets.reduce((s, x) => s + (x.reps ?? 0), 0)
-  const nowVol = doneSets.reduce((s, x) => s + (x.reps ?? 0) * (x.weightKg ?? 0), 0)
+  const nowVol = calculateVolume(doneSets)
 
   const hasPrev = prevSets.length > 0
   const hasTemplate = defaultSets > 0 && defaultReps > 0
@@ -272,7 +273,7 @@ function ExerciseSummaryBar({
     : hasTemplate ? defaultSets * defaultReps : null
 
   const wasVol: number | null = hasPrev
-    ? prevSets.reduce((s, x) => s + (x.reps ?? 0) * (x.weightKg ?? 0), 0)
+    ? calculateVolume(getDoneSets(prevSets))
     : hasTemplate && defaultWeightKg > 0 ? defaultSets * defaultReps * defaultWeightKg : null
 
   const compLabel = hasPrev ? 'last time' : hasTemplate ? 'template' : null

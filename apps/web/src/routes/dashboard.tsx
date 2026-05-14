@@ -4,12 +4,14 @@ import { Dumbbell, Clock, Zap, CheckCircle2, Circle, Loader2 } from 'lucide-reac
 import { useState, useEffect, useMemo } from 'react'
 
 import type { WorkoutSession, WorkoutSet } from '@gymtracker/shared'
+import { calculateVolume, getDoneSets } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
 import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
+import { useSessionVolume } from '@/hooks/useSessionVolume'
 import { useWorkoutStore } from '@/stores/workout.store'
 
 function getGreeting() {
@@ -197,32 +199,23 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     }))
   }, [template, session, exerciseNameMap])
 
-  const sessionSets = session?.sets
-  const prevSessionDataSets = prevSessionData?.sets
-  const summaryStats = useMemo(() => {
-    const currentSets = sessionSets ?? []
-    const prevSets = prevSessionDataSets ?? []
+  const sessionSets = session?.sets ?? []
+  const prevSessionDataSets = prevSessionData?.sets ?? []
+  const { current: currentVolume, prev: sessionPrevVolume } = useSessionVolume(sessionSets, prevSessionDataSets)
 
-    const currentVolume = currentSets
-      .filter((s: WorkoutSet) => s.done)
-      .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
-    const prevVolume =
-      prevSets.length > 0
-        ? prevSets.reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
-        : null
+  const summaryStats = useMemo(() => {
+    const prevSets = prevSessionDataSets
+
+    const prevVolume = prevSets.length > 0 ? sessionPrevVolume : null
 
     const completedCount = exercises.filter(ex => ex.defaultSets > 0 && ex.loggedSets.length >= ex.defaultSets).length
 
     const exceededExercises = exercises
       .map(ex => {
-        const currentExVol = ex.loggedSets
-          .filter((s: WorkoutSet) => s.done)
-          .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+        const currentExVol = calculateVolume(getDoneSets(ex.loggedSets))
         const prevExVol =
           prevSets.length > 0
-            ? prevSets
-                .filter((s: WorkoutSet) => s.exerciseId === ex.id)
-                .reduce((sum: number, s: WorkoutSet) => sum + (s.reps ?? 0) * (s.weightKg ?? 0), 0)
+            ? calculateVolume(getDoneSets(prevSets.filter((s: WorkoutSet) => s.exerciseId === ex.id)))
             : null
         const delta = prevExVol !== null ? currentExVol - prevExVol : null
         return { id: ex.id, name: ex.name, delta, currentVol: currentExVol }
@@ -233,7 +226,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
       )
 
     return { currentVolume, prevVolume, completedCount, exceededExercises }
-  }, [sessionSets, prevSessionDataSets, exercises])
+  }, [sessionPrevVolume, prevSessionDataSets, exercises, currentVolume])
 
   useEffect(() => {
     if (!session?.startedAt) {
