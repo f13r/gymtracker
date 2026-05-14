@@ -1,9 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common'
-import { eq, and, gte, lte } from 'drizzle-orm'
+import { eq, and, gte, lte, sql, isNotNull, count, desc } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { calculateStreak } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+import type { VolumePoint, FrequencyPoint, PersonalRecord, WorkoutStreak } from '@gymtracker/shared'
 
 type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>
 
@@ -15,86 +17,76 @@ export class StatsService {
     return this.db.$client
   }
 
-  getPRs(userId: string, exerciseId?: string, limit = 10) {
-    const where = exerciseId ? `AND s.exercise_id = '${exerciseId.replace(/'/g, "''")}'` : ''
-    return this.raw()
-      .prepare(
-        `
-      SELECT s.exercise_id, e.name, MAX(s.weight_kg) as maxWeightKg,
-             s.reps as repsAtMax, s.completed_at as achievedAt
-      FROM sets s
-      JOIN workout_sessions ws ON s.session_id = ws.id
-      JOIN exercises e ON s.exercise_id = e.id
-      WHERE ws.user_id = ? AND s.is_warmup = 0 ${where}
-      GROUP BY s.exercise_id
+  getPRs(userId: string, exerciseId?: string, limit = 10): PersonalRecord[] {
+    if (exerciseId) {
+      return this.raw().prepare(`
+        WITH ranked AS (
+          SELECT s.exercise_id, e.name,
+                 s.weight_kg AS maxWeightKg, s.reps AS repsAtMax, s.completed_at AS achievedAt,
+                 ROW_NUMBER() OVER (PARTITION BY s.exercise_id ORDER BY s.weight_kg DESC) AS rn
+          FROM sets s
+          JOIN workout_sessions ws ON s.session_id = ws.id
+          JOIN exercises e ON s.exercise_id = e.id
+          WHERE ws.user_id = ? AND s.done = 1 AND s.exercise_id = ?
+        )
+        SELECT exercise_id, name, maxWeightKg, repsAtMax, achievedAt
+        FROM ranked WHERE rn = 1
+        ORDER BY maxWeightKg DESC
+        LIMIT ?
+      `).all(userId, exerciseId, limit) as PersonalRecord[]
+    }
+    return this.raw().prepare(`
+      WITH ranked AS (
+        SELECT s.exercise_id, e.name,
+               s.weight_kg AS maxWeightKg, s.reps AS repsAtMax, s.completed_at AS achievedAt,
+               ROW_NUMBER() OVER (PARTITION BY s.exercise_id ORDER BY s.weight_kg DESC) AS rn
+        FROM sets s
+        JOIN workout_sessions ws ON s.session_id = ws.id
+        JOIN exercises e ON s.exercise_id = e.id
+        WHERE ws.user_id = ? AND s.done = 1
+      )
+      SELECT exercise_id, name, maxWeightKg, repsAtMax, achievedAt
+      FROM ranked WHERE rn = 1
       ORDER BY maxWeightKg DESC
       LIMIT ?
-    `,
-      )
-      .all(userId, limit)
+    `).all(userId, limit) as PersonalRecord[]
   }
 
-  getVolume(userId: string, exerciseId?: string, from?: number, to?: number) {
-    const conditions: string[] = ['ws.user_id = ?']
-    const params: unknown[] = [userId]
-    if (exerciseId) {
-      conditions.push(`s.exercise_id = ?`)
-      params.push(exerciseId)
-    }
-    if (from) {
-      conditions.push(`s.completed_at >= ?`)
-      params.push(from)
-    }
-    if (to) {
-      conditions.push(`s.completed_at <= ?`)
-      params.push(to)
-    }
-    const where = conditions.join(' AND ')
-    return this.raw()
-      .prepare(
-        `
-      SELECT date(s.completed_at, 'unixepoch') as date,
-             SUM(s.reps * s.weight_kg) as volume
-      FROM sets s
-      JOIN workout_sessions ws ON s.session_id = ws.id
-      WHERE ${where} AND s.reps IS NOT NULL AND s.weight_kg IS NOT NULL
-      GROUP BY date ORDER BY date ASC
-    `,
-      )
-      .all(...params)
+  getVolume(userId: string, exerciseId?: string, from?: number, to?: number): VolumePoint[] {
+    const conditions = [
+      eq(schema.workoutSessions.userId, userId),
+      eq(schema.sets.done, 1),
+      isNotNull(schema.sets.reps),
+      isNotNull(schema.sets.weightKg),
+    ]
+    if (exerciseId) conditions.push(eq(schema.sets.exerciseId, exerciseId))
+    if (from) conditions.push(gte(schema.sets.completedAt, from))
+    if (to) conditions.push(lte(schema.sets.completedAt, to))
+
+    return this.db
+      .select({
+        date: sql<string>`date(${schema.sets.completedAt}, 'unixepoch')`,
+        volume: sql<number>`SUM(${schema.sets.reps} * ${schema.sets.weightKg})`,
+      })
+      .from(schema.sets)
+      .innerJoin(schema.workoutSessions, eq(schema.sets.sessionId, schema.workoutSessions.id))
+      .where(and(...conditions))
+      .groupBy(sql`date(${schema.sets.completedAt}, 'unixepoch')`)
+      .orderBy(sql`date(${schema.sets.completedAt}, 'unixepoch')`)
+      .all() as VolumePoint[]
   }
 
-  getStreak(userId: string) {
-    const days = this.raw()
-      .prepare(
-        `
-      SELECT DISTINCT date(started_at, 'unixepoch') as day
-      FROM workout_sessions WHERE user_id = ? AND finished_at IS NOT NULL
-      ORDER BY day DESC
-    `,
-      )
-      .all(userId) as { day: string }[]
-
-    let current = 0,
-      longest = 0,
-      streak = 0
-    const today = new Date().toISOString().split('T')[0]!
-    let prev: string | null = null
-
-    for (const { day } of days) {
-      if (!prev) {
-        streak = day === today || day === new Date(Date.now() - 86400000).toISOString().split('T')[0] ? 1 : 0
-      } else {
-        const diff = (new Date(prev).getTime() - new Date(day).getTime()) / 86400000
-        streak = diff === 1 ? streak + 1 : 1
-      }
-      longest = Math.max(longest, streak)
-      if (!current) {
-        current = streak
-      }
-      prev = day
-    }
-    return { current, longest }
+  getStreak(userId: string): WorkoutStreak {
+    const days = this.db
+      .selectDistinct({ day: sql<string>`date(${schema.workoutSessions.startedAt}, 'unixepoch')` })
+      .from(schema.workoutSessions)
+      .where(and(
+        eq(schema.workoutSessions.userId, userId),
+        isNotNull(schema.workoutSessions.finishedAt),
+      ))
+      .orderBy(desc(sql<string>`date(${schema.workoutSessions.startedAt}, 'unixepoch')`))
+      .all()
+    return calculateStreak(days.map(r => r.day))
   }
 
   getBodyWeight(userId: string, from?: number, to?: number) {
@@ -129,25 +121,23 @@ export class StatsService {
       .all()
   }
 
-  getFrequency(userId: string, from?: number, to?: number) {
-    const params: unknown[] = [userId]
-    let extra = ''
-    if (from) {
-      extra += ' AND started_at >= ?'
-      params.push(from)
-    }
-    if (to) {
-      extra += ' AND started_at <= ?'
-      params.push(to)
-    }
-    return this.raw()
-      .prepare(
-        `
-      SELECT strftime('%Y-W%W', started_at, 'unixepoch') as week, COUNT(*) as count
-      FROM workout_sessions WHERE user_id = ? AND finished_at IS NOT NULL ${extra}
-      GROUP BY week ORDER BY week ASC
-    `,
-      )
-      .all(...params)
+  getFrequency(userId: string, from?: number, to?: number): FrequencyPoint[] {
+    const conditions = [
+      eq(schema.workoutSessions.userId, userId),
+      isNotNull(schema.workoutSessions.finishedAt),
+    ]
+    if (from) conditions.push(gte(schema.workoutSessions.startedAt, from))
+    if (to) conditions.push(lte(schema.workoutSessions.startedAt, to))
+
+    return this.db
+      .select({
+        week: sql<string>`strftime('%Y-W%W', ${schema.workoutSessions.startedAt}, 'unixepoch')`,
+        count: count(),
+      })
+      .from(schema.workoutSessions)
+      .where(and(...conditions))
+      .groupBy(sql`strftime('%Y-W%W', ${schema.workoutSessions.startedAt}, 'unixepoch')`)
+      .orderBy(sql`strftime('%Y-W%W', ${schema.workoutSessions.startedAt}, 'unixepoch')`)
+      .all() as FrequencyPoint[]
   }
 }
