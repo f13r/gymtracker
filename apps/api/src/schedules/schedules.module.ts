@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common'
 
+import { SessionsModule } from '../sessions/sessions.module'
 import { SchedulesController } from './schedules.controller'
 import { SchedulesService } from './schedules.service'
 
-@Module({ controllers: [SchedulesController], providers: [SchedulesService] })
+@Module({ imports: [SessionsModule], controllers: [SchedulesController], providers: [SchedulesService] })
 export class SchedulesModule {}

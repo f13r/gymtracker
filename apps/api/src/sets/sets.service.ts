@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException } from '@nestjs/common'
 import { eq, and } from 'drizzle-orm'
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 
@@ -7,34 +7,23 @@ import { CreateSetDto, UpdateSetDto } from '@gymtracker/shared'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { toWorkoutSet } from '../drizzle/mappers'
+import { SessionRepository } from '../sessions/session.repository'
 import { randomUUID } from 'crypto'
 
 @Injectable()
 export class SetsService {
-  constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
-
-  private getActiveSession(sessionId: string, userId: string) {
-    const s = this.db
-      .select()
-      .from(schema.workoutSessions)
-      .where(and(eq(schema.workoutSessions.id, sessionId), eq(schema.workoutSessions.userId, userId)))
-      .get()
-    if (!s) {
-      throw new NotFoundException('Session not found')
-    }
-    if (s.finishedAt) {
-      throw new BadRequestException('Session is already finished')
-    }
-    return s
-  }
+  constructor(
+    @Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>,
+    private sessions: SessionRepository,
+  ) {}
 
   getSessionSets(sessionId: string, userId: string) {
-    this.getActiveSession(sessionId, userId)
+    this.sessions.assertActive(sessionId, userId)
     return this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, sessionId)).all().map(toWorkoutSet)
   }
 
   logSet(sessionId: string, userId: string, dto: CreateSetDto) {
-    this.getActiveSession(sessionId, userId)
+    this.sessions.assertActive(sessionId, userId)
     const id = randomUUID()
     this.db
       .insert(schema.sets)
@@ -55,7 +44,7 @@ export class SetsService {
   }
 
   updateSet(sessionId: string, setId: string, userId: string, dto: UpdateSetDto) {
-    this.getActiveSession(sessionId, userId)
+    this.sessions.assertActive(sessionId, userId)
     const set = this.db
       .select()
       .from(schema.sets)
@@ -72,7 +61,7 @@ export class SetsService {
   }
 
   deleteSet(sessionId: string, setId: string, userId: string) {
-    this.getActiveSession(sessionId, userId)
+    this.sessions.assertActive(sessionId, userId)
     const set = this.db
       .select()
       .from(schema.sets)

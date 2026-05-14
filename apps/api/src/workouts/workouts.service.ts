@@ -1,5 +1,5 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
-import { eq, and, isNull, desc } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 
 import { CreateTemplateDto, FinishSessionDto, StartSessionDto } from '@gymtracker/shared'
@@ -7,11 +7,15 @@ import { CreateTemplateDto, FinishSessionDto, StartSessionDto } from '@gymtracke
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { toWorkoutSession, toWorkoutSet } from '../drizzle/mappers'
+import { SessionRepository } from '../sessions/session.repository'
 import { randomUUID } from 'crypto'
 
 @Injectable()
 export class WorkoutsService {
-  constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
+  constructor(
+    @Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>,
+    private sessions: SessionRepository,
+  ) {}
 
   getTemplates(userId: string) {
     const templates = this.db
@@ -109,12 +113,7 @@ export class WorkoutsService {
   }
 
   getActiveSession(userId: string) {
-    const row = this.db
-      .select()
-      .from(schema.workoutSessions)
-      .where(and(eq(schema.workoutSessions.userId, userId), isNull(schema.workoutSessions.finishedAt)))
-      .get()
-    return row ? toWorkoutSession(row) : null
+    return this.sessions.findActive(userId)
   }
 
   startSession(userId: string, dto: StartSessionDto) {

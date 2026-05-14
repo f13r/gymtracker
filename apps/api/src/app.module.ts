@@ -11,6 +11,7 @@ import { HealthController } from './health.controller'
 import { PhotosModule } from './photos/photos.module'
 import { SchedulesModule } from './schedules/schedules.module'
 import { SeedModule } from './seed/seed.module'
+import { SessionsModule } from './sessions/sessions.module'
 import { SetsModule } from './sets/sets.module'
 import { StatsModule } from './stats/stats.module'
 import { WorkoutsModule } from './workouts/workouts.module'
@@ -19,6 +20,7 @@ import { WorkoutsModule } from './workouts/workouts.module'
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DrizzleModule,
+    SessionsModule,
     AuthModule,
     SeedModule,
     ExercisesModule,
