@@ -14,9 +14,13 @@ _Avoid_: movement, lift, activity
 The muscle-group classification of an Exercise: `push`, `pull`, `legs`, `core`, `cardio`, `other`.
 _Avoid_: type, group, muscle group
 
+**Equipment Type**:
+The classification of apparatus an Exercise uses: `barbell`, `dumbbell`, `machine`, `bodyweight`, `cable`, `other`. An attribute on Exercise, not a standalone entity.
+_Avoid_: equipment, gear, tool
+
 **Equipment**:
-The apparatus an Exercise uses: `barbell`, `dumbbell`, `machine`, `bodyweight`, `cable`, `other`.
-_Avoid_: gear, tool
+A physical piece of gym apparatus photographed by the user, belonging to a Gym. Has a short `name` (e.g. "Left Cable Tower"), an Equipment Type, a free-text `description` (the hint the user provides to help the AI — also serves as a human-readable note), free-form `tags`, and a photo. Associated with one or more Exercises via a many-to-many join. A Set and a TemplateExercise may each optionally reference the Equipment used. Future: gif, YouTube link showing how to use it.
+_Avoid_: machine, station, gear
 
 **Template**:
 A reusable workout plan: an ordered list of Exercises with default sets, reps, and weight. Used to pre-populate a Session. A Template can be created from scratch or (planned) saved from a completed Session.
@@ -58,6 +62,10 @@ _Avoid_: max, best, record
 The count of consecutive calendar days on which at least one Session was finished. Tracked as current streak and longest-ever streak.
 _Avoid_: consistency, run
 
+**Gym**:
+A physical training location to which Users are associated and which owns Equipment. Equipment photographed at a Gym is shared by all Users associated with that Gym.
+_Avoid_: location, facility, place
+
 ### Scheduling domain
 
 **Schedule**:
@@ -90,13 +98,15 @@ _Avoid_: sessions per week, training frequency
 
 ## Relationships
 
-- A **Template** contains an ordered list of **Exercises** with default Sets
+- A **Template** contains an ordered list of **Exercises** with default Sets; each TemplateExercise may optionally reference a specific **Equipment** (coach-prescribed machine)
 - A **Session** may be started from a **Template** or freeform; once started, its exercises are fully editable
-- A **Session** contains zero or more **Sets**, each belonging to one **Exercise**
+- A **Session** contains zero or more **Sets**, each belonging to one **Exercise**; a Set may optionally reference the **Equipment** used
 - A **Set** is either **Done** or **Planned**; only Done Sets count toward **PRs**, **Volume**, and **Streak**
 - A **Planned Set** is preserved after Session finish for retrospective comparison against the **Schedule**
 - A **Schedule** references a **Template** and resolves to a **Today's Schedule** if its date/day matches today and no Session has been started
 - A **Progress Photo** optionally records **Body Weight** at the time of the photo
+- A **Gym** owns zero or more **Equipment** records; a User is associated with exactly one Gym (multi-Gym deferred)
+- **Equipment** and **Exercise** are linked many-to-many; one Equipment can support many Exercises, one Exercise can be performed on many Equipment instances
 
 ## Example dialogue
 
