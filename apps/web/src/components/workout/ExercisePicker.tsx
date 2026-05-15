@@ -67,9 +67,9 @@ export function ExercisePicker({ onClose, onSelect }: ExercisePickerProps) {
                 onClick={() => onSelect(ex.id, ex.name)}
               >
                 <span className="font-medium">{ex.name}</span>
-                {ex.equipment && (
+                {ex.equipmentType && (
                   <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-xs">
-                    {ex.equipment}
+                    {ex.equipmentType}
                   </span>
                 )}
               </button>

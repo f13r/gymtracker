@@ -72,9 +72,9 @@ export function ExercisesPage() {
             {grouped[cat].map(ex => (
               <div key={ex.id} className="border-border/50 flex items-center justify-between border-b px-4 py-3.5">
                 <span className="text-sm font-medium">{ex.name}</span>
-                {ex.equipment && (
+                {ex.equipmentType && (
                   <span className="text-muted-foreground bg-muted rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
-                    {EQUIPMENT_LABELS[ex.equipment] ?? ex.equipment}
+                    {EQUIPMENT_LABELS[ex.equipmentType] ?? ex.equipmentType}
                   </span>
                 )}
               </div>
