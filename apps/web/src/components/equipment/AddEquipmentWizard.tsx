@@ -245,7 +245,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
   }
 
   return (
-    <div className="bg-background fixed inset-0 z-50 flex flex-col relative">
+    <div className="bg-background fixed inset-0 z-50 flex flex-col">
       <div className="border-border flex items-center gap-3 border-b px-4 py-3">
         <button className="flex h-9 w-9 items-center justify-center rounded-full" onClick={onBack}>
           <ChevronLeft size={20} />
