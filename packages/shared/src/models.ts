@@ -5,7 +5,7 @@ export type Exercise = {
   userId: string | null
   name: string
   category: string | null
-  equipment: string | null
+  equipmentType: string | null
   notes: string | null
   isDefault: number | null
   createdAt: number

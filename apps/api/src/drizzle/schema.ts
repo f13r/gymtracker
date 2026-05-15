@@ -11,7 +11,7 @@ export const exercises = pgTable('exercises', {
   userId: text('user_id').references(() => users.id),
   name: text('name').notNull(),
   category: text('category'),
-  equipment: text('equipment'),
+  equipmentType: text('equipment_type'),
   notes: text('notes'),
   isDefault: integer('is_default').default(0),
   createdAt: integer('created_at').notNull(),

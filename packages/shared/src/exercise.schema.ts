@@ -6,7 +6,7 @@ export const ExerciseEquipmentSchema = z.enum(['barbell', 'dumbbell', 'machine',
 export const CreateExerciseSchema = z.object({
   name: z.string().min(1).max(100),
   category: ExerciseCategorySchema.optional(),
-  equipment: ExerciseEquipmentSchema.optional(),
+  equipmentType: ExerciseEquipmentSchema.optional(),
   notes: z.string().max(500).optional(),
 })
 

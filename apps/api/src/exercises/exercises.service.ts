@@ -41,7 +41,7 @@ export class ExercisesService {
         userId,
         name: dto.name,
         category: dto.category ?? null,
-        equipment: dto.equipment ?? null,
+        equipmentType: dto.equipmentType ?? null,
         notes: dto.notes ?? null,
         isDefault: 0,
         createdAt: Math.floor(Date.now() / 1000),

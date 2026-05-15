@@ -1,0 +1,1 @@
+ALTER TABLE "exercises" RENAME COLUMN "equipment" TO "equipment_type";
