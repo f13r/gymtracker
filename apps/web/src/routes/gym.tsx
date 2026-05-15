@@ -84,7 +84,7 @@ export function GymPage() {
               alt={item.name}
               className="bg-muted h-14 w-14 flex-shrink-0 rounded-xl object-cover"
               loading="lazy"
-              src={`/api/equipment/photo/${item.thumbPath.split('/').pop()}`}
+              src={`/api/equipment/photo/${(item.thumbPath ?? '').split('/').pop()}`}
               onError={e => {
                 ;(e.target as HTMLImageElement).style.display = 'none'
               }}
