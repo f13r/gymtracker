@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, real, primaryKey } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -33,6 +33,7 @@ export const templateExercises = pgTable('template_exercises', {
   defaultSets: integer('default_sets'),
   defaultReps: integer('default_reps'),
   defaultWeightKg: real('default_weight_kg'),
+  equipmentId: text('equipment_id').references(() => equipment.id),
 })
 
 export const workoutSessions = pgTable('workout_sessions', {
@@ -56,6 +57,7 @@ export const sets = pgTable('sets', {
   rpe: real('rpe'),
   completedAt: integer('completed_at'),
   done: integer('done').default(0),
+  equipmentId: text('equipment_id').references(() => equipment.id),
 })
 
 export const bodyWeights = pgTable('body_weights', {
@@ -102,3 +104,29 @@ export const progressPhotos = pgTable('progress_photos', {
   tags: text('tags'),
   notes: text('notes'),
 })
+
+export const gyms = pgTable('gyms', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').references(() => users.id),
+  name: text('name').notNull(),
+  createdAt: integer('created_at').notNull(),
+})
+
+export const equipment = pgTable('equipment', {
+  id: text('id').primaryKey(),
+  gymId: text('gym_id').references(() => gyms.id),
+  name: text('name').notNull(),
+  equipmentType: text('equipment_type'),
+  description: text('description'),
+  tags: text('tags'),
+  photoPath: text('photo_path').notNull(),
+  thumbPath: text('thumb_path').notNull(),
+  createdAt: integer('created_at').notNull(),
+})
+
+export const equipmentExercises = pgTable('equipment_exercises', {
+  equipmentId: text('equipment_id').notNull().references(() => equipment.id, { onDelete: 'cascade' }),
+  exerciseId: text('exercise_id').notNull().references(() => exercises.id),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.equipmentId, t.exerciseId] }),
+}))

@@ -15,6 +15,13 @@
       "when": 1778843671221,
       "tag": "0001_superb_frog_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778844034641,
+      "tag": "0002_right_firedrake",
+      "breakpoints": true
     }
   ]
 }
