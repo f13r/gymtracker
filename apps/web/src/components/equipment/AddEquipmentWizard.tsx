@@ -201,13 +201,16 @@ type Step2Props = {
 function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
   const save = useMutation({
     mutationFn: () => {
-      const selected = s2.suggestion.exercises.filter((_, i) => s2.selectedExercises.has(i))
-      const exercises: SaveExerciseInput[] = selected.map((ex: SuggestedExercise) => ({
-        existingId: ex.existingId ?? undefined,
-        name: ex.name,
-        category: ex.category,
-        equipmentType: ex.equipmentType,
-      }))
+      const exercises: SaveExerciseInput[] = s2.suggestion.exercises.flatMap((ex: SuggestedExercise, i: number) =>
+        s2.selectedExercises.has(i)
+          ? [{
+              existingId: ex.existingId ?? undefined,
+              name: s2.exerciseNames[i].trim() || ex.name,
+              category: ex.category,
+              equipmentType: ex.equipmentType,
+            }]
+          : []
+      )
       return equipmentApi.create(
         s2.file,
         s2.name,
@@ -287,42 +290,58 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
           </label>
           <div className="space-y-1">
             {s2.suggestion.exercises.map((ex: SuggestedExercise, i: number) => (
-              <button
+              <div
                 key={i}
-                className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors ${
+                className={`flex w-full items-center gap-1 rounded-xl border transition-colors ${
                   s2.selectedExercises.has(i)
                     ? 'border-primary bg-primary/5'
                     : 'border-border opacity-50'
                 }`}
-                onClick={() => toggleExercise(i)}
               >
-                <div
-                  className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 ${
-                    s2.selectedExercises.has(i)
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-muted-foreground'
-                  }`}
+                <button
+                  className="flex flex-shrink-0 items-center justify-center p-3"
+                  type="button"
+                  onClick={() => toggleExercise(i)}
                 >
-                  {s2.selectedExercises.has(i) && (
-                    <svg fill="none" height="10" viewBox="0 0 12 10" width="12">
-                      <path
-                        d="M1 5l3.5 3.5L11 1"
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{ex.name}</p>
+                  <div
+                    className={`flex h-5 w-5 items-center justify-center rounded border-2 ${
+                      s2.selectedExercises.has(i)
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-muted-foreground'
+                    }`}
+                  >
+                    {s2.selectedExercises.has(i) && (
+                      <svg fill="none" height="10" viewBox="0 0 12 10" width="12">
+                        <path
+                          d="M1 5l3.5 3.5L11 1"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+                <div className="min-w-0 flex-1 py-3 pr-3">
+                  <input
+                    className="w-full bg-transparent text-sm font-medium outline-none"
+                    value={s2.exerciseNames[i]}
+                    onChange={e =>
+                      setS2(prev => {
+                        if (!prev) return prev
+                        const names = [...prev.exerciseNames]
+                        names[i] = e.target.value
+                        return { ...prev, exerciseNames: names }
+                      })
+                    }
+                  />
                   <p className="text-muted-foreground text-xs">
                     {ex.category} · {ex.equipmentType}
                     {ex.existingId ? ' · already in library' : ' · will be created'}
                   </p>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
