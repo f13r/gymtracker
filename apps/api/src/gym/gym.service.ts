@@ -17,10 +17,15 @@ export class GymService {
       .where(eq(schema.gyms.userId, userId))
       .limit(1)
     if (existing) return existing
-    const [gym] = await this.db
+    await this.db
       .insert(schema.gyms)
       .values({ id: randomUUID(), userId, name: 'My Gym', createdAt: Math.floor(Date.now() / 1000) })
-      .returning()
+      .onConflictDoNothing()
+    const [gym] = await this.db
+      .select()
+      .from(schema.gyms)
+      .where(eq(schema.gyms.userId, userId))
+      .limit(1)
     return gym!
   }
 }

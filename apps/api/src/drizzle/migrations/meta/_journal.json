@@ -22,6 +22,13 @@
       "when": 1778844034641,
       "tag": "0002_right_firedrake",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778845290265,
+      "tag": "0003_thankful_prowler",
+      "breakpoints": true
     }
   ]
 }

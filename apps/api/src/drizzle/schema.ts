@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, primaryKey } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, real, primaryKey, uniqueIndex } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -33,7 +33,7 @@ export const templateExercises = pgTable('template_exercises', {
   defaultSets: integer('default_sets'),
   defaultReps: integer('default_reps'),
   defaultWeightKg: real('default_weight_kg'),
-  equipmentId: text('equipment_id').references(() => equipment.id),
+  equipmentId: text('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
 })
 
 export const workoutSessions = pgTable('workout_sessions', {
@@ -57,7 +57,7 @@ export const sets = pgTable('sets', {
   rpe: real('rpe'),
   completedAt: integer('completed_at'),
   done: integer('done').default(0),
-  equipmentId: text('equipment_id').references(() => equipment.id),
+  equipmentId: text('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
 })
 
 export const bodyWeights = pgTable('body_weights', {
@@ -110,7 +110,9 @@ export const gyms = pgTable('gyms', {
   userId: text('user_id').references(() => users.id),
   name: text('name').notNull(),
   createdAt: integer('created_at').notNull(),
-})
+}, (t) => ({
+  userUnique: uniqueIndex('gyms_user_id_unique').on(t.userId),
+}))
 
 export const equipment = pgTable('equipment', {
   id: text('id').primaryKey(),
