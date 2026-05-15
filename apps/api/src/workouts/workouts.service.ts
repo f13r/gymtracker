@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
 import { eq, and, desc } from 'drizzle-orm'
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { CreateTemplateDto, FinishSessionDto, StartSessionDto } from '@gymtracker/shared'
 
@@ -13,53 +13,51 @@ import { randomUUID } from 'crypto'
 @Injectable()
 export class WorkoutsService {
   constructor(
-    @Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>,
+    @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
     private sessions: SessionRepository,
   ) {}
 
-  getTemplates(userId: string) {
-    const templates = this.db
+  async getTemplates(userId: string) {
+    const templates = await this.db
       .select()
       .from(schema.workoutTemplates)
       .where(eq(schema.workoutTemplates.userId, userId))
       .orderBy(desc(schema.workoutTemplates.createdAt))
-      .all()
-    return templates.map(t => ({
-      ...t,
-      exercises: this.db
-        .select()
-        .from(schema.templateExercises)
-        .where(eq(schema.templateExercises.templateId, t.id))
-        .all(),
-    }))
+    return Promise.all(
+      templates.map(async t => ({
+        ...t,
+        exercises: await this.db
+          .select()
+          .from(schema.templateExercises)
+          .where(eq(schema.templateExercises.templateId, t.id)),
+      })),
+    )
   }
 
-  getTemplate(id: string, userId: string) {
-    const t = this.db
+  async getTemplate(id: string, userId: string) {
+    const [t] = await this.db
       .select()
       .from(schema.workoutTemplates)
       .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
-      .get()
+      .limit(1)
     if (!t) {
       throw new NotFoundException('Template not found')
     }
-    const exercises = this.db
+    const exercises = await this.db
       .select()
       .from(schema.templateExercises)
       .where(eq(schema.templateExercises.templateId, id))
-      .all()
     return { ...t, exercises }
   }
 
-  createTemplate(userId: string, dto: CreateTemplateDto) {
+  async createTemplate(userId: string, dto: CreateTemplateDto) {
     const id = randomUUID()
     const now = Math.floor(Date.now() / 1000)
-    this.db
+    await this.db
       .insert(schema.workoutTemplates)
       .values({ id, userId, name: dto.name, notes: dto.notes ?? null, createdAt: now })
-      .run()
     for (const ex of dto.exercises) {
-      this.db
+      await this.db
         .insert(schema.templateExercises)
         .values({
           id: randomUUID(),
@@ -69,60 +67,51 @@ export class WorkoutsService {
           defaultSets: ex.defaultSets ?? null,
           defaultReps: ex.defaultReps ?? null,
         })
-        .run()
     }
     return this.getTemplate(id, userId)
   }
 
-  deleteTemplate(id: string, userId: string) {
-    this.getTemplate(id, userId)
-    this.db.delete(schema.workoutSchedules).where(eq(schema.workoutSchedules.templateId, id)).run()
-    this.db
-      .update(schema.workoutSessions)
-      .set({ templateId: null })
-      .where(eq(schema.workoutSessions.templateId, id))
-      .run()
-    this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id)).run()
-    this.db
-      .delete(schema.workoutTemplates)
-      .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
-      .run()
+  async deleteTemplate(id: string, userId: string) {
+    await this.getTemplate(id, userId)
+    await this.db.delete(schema.workoutSchedules).where(eq(schema.workoutSchedules.templateId, id))
+    await this.db.update(schema.workoutSessions).set({ templateId: null }).where(eq(schema.workoutSessions.templateId, id))
+    await this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id))
+    await this.db.delete(schema.workoutTemplates).where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
   }
 
-  getSessions(userId: string) {
-    return this.db
+  async getSessions(userId: string) {
+    const rows = await this.db
       .select()
       .from(schema.workoutSessions)
       .where(eq(schema.workoutSessions.userId, userId))
       .orderBy(desc(schema.workoutSessions.startedAt))
-      .all()
-      .map(toWorkoutSession)
+    return rows.map(toWorkoutSession)
   }
 
-  getSession(id: string, userId: string) {
-    const s = this.db
+  async getSession(id: string, userId: string) {
+    const [s] = await this.db
       .select()
       .from(schema.workoutSessions)
       .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId)))
-      .get()
+      .limit(1)
     if (!s) {
       throw new NotFoundException('Session not found')
     }
-    const sessionSets = this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, id)).all()
+    const sessionSets = await this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, id))
     return { ...toWorkoutSession(s), sets: sessionSets.map(toWorkoutSet) }
   }
 
-  getActiveSession(userId: string) {
+  async getActiveSession(userId: string) {
     return this.sessions.findActive(userId)
   }
 
-  startSession(userId: string, dto: StartSessionDto) {
-    const active = this.getActiveSession(userId)
+  async startSession(userId: string, dto: StartSessionDto) {
+    const active = await this.getActiveSession(userId)
     if (active) {
       throw new BadRequestException('A session is already active')
     }
     const id = randomUUID()
-    this.db
+    await this.db
       .insert(schema.workoutSessions)
       .values({
         id,
@@ -133,26 +122,23 @@ export class WorkoutsService {
         finishedAt: null,
         notes: null,
       })
-      .run()
     return this.getSession(id, userId)
   }
 
-  finishSession(id: string, userId: string, dto: FinishSessionDto) {
-    this.getSession(id, userId)
-    this.db
+  async finishSession(id: string, userId: string, dto: FinishSessionDto) {
+    await this.getSession(id, userId)
+    await this.db
       .update(schema.workoutSessions)
       .set({ finishedAt: Math.floor(Date.now() / 1000), notes: dto.notes ?? null })
       .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId)))
-      .run()
     return this.getSession(id, userId)
   }
 
-  deleteSession(id: string, userId: string) {
-    this.getSession(id, userId)
-    this.db.delete(schema.sets).where(eq(schema.sets.sessionId, id)).run()
-    this.db
+  async deleteSession(id: string, userId: string) {
+    await this.getSession(id, userId)
+    await this.db.delete(schema.sets).where(eq(schema.sets.sessionId, id))
+    await this.db
       .delete(schema.workoutSessions)
       .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId)))
-      .run()
   }
 }
