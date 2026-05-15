@@ -1,40 +1,12 @@
 {
   "version": "7",
-  "dialect": "sqlite",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1778164165126,
-      "tag": "0000_chubby_terrax",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1778200000000,
-      "tag": "0001_add_warmup_to_template_exercises",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1778300000000,
-      "tag": "0002_add_workout_schedules",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1778400000000,
-      "tag": "0003_add_done_to_sets",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1747173600000,
-      "tag": "0004_remove_warmup_columns",
+      "version": "7",
+      "when": 1778831893201,
+      "tag": "0000_harsh_red_shift",
       "breakpoints": true
     }
   ]
