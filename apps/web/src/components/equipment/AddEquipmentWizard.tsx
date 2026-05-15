@@ -223,6 +223,17 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
     onSuccess: onSaved,
   })
 
+  const [renameConfirm, setRenameConfirm] = useState<Array<{ from: string; to: string }> | null>(null)
+
+  const pendingRenames = s2.suggestion.exercises
+    .map((ex: SuggestedExercise, i: number) => ({ ex, i }))
+    .filter(({ ex, i }) =>
+      s2.selectedExercises.has(i) &&
+      ex.existingId !== null &&
+      s2.exerciseNames[i].trim() !== ex.name
+    )
+    .map(({ ex, i }) => ({ from: ex.name, to: s2.exerciseNames[i].trim() }))
+
   const toggleExercise = (index: number) => {
     setS2(prev => {
       if (!prev) return prev
@@ -234,7 +245,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
   }
 
   return (
-    <div className="bg-background fixed inset-0 z-50 flex flex-col">
+    <div className="bg-background fixed inset-0 z-50 flex flex-col relative">
       <div className="border-border flex items-center gap-3 border-b px-4 py-3">
         <button className="flex h-9 w-9 items-center justify-center rounded-full" onClick={onBack}>
           <ChevronLeft size={20} />
@@ -355,11 +366,53 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         <Button
           className="w-full"
           disabled={save.isPending}
-          onClick={() => save.mutate()}
+          onClick={() => {
+            if (pendingRenames.length > 0) {
+              setRenameConfirm(pendingRenames)
+            } else {
+              save.mutate()
+            }
+          }}
         >
-          {save.isPending ? 'Saving…' : `Save Equipment`}
+          {save.isPending ? 'Saving…' : 'Save Equipment'}
         </Button>
       </div>
+
+      {renameConfirm && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-6">
+          <div className="bg-background w-full max-w-sm space-y-4 rounded-2xl p-6">
+            <h3 className="font-semibold">Rename exercises in your library?</h3>
+            <ul className="space-y-1">
+              {renameConfirm.map(({ from, to }, idx) => (
+                <li key={idx} className="text-muted-foreground text-sm">
+                  "{from}" → "{to}"
+                </li>
+              ))}
+            </ul>
+            <p className="text-muted-foreground text-xs">
+              These exercises will be renamed everywhere they appear.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                variant="outline"
+                onClick={() => setRenameConfirm(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  setRenameConfirm(null)
+                  save.mutate()
+                }}
+              >
+                Rename & Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
