@@ -102,7 +102,7 @@ export class WorkoutsService {
   }
 
   async getActiveSession(userId: string) {
-    return this.sessions.findActive(userId)
+    return await this.sessions.findActive(userId)
   }
 
   async startSession(userId: string, dto: StartSessionDto) {
