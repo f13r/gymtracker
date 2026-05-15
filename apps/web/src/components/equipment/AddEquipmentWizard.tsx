@@ -325,6 +325,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                 </button>
                 <div className="min-w-0 flex-1 py-3 pr-3">
                   <input
+                    aria-label="Exercise name"
                     className="w-full bg-transparent text-sm font-medium outline-none"
                     value={s2.exerciseNames[i]}
                     onChange={e =>
