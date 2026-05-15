@@ -35,6 +35,7 @@ type Step2State = {
   tags: string[]
   tagsInput: string
   selectedExercises: Set<number>
+  exerciseNames: string[]
   equipmentType: string
   description: string
 }
@@ -62,6 +63,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
         tags: suggestion.equipment.tags,
         tagsInput: suggestion.equipment.tags.join(', '),
         selectedExercises: new Set(suggestion.exercises.map((_, i) => i)),
+        exerciseNames: suggestion.exercises.map(e => e.name),
         equipmentType: s1.equipmentType,
         description: s1.description,
       })
