@@ -50,7 +50,7 @@ export type WorkoutSet = {
   weightKg: number | null
   durationSec: number | null
   rpe: number | null
-  completedAt: number
+  completedAt: number | null
   done: boolean
 }
 

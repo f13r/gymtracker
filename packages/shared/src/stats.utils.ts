@@ -7,7 +7,9 @@ import type { WorkoutSet, WorkoutStreak } from './models.js'
  * @returns { current, longest } streak counts
  */
 export function calculateStreak(finishedDates: string[]): WorkoutStreak {
-  if (finishedDates.length === 0) return { current: 0, longest: 0 }
+  if (finishedDates.length === 0) {
+    return { current: 0, longest: 0 }
+  }
 
   const today = new Date().toISOString().split('T')[0]!
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]!

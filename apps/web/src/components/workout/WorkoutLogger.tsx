@@ -512,7 +512,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         setNumber: (currentExercise?.loggedSets.length ?? 0) + 1,
         reps: newSetReps,
         weightKg: newSetWeight,
-        done: true,
+        done: false,
       })
     },
     onSuccess: () => {
@@ -531,7 +531,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         setNumber: loggedCount + 1,
         reps,
         weightKg,
-        done: true,
+        done: false,
       })
     },
     onSuccess: () => {
