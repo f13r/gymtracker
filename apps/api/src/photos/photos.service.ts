@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { eq, desc, and } from 'drizzle-orm'
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import sharp from 'sharp'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
@@ -15,7 +15,7 @@ export class PhotosService {
   private readonly photosDir: string
 
   constructor(
-    @Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>,
+    @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
     private config: ConfigService,
   ) {
     this.photosDir = config.getOrThrow<string>('PHOTOS_DIR')
@@ -27,7 +27,6 @@ export class PhotosService {
       .from(schema.progressPhotos)
       .where(eq(schema.progressPhotos.userId, userId))
       .orderBy(desc(schema.progressPhotos.recordedAt))
-      .all()
   }
 
   async uploadPhoto(userId: string, buffer: Buffer, bodyWeight?: number, tags?: string[], notes?: string) {
@@ -43,40 +42,37 @@ export class PhotosService {
     await sharp(buffer).rotate().webp({ quality: 85 }).toFile(origPath)
     await sharp(buffer).rotate().resize({ width: 400 }).webp({ quality: 75 }).toFile(thumbPath)
 
-    const now = Math.floor(Date.now() / 1000)
-    this.db
+    const [row] = await this.db
       .insert(schema.progressPhotos)
       .values({
         id,
         userId,
-        recordedAt: now,
+        recordedAt: Math.floor(Date.now() / 1000),
         filePath: relOrig,
         thumbPath: relThumb,
         bodyWeight: bodyWeight ?? null,
         tags: tags ? JSON.stringify(tags) : null,
         notes: notes ?? null,
       })
-      .run()
+      .returning()
 
-    return this.db.select().from(schema.progressPhotos).where(eq(schema.progressPhotos.id, id)).get()!
+    return row
   }
 
-  deletePhoto(id: string, userId: string) {
-    const photo = this.db
+  async deletePhoto(id: string, userId: string) {
+    const [photo] = await this.db
       .select()
       .from(schema.progressPhotos)
       .where(and(eq(schema.progressPhotos.id, id), eq(schema.progressPhotos.userId, userId)))
-      .get()
+      .limit(1)
     if (!photo) {
       throw new NotFoundException('Photo not found')
     }
 
     for (const rel of [photo.filePath, photo.thumbPath]) {
-      try {
-        unlinkSync(join(this.photosDir, rel))
-      } catch {} // eslint-disable-line no-empty
+      try { unlinkSync(join(this.photosDir, rel)) } catch {} // eslint-disable-line no-empty
     }
-    this.db.delete(schema.progressPhotos).where(eq(schema.progressPhotos.id, id)).run()
+    await this.db.delete(schema.progressPhotos).where(eq(schema.progressPhotos.id, id))
   }
 
   getPhotoPath(userId: string, filename: string) {
