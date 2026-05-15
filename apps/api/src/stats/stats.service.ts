@@ -1,52 +1,43 @@
 import { Injectable, Inject } from '@nestjs/common'
 import { eq, and, gte, lte, sql, isNotNull, count, desc } from 'drizzle-orm'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { calculateStreak } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import type { VolumePoint, FrequencyPoint, PersonalRecord, WorkoutStreak } from '@gymtracker/shared'
 
-type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>
-
 @Injectable()
 export class StatsService {
-  constructor(@Inject(DATABASE) private db: DrizzleDB) {}
+  constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
 
-  private raw() {
-    return this.db.$client
-  }
-
-  getPRs(userId: string, exerciseId?: string, limit = 10): PersonalRecord[] {
-    // raw().prepare() is used here rather than Drizzle because better-sqlite3's
-    // .prepare() supports CTEs with window functions; Drizzle .with() is a follow-up
-    const exerciseFilter = exerciseId ? `AND s.exercise_id = ?` : ``
-    const params: unknown[] = exerciseId ? [userId, exerciseId, limit] : [userId, limit]
-    return this.raw()
-      .prepare(
-        `
-        WITH ranked AS (
-          SELECT s.exercise_id, e.name,
-                 s.weight_kg AS maxWeightKg, s.reps AS repsAtMax, s.completed_at AS achievedAt,
-                 ROW_NUMBER() OVER (PARTITION BY s.exercise_id ORDER BY s.weight_kg DESC) AS rn
-          FROM sets s
-          JOIN workout_sessions ws ON s.session_id = ws.id
-          JOIN exercises e ON s.exercise_id = e.id
-          WHERE ws.user_id = ? AND s.done = 1 ${exerciseFilter}
-        )
-        SELECT exercise_id, name, maxWeightKg, repsAtMax, achievedAt
-        FROM ranked WHERE rn = 1
-        ORDER BY maxWeightKg DESC
-        LIMIT ?
-      `,
+  async getPRs(userId: string, exerciseId?: string, limit = 10): Promise<PersonalRecord[]> {
+    const result = await this.db.execute(sql`
+      WITH ranked AS (
+        SELECT s.exercise_id, e.name,
+               s.weight_kg      AS "maxWeightKg",
+               s.reps           AS "repsAtMax",
+               s.completed_at   AS "achievedAt",
+               ROW_NUMBER() OVER (PARTITION BY s.exercise_id ORDER BY s.weight_kg DESC) AS rn
+        FROM sets s
+        JOIN workout_sessions ws ON s.session_id = ws.id
+        JOIN exercises e ON s.exercise_id = e.id
+        WHERE ws.user_id = ${userId} AND s.done = 1
+        ${exerciseId ? sql`AND s.exercise_id = ${exerciseId}` : sql``}
       )
-      .all(...params) as PersonalRecord[]
+      SELECT exercise_id AS "exerciseId", name, "maxWeightKg", "repsAtMax", "achievedAt"
+      FROM ranked
+      WHERE rn = 1
+      ORDER BY "maxWeightKg" DESC
+      LIMIT ${limit}
+    `)
+    return result.rows as PersonalRecord[]
   }
 
-  getVolume(userId: string, exerciseId?: string, from?: number, to?: number): VolumePoint[] {
+  async getVolume(userId: string, exerciseId?: string, from?: number, to?: number): Promise<VolumePoint[]> {
     const conditions = [
       eq(schema.workoutSessions.userId, userId),
-      eq(schema.sets.done, 1),  // only Done Sets count toward volume
+      eq(schema.sets.done, 1),
       isNotNull(schema.sets.reps),
       isNotNull(schema.sets.weightKg),
     ]
@@ -56,79 +47,60 @@ export class StatsService {
 
     return this.db
       .select({
-        date: sql<string>`date(${schema.sets.completedAt}, 'unixepoch')`,
+        date: sql<string>`to_char(to_timestamp(${schema.sets.completedAt}), 'YYYY-MM-DD')`,
         volume: sql<number>`SUM(${schema.sets.reps} * ${schema.sets.weightKg})`,
       })
       .from(schema.sets)
       .innerJoin(schema.workoutSessions, eq(schema.sets.sessionId, schema.workoutSessions.id))
       .where(and(...conditions))
-      .groupBy(sql`date(${schema.sets.completedAt}, 'unixepoch')`)
-      .orderBy(sql`date(${schema.sets.completedAt}, 'unixepoch')`)
-      .all() as VolumePoint[]
+      .groupBy(sql`to_char(to_timestamp(${schema.sets.completedAt}), 'YYYY-MM-DD')`)
+      .orderBy(sql`to_char(to_timestamp(${schema.sets.completedAt}), 'YYYY-MM-DD')`)
   }
 
-  getStreak(userId: string): WorkoutStreak {
-    const days = this.db
-      .selectDistinct({ day: sql<string>`date(${schema.workoutSessions.startedAt}, 'unixepoch')` })
+  async getStreak(userId: string): Promise<WorkoutStreak> {
+    const days = await this.db
+      .selectDistinct({ day: sql<string>`to_char(to_timestamp(${schema.workoutSessions.startedAt}), 'YYYY-MM-DD')` })
       .from(schema.workoutSessions)
-      .where(and(
-        eq(schema.workoutSessions.userId, userId),
-        isNotNull(schema.workoutSessions.finishedAt),
-      ))
-      .orderBy(desc(sql<string>`date(${schema.workoutSessions.startedAt}, 'unixepoch')`))
-      .all()
+      .where(and(eq(schema.workoutSessions.userId, userId), isNotNull(schema.workoutSessions.finishedAt)))
+      .orderBy(desc(sql<string>`to_char(to_timestamp(${schema.workoutSessions.startedAt}), 'YYYY-MM-DD')`))
     return calculateStreak(days.map(r => r.day))
   }
 
   getBodyWeight(userId: string, from?: number, to?: number) {
     const conditions = [eq(schema.bodyWeights.userId, userId)]
-    if (from) {
-      conditions.push(gte(schema.bodyWeights.recordedAt, from))
-    }
-    if (to) {
-      conditions.push(lte(schema.bodyWeights.recordedAt, to))
-    }
+    if (from) conditions.push(gte(schema.bodyWeights.recordedAt, from))
+    if (to) conditions.push(lte(schema.bodyWeights.recordedAt, to))
     return this.db
       .select()
       .from(schema.bodyWeights)
       .where(and(...conditions))
       .orderBy(schema.bodyWeights.recordedAt)
-      .all()
   }
 
   getMeasurements(userId: string, from?: number, to?: number) {
     const conditions = [eq(schema.bodyMeasurements.userId, userId)]
-    if (from) {
-      conditions.push(gte(schema.bodyMeasurements.recordedAt, from))
-    }
-    if (to) {
-      conditions.push(lte(schema.bodyMeasurements.recordedAt, to))
-    }
+    if (from) conditions.push(gte(schema.bodyMeasurements.recordedAt, from))
+    if (to) conditions.push(lte(schema.bodyMeasurements.recordedAt, to))
     return this.db
       .select()
       .from(schema.bodyMeasurements)
       .where(and(...conditions))
       .orderBy(schema.bodyMeasurements.recordedAt)
-      .all()
   }
 
-  getFrequency(userId: string, from?: number, to?: number): FrequencyPoint[] {
-    const conditions = [
-      eq(schema.workoutSessions.userId, userId),
-      isNotNull(schema.workoutSessions.finishedAt),
-    ]
+  async getFrequency(userId: string, from?: number, to?: number): Promise<FrequencyPoint[]> {
+    const conditions = [eq(schema.workoutSessions.userId, userId), isNotNull(schema.workoutSessions.finishedAt)]
     if (from) conditions.push(gte(schema.workoutSessions.startedAt, from))
     if (to) conditions.push(lte(schema.workoutSessions.startedAt, to))
 
     return this.db
       .select({
-        week: sql<string>`strftime('%Y-W%W', ${schema.workoutSessions.startedAt}, 'unixepoch')`,
+        week: sql<string>`to_char(to_timestamp(${schema.workoutSessions.startedAt}), 'IYYY-"W"IW')`,
         count: count(),
       })
       .from(schema.workoutSessions)
       .where(and(...conditions))
-      .groupBy(sql`strftime('%Y-W%W', ${schema.workoutSessions.startedAt}, 'unixepoch')`)
-      .orderBy(sql`strftime('%Y-W%W', ${schema.workoutSessions.startedAt}, 'unixepoch')`)
-      .all() as FrequencyPoint[]
+      .groupBy(sql`to_char(to_timestamp(${schema.workoutSessions.startedAt}), 'IYYY-"W"IW')`)
+      .orderBy(sql`to_char(to_timestamp(${schema.workoutSessions.startedAt}), 'IYYY-"W"IW')`)
   }
 }
