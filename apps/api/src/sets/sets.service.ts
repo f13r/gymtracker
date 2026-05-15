@@ -40,7 +40,7 @@ export class SetsService {
         completedAt: dto.done ? Math.floor(Date.now() / 1000) : null,
       })
       .returning()
-    return toWorkoutSet(row)
+    return toWorkoutSet(row!)
   }
 
   async updateSet(sessionId: string, setId: string, userId: string, dto: UpdateSetDto) {
@@ -64,7 +64,7 @@ export class SetsService {
       .set(patch)
       .where(eq(schema.sets.id, setId))
       .returning()
-    return toWorkoutSet(updated)
+    return toWorkoutSet(updated!)
   }
 
   async deleteSet(sessionId: string, setId: string, userId: string) {
