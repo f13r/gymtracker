@@ -332,7 +332,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         )}
         <Button
           className="w-full"
-          disabled={save.isPending || s2.selectedExercises.size === 0}
+          disabled={save.isPending}
           onClick={() => save.mutate()}
         >
           {save.isPending ? 'Saving…' : `Save Equipment`}

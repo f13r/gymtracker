@@ -51,15 +51,21 @@ export class EquipmentController {
     const name = fields.name?.value ?? 'Equipment'
     const equipmentType = fields.equipmentType?.value ?? 'other'
     const description = fields.description?.value
-    const tags = fields.tags?.value ? (JSON.parse(fields.tags.value) as string[]) : []
-    const exercises = fields.exercises?.value
-      ? (JSON.parse(fields.exercises.value) as Array<{
-          existingId?: string
-          name: string
-          category: string
-          equipmentType: string
-        }>)
-      : []
+    let tags: string[] = []
+    let exercises: Array<{ existingId?: string; name: string; category: string; equipmentType: string }> = []
+    try {
+      tags = fields.tags?.value ? (JSON.parse(fields.tags.value) as string[]) : []
+      exercises = fields.exercises?.value
+        ? (JSON.parse(fields.exercises.value) as Array<{
+            existingId?: string
+            name: string
+            category: string
+            equipmentType: string
+          }>)
+        : []
+    } catch {
+      return res.code(400).send({ message: 'Invalid tags or exercises payload' })
+    }
 
     const result = await this.svc.create(req.user.id, buffer, name, equipmentType, description, tags, exercises)
     return res.send(result)

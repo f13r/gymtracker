@@ -165,20 +165,29 @@ export class EquipmentService {
     await sharp(buffer).rotate().webp({ quality: 85 }).toFile(join(this.photosDir, relOrig))
     await sharp(buffer).rotate().resize({ width: 400 }).webp({ quality: 75 }).toFile(join(this.photosDir, relThumb))
 
-    const [equipRow] = await this.db
-      .insert(schema.equipment)
-      .values({
-        id,
-        gymId: gym.id,
-        name,
-        equipmentType: equipmentType ?? null,
-        description: description ?? null,
-        tags: tags.length ? JSON.stringify(tags) : null,
-        photoPath: relOrig,
-        thumbPath: relThumb,
-        createdAt: Math.floor(Date.now() / 1000),
-      })
-      .returning()
+    let equipRow: typeof schema.equipment.$inferSelect
+    try {
+      const [row] = await this.db
+        .insert(schema.equipment)
+        .values({
+          id,
+          gymId: gym.id,
+          name,
+          equipmentType: equipmentType ?? null,
+          description: description ?? null,
+          tags: tags.length ? JSON.stringify(tags) : null,
+          photoPath: relOrig,
+          thumbPath: relThumb,
+          createdAt: Math.floor(Date.now() / 1000),
+        })
+        .returning()
+      equipRow = row!
+    } catch (err) {
+      for (const abs of [join(this.photosDir, relOrig), join(this.photosDir, relThumb)]) {
+        try { unlinkSync(abs) } catch {}
+      }
+      throw err
+    }
 
     const exerciseIds: string[] = []
     const now = Math.floor(Date.now() / 1000)
