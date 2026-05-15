@@ -1,5 +1,5 @@
-import type { WorkoutSet, WorkoutSession } from '@gymtracker/shared'
-import type * as schema from './schema'
+import type { WorkoutSet, WorkoutSession, Equipment, EquipmentWithExercises } from '@gymtracker/shared'
+import * as schema from './schema'
 
 export type DbSet = typeof schema.sets.$inferSelect
 export type DbSession = typeof schema.workoutSessions.$inferSelect
@@ -31,4 +31,27 @@ export function toWorkoutSession(row: DbSession): WorkoutSession {
     finishedAt: row.finishedAt,
     notes: row.notes,
   }
+}
+
+export type DbEquipment = typeof schema.equipment.$inferSelect
+
+export function toEquipment(row: DbEquipment): Equipment {
+  return {
+    id: row.id,
+    gymId: row.gymId,
+    name: row.name,
+    equipmentType: row.equipmentType,
+    description: row.description,
+    tags: row.tags ? (JSON.parse(row.tags) as string[]) : null,
+    photoPath: row.photoPath,
+    thumbPath: row.thumbPath,
+    createdAt: row.createdAt,
+  }
+}
+
+export function toEquipmentWithExercises(
+  row: DbEquipment,
+  exercises: typeof schema.exercises.$inferSelect[],
+): EquipmentWithExercises {
+  return { ...toEquipment(row), exercises }
 }
