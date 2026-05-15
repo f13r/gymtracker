@@ -118,3 +118,24 @@ export type AuthUser = {
   id: string
   displayName: string
 }
+
+export type Gym = {
+  id: string
+  userId: string | null
+  name: string
+  createdAt: number
+}
+
+export type Equipment = {
+  id: string
+  gymId: string | null
+  name: string
+  equipmentType: string | null
+  description: string | null
+  tags: string[] | null
+  photoPath: string
+  thumbPath: string
+  createdAt: number
+}
+
+export type EquipmentWithExercises = Equipment & { exercises: Exercise[] }
