@@ -5,8 +5,8 @@ dotenv.config({ path: '.env' })
 export default {
   schema: './src/drizzle/schema.ts',
   out: './src/drizzle/migrations',
-  dialect: 'sqlite',
+  dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? '../../data/sqlite/app.db',
+    url: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/gymtracker',
   },
 } satisfies Config

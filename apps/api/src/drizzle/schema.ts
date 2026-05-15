@@ -1,12 +1,12 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import { pgTable, text, integer, real } from 'drizzle-orm/pg-core'
 
-export const users = sqliteTable('users', {
+export const users = pgTable('users', {
   id: text('id').primaryKey(),
   displayName: text('display_name').notNull(),
   createdAt: integer('created_at').notNull(),
 })
 
-export const exercises = sqliteTable('exercises', {
+export const exercises = pgTable('exercises', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   name: text('name').notNull(),
@@ -17,7 +17,7 @@ export const exercises = sqliteTable('exercises', {
   createdAt: integer('created_at').notNull(),
 })
 
-export const workoutTemplates = sqliteTable('workout_templates', {
+export const workoutTemplates = pgTable('workout_templates', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   name: text('name').notNull(),
@@ -25,7 +25,7 @@ export const workoutTemplates = sqliteTable('workout_templates', {
   createdAt: integer('created_at').notNull(),
 })
 
-export const templateExercises = sqliteTable('template_exercises', {
+export const templateExercises = pgTable('template_exercises', {
   id: text('id').primaryKey(),
   templateId: text('template_id').references(() => workoutTemplates.id),
   exerciseId: text('exercise_id').references(() => exercises.id),
@@ -35,7 +35,7 @@ export const templateExercises = sqliteTable('template_exercises', {
   defaultWeightKg: real('default_weight_kg'),
 })
 
-export const workoutSessions = sqliteTable('workout_sessions', {
+export const workoutSessions = pgTable('workout_sessions', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   templateId: text('template_id').references(() => workoutTemplates.id),
@@ -45,7 +45,7 @@ export const workoutSessions = sqliteTable('workout_sessions', {
   notes: text('notes'),
 })
 
-export const sets = sqliteTable('sets', {
+export const sets = pgTable('sets', {
   id: text('id').primaryKey(),
   sessionId: text('session_id').references(() => workoutSessions.id),
   exerciseId: text('exercise_id').references(() => exercises.id),
@@ -54,11 +54,11 @@ export const sets = sqliteTable('sets', {
   weightKg: real('weight_kg'),
   durationSec: integer('duration_sec'),
   rpe: real('rpe'),
-  completedAt: integer('completed_at').notNull(),
+  completedAt: integer('completed_at'),
   done: integer('done').default(0),
 })
 
-export const bodyWeights = sqliteTable('body_weights', {
+export const bodyWeights = pgTable('body_weights', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   weightKg: real('weight_kg').notNull(),
@@ -66,7 +66,7 @@ export const bodyWeights = sqliteTable('body_weights', {
   notes: text('notes'),
 })
 
-export const bodyMeasurements = sqliteTable('body_measurements', {
+export const bodyMeasurements = pgTable('body_measurements', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   recordedAt: integer('recorded_at').notNull(),
@@ -82,7 +82,7 @@ export const bodyMeasurements = sqliteTable('body_measurements', {
   notes: text('notes'),
 })
 
-export const workoutSchedules = sqliteTable('workout_schedules', {
+export const workoutSchedules = pgTable('workout_schedules', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   templateId: text('template_id').references(() => workoutTemplates.id),
@@ -92,7 +92,7 @@ export const workoutSchedules = sqliteTable('workout_schedules', {
   createdAt: integer('created_at').notNull(),
 })
 
-export const progressPhotos = sqliteTable('progress_photos', {
+export const progressPhotos = pgTable('progress_photos', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   recordedAt: integer('recorded_at').notNull(),
