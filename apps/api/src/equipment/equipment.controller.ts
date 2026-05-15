@@ -1,0 +1,83 @@
+import {
+  Controller, Get, Post, Delete, Param, Req, Res, PayloadTooLargeException,
+} from '@nestjs/common'
+import { createReadStream } from 'fs'
+import { join } from 'path'
+import type { FastifyReply } from 'fastify'
+
+import { EquipmentService } from './equipment.service'
+import { AuthenticatedRequest } from '../auth/request.types'
+
+type FormField = { value: string }
+
+@Controller('equipment')
+export class EquipmentController {
+  constructor(private readonly svc: EquipmentService) {}
+
+  @Get()
+  findAll(@Req() req: AuthenticatedRequest) {
+    return this.svc.findAll(req.user.id)
+  }
+
+  @Post('analyze')
+  async analyze(@Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
+    const data = await req.file()
+    if (!data) return res.code(400).send({ message: 'No file provided' })
+
+    const buffer = await data.toBuffer()
+    if (buffer.byteLength > 15 * 1024 * 1024) {
+      throw new PayloadTooLargeException('File exceeds 15 MB limit')
+    }
+
+    const fields = data.fields as Record<string, FormField | undefined>
+    const equipmentType = fields.equipmentType?.value ?? 'other'
+    const description = fields.description?.value ?? ''
+
+    const result = await this.svc.analyze(req.user.id, buffer, data.mimetype, equipmentType, description)
+    return res.send(result)
+  }
+
+  @Post()
+  async create(@Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
+    const data = await req.file()
+    if (!data) return res.code(400).send({ message: 'No file provided' })
+
+    const buffer = await data.toBuffer()
+    if (buffer.byteLength > 15 * 1024 * 1024) {
+      throw new PayloadTooLargeException('File exceeds 15 MB limit')
+    }
+
+    const fields = data.fields as Record<string, FormField | undefined>
+    const name = fields.name?.value ?? 'Equipment'
+    const equipmentType = fields.equipmentType?.value ?? 'other'
+    const description = fields.description?.value
+    const tags = fields.tags?.value ? (JSON.parse(fields.tags.value) as string[]) : []
+    const exercises = fields.exercises?.value
+      ? (JSON.parse(fields.exercises.value) as Array<{
+          existingId?: string
+          name: string
+          category: string
+          equipmentType: string
+        }>)
+      : []
+
+    const result = await this.svc.create(req.user.id, buffer, name, equipmentType, description, tags, exercises)
+    return res.send(result)
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.svc.delete(id, req.user.id)
+  }
+
+  @Get('photo/:filename')
+  servePhoto(
+    @Param('filename') filename: string,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: FastifyReply,
+  ) {
+    const filePath = join(this.svc.getPhotosDir(), req.user.id, 'equipment', filename)
+    const stream = createReadStream(filePath)
+    return res.type('image/webp').send(stream)
+  }
+}

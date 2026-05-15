@@ -8,6 +8,7 @@ import { CacheControlInterceptor } from './cache-control.interceptor'
 import { DrizzleModule } from './drizzle/drizzle.module'
 import { ExercisesModule } from './exercises/exercises.module'
 import { HealthController } from './health.controller'
+import { EquipmentModule } from './equipment/equipment.module'
 import { PhotosModule } from './photos/photos.module'
 import { SchedulesModule } from './schedules/schedules.module'
 import { SeedModule } from './seed/seed.module'
@@ -28,6 +29,7 @@ import { WorkoutsModule } from './workouts/workouts.module'
     BodyModule,
     StatsModule,
     PhotosModule,
+    EquipmentModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: CacheControlInterceptor }],
