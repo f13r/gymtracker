@@ -119,7 +119,12 @@ export class EquipmentService {
       throw new UnprocessableEntityException('AI analysis failed — try again or fill in manually')
     }
 
-    const parsed = JSON.parse(text) as GeminiParsed
+    let parsed: GeminiParsed
+    try {
+      parsed = JSON.parse(text) as GeminiParsed
+    } catch {
+      throw new UnprocessableEntityException('AI analysis failed — try again or fill in manually')
+    }
 
     const allExercises = await this.db
       .select()
@@ -257,6 +262,7 @@ export class EquipmentService {
     if (!row) throw new NotFoundException('Equipment not found')
 
     for (const rel of [row.equipment.photoPath, row.equipment.thumbPath]) {
+      if (!rel) continue
       try {
         unlinkSync(join(this.photosDir, rel))
       } catch {} // eslint-disable-line no-empty
