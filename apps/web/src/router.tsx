@@ -93,6 +93,12 @@ const workoutTemplateNewRoute = createRoute({
   ),
 })
 
+const gymRoute = createRoute({
+  getParentRoute: () => layoutRoute,
+  path: '/gym',
+  component: lazyRouteComponent(() => import('./routes/gym').then(m => ({ default: m.GymPage }))),
+})
+
 // Workout logger is fullscreen — outside AppLayout
 const workoutSessionRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -115,6 +121,7 @@ const routeTree = rootRoute.addChildren([
     historyDetailRoute,
     workoutStartRoute,
     workoutTemplateNewRoute,
+    gymRoute,
   ]),
   workoutSessionRoute,
 ])

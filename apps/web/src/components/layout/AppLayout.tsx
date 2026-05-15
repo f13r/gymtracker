@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Home, Dumbbell, BookOpen, BarChart2, Activity, Settings } from 'lucide-react'
+import { Home, Dumbbell, BookOpen, BarChart2, Activity, Settings, Building2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -7,6 +7,7 @@ const NAV = [
   { to: '/dashboard', label: 'Home', Icon: Home },
   { to: '/workout/start', label: 'Workouts', Icon: Dumbbell },
   { to: '/exercises', label: 'Exercises', Icon: BookOpen },
+  { to: '/gym', label: 'Gym', Icon: Building2 },
   { to: '/stats', label: 'Stats', Icon: BarChart2 },
   { to: '/body', label: 'Body', Icon: Activity },
   { to: '/settings', label: 'Settings', Icon: Settings },
@@ -17,7 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background flex h-svh flex-col">
       <main className="flex-1 overflow-y-auto">{children}</main>
-      <nav className="border-border bg-card pb-safe grid grid-cols-6 border-t">
+      <nav className="border-border bg-card pb-safe grid grid-cols-7 border-t">
         {NAV.map(({ to, label, Icon }) => {
           const active = location.pathname.startsWith(to)
           return (
@@ -31,7 +32,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
               <Icon
                 className={cn('transition-colors', active ? 'text-primary' : 'text-muted-foreground')}
-                size={22}
+                size={20}
                 strokeWidth={active ? 2.5 : 1.75}
               />
               <span
