@@ -2,7 +2,7 @@ import {
   Controller, Get, Post, Delete, Param, Req, Res, PayloadTooLargeException,
 } from '@nestjs/common'
 import { createReadStream } from 'fs'
-import { join } from 'path'
+import { join, basename } from 'path'
 import type { FastifyReply } from 'fastify'
 
 import { EquipmentService } from './equipment.service'
@@ -76,8 +76,13 @@ export class EquipmentController {
     @Req() req: AuthenticatedRequest,
     @Res() res: FastifyReply,
   ) {
-    const filePath = join(this.svc.getPhotosDir(), req.user.id, 'equipment', filename)
+    const safe = basename(filename)
+    if (safe !== filename || filename.includes('..')) {
+      return res.code(400).send({ message: 'Invalid filename' })
+    }
+    const filePath = join(this.svc.getPhotosDir(), req.user.id, 'equipment', safe)
     const stream = createReadStream(filePath)
+    stream.on('error', () => res.code(404).send({ message: 'Photo not found' }))
     return res.type('image/webp').send(stream)
   }
 }
