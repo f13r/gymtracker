@@ -1,6 +1,6 @@
 import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
@@ -43,47 +43,47 @@ const DEFAULT_EXERCISES = [
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
-  constructor(@Inject(DATABASE) private db: BetterSQLite3Database<typeof schema>) {}
+  constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
 
-  onApplicationBootstrap() {
-    this.seedUser()
-    this.seedExercises()
+  async onApplicationBootstrap(): Promise<void> {
+    await this.seedUser()
+    await this.seedExercises()
   }
 
-  private seedUser() {
-    const existing = this.db.select().from(schema.users).where(eq(schema.users.id, 'default-user')).get()
-    if (existing) {
-      return
-    }
-    this.db
-      .insert(schema.users)
-      .values({
-        id: 'default-user',
-        displayName: 'Viktor',
-        createdAt: Math.floor(Date.now() / 1000),
-      })
-      .run()
+  private async seedUser() {
+    const [existing] = await this.db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, 'default-user'))
+      .limit(1)
+    if (existing) return
+
+    await this.db.insert(schema.users).values({
+      id: 'default-user',
+      displayName: 'Viktor',
+      createdAt: Math.floor(Date.now() / 1000),
+    })
   }
 
-  private seedExercises() {
-    const existing = this.db.select().from(schema.exercises).where(eq(schema.exercises.isDefault, 1)).limit(1).get()
-    if (existing) {
-      return
-    }
+  private async seedExercises() {
+    const [existing] = await this.db
+      .select()
+      .from(schema.exercises)
+      .where(eq(schema.exercises.isDefault, 1))
+      .limit(1)
+    if (existing) return
+
     const now = Math.floor(Date.now() / 1000)
     for (const ex of DEFAULT_EXERCISES) {
-      this.db
-        .insert(schema.exercises)
-        .values({
-          id: randomUUID(),
-          userId: 'default-user',
-          name: ex.name,
-          category: ex.category,
-          equipment: ex.equipment,
-          isDefault: 1,
-          createdAt: now,
-        })
-        .run()
+      await this.db.insert(schema.exercises).values({
+        id: randomUUID(),
+        userId: 'default-user',
+        name: ex.name,
+        category: ex.category,
+        equipment: ex.equipment,
+        isDefault: 1,
+        createdAt: now,
+      })
     }
   }
 }
