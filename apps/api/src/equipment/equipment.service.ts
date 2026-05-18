@@ -199,6 +199,16 @@ export class EquipmentService {
 
     for (const ex of exercises) {
       if (ex.existingId) {
+        await this.db
+          .update(schema.exercises)
+          .set({ name: ex.name })
+          .where(
+            and(
+              eq(schema.exercises.id, ex.existingId),
+              eq(schema.exercises.userId, userId),
+              eq(schema.exercises.isDefault, 0),
+            ),
+          )
         exerciseIds.push(ex.existingId)
       } else {
         const [newEx] = await this.db
