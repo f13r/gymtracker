@@ -74,6 +74,7 @@ export class ProgressionService {
       FROM sets s
       JOIN workout_sessions ws ON ws.id = s.session_id
       WHERE ws.user_id = ${userId} AND s.exercise_id = ${exerciseId} AND s.done = 1
+        AND ws.finished_at IS NOT NULL
       ORDER BY s.weight_kg DESC NULLS LAST
       LIMIT 1
     `)
@@ -234,7 +235,7 @@ export class ProgressionService {
     const json = await response.json() as {
       candidates: Array<{ content: { parts: Array<{ text: string }> } }>
     }
-    const text = json.candidates[0]?.content.parts[0]?.text
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text
     if (!text) throw new Error('Gemini returned empty response')
 
     const parsed = JSON.parse(text) as { suggestions: GeminiSuggestionRaw[] }
@@ -270,7 +271,7 @@ export class ProgressionService {
 
     const now = Math.floor(Date.now() / 1000)
     for (const s of suggestions) {
-      if (!s.exerciseId || !s.suggestedSets || !s.suggestedReps || !s.suggestedWeightKg) continue
+      if (!s.exerciseId || !s.suggestedSets || !s.suggestedReps || !s.suggestedWeightKg || !s.evidence) continue
       await this.db
         .insert(schema.progressionSuggestions)
         .values({
@@ -287,7 +288,6 @@ export class ProgressionService {
         .onConflictDoUpdate({
           target: [schema.progressionSuggestions.userId, schema.progressionSuggestions.exerciseId],
           set: {
-            id: randomUUID(),
             suggestedSets: s.suggestedSets,
             suggestedReps: s.suggestedReps,
             suggestedWeightKg: s.suggestedWeightKg,
