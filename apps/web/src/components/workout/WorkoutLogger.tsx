@@ -171,15 +171,22 @@ function PendingSetRow({
   index,
   defaultWeight,
   defaultReps,
+  progressionSuggestion,
+  lastDoneWeightKg,
+  lastDoneReps,
   onLog,
 }: {
   index: number
   defaultWeight: number
   defaultReps: number
+  progressionSuggestion?: { suggestedWeightKg: number; suggestedReps: number; reason: string; evidence: string[] } | null
+  lastDoneWeightKg?: number | null
+  lastDoneReps?: number | null
   onLog: (weightKg: number, reps: number) => void
 }) {
   const [weight, setWeight] = useState(defaultWeight)
   const [reps, setReps] = useState(defaultReps)
+  const [showReason, setShowReason] = useState(false)
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressDidFireRef = useRef(false)
 
@@ -207,6 +214,9 @@ function PendingSetRow({
     onLog(weight, reps)
   }
 
+  const hasPs = !!progressionSuggestion
+  const hasLastDone = lastDoneWeightKg != null || lastDoneReps != null
+
   return (
     <div
       className="border-border/40 border-b px-4 pt-4 pb-5 transition-colors"
@@ -220,7 +230,7 @@ function PendingSetRow({
         <NumericInput
           bigStep={5}
           fieldKey={`pending-weight-${index}`}
-          highlighted={false}
+          highlighted={hasPs}
           label="WEIGHT"
           max={300}
           min={0}
@@ -232,7 +242,7 @@ function PendingSetRow({
         <NumericInput
           bigStep={5}
           fieldKey={`pending-reps-${index}`}
-          highlighted={false}
+          highlighted={hasPs}
           label="REPS"
           max={50}
           min={1}
@@ -242,6 +252,32 @@ function PendingSetRow({
           onChange={setReps}
         />
       </div>
+
+      {hasPs && (
+        <div className="mt-2 space-y-1">
+          {hasLastDone && (
+            <p className="text-muted-foreground text-[11px]">
+              Previous: {lastDoneWeightKg ?? 0}kg × {lastDoneReps ?? 0} reps
+            </p>
+          )}
+          <button
+            className="text-primary text-[11px] underline-offset-2 hover:underline"
+            onClick={e => { e.stopPropagation(); setShowReason(v => !v) }}
+          >
+            {showReason ? 'Hide reason' : 'Why this weight?'}
+          </button>
+          {showReason && (
+            <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
+              <p className="text-[12px] leading-snug">{progressionSuggestion!.reason}</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                {progressionSuggestion!.evidence.map((e, i) => (
+                  <li key={i} className="text-muted-foreground text-[11px]">{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -452,19 +488,47 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     staleTime: 60_000,
   })
 
+  const { data: progressionSuggestion } = useQuery({
+    queryKey: ['progression-suggestion', currentExercise?.id],
+    queryFn: () => exercisesApi.getProgressionSuggestion(currentExercise!.id),
+    enabled: !!currentExercise?.id,
+    staleTime: 5 * 60_000,
+    retry: false,
+  })
+
+  const lastDoneSet = prevSets.at(-1)
+
   if (currentExercise && !newSetInitialized.current) {
     newSetInitialized.current = true
-    const last = currentExercise.loggedSets.at(-1)
-    setNewSetWeight(last?.weightKg ?? currentExercise.defaultWeightKg)
-    setNewSetReps(last?.reps ?? currentExercise.defaultReps)
+    setNewSetWeight(
+      progressionSuggestion?.suggestedWeightKg
+      ?? lastDoneSet?.weightKg
+      ?? currentExercise.defaultWeightKg
+      ?? 0
+    )
+    setNewSetReps(
+      progressionSuggestion?.suggestedReps
+      ?? lastDoneSet?.reps
+      ?? currentExercise.defaultReps
+      ?? 8
+    )
   }
 
   // Re-sync when navigating to a different exercise
   if (currentExercise && prevActiveExerciseIndex !== activeExerciseIndex) {
     setPrevActiveExerciseIndex(activeExerciseIndex)
-    const last = currentExercise.loggedSets.at(-1)
-    setNewSetWeight(last?.weightKg ?? currentExercise.defaultWeightKg ?? 0)
-    setNewSetReps(last?.reps ?? currentExercise.defaultReps ?? 8)
+    setNewSetWeight(
+      progressionSuggestion?.suggestedWeightKg
+      ?? lastDoneSet?.weightKg
+      ?? currentExercise.defaultWeightKg
+      ?? 0
+    )
+    setNewSetReps(
+      progressionSuggestion?.suggestedReps
+      ?? lastDoneSet?.reps
+      ?? currentExercise.defaultReps
+      ?? 8
+    )
   }
 
   const allDone =
@@ -668,10 +732,13 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
               }
               return (
                 <PendingSetRow
-                  key={`pending-${i}`}
-                  defaultReps={currentExercise.loggedSets.at(-1)?.reps ?? currentExercise.defaultReps}
-                  defaultWeight={currentExercise.loggedSets.at(-1)?.weightKg ?? currentExercise.defaultWeightKg}
+                  key={`${currentExercise?.id}-${progressionSuggestion ? 'ps' : 'no-ps'}`}
                   index={i}
+                  defaultWeight={newSetWeight}
+                  defaultReps={newSetReps}
+                  progressionSuggestion={progressionSuggestion}
+                  lastDoneWeightKg={lastDoneSet?.weightKg}
+                  lastDoneReps={lastDoneSet?.reps}
                   onLog={(weightKg, reps) => logSet.mutate({ weightKg, reps })}
                 />
               )
