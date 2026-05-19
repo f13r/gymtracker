@@ -514,10 +514,12 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     )
   }
 
-  if (currentExercise && progressionSuggestion && newSetInitialized.current) {
-    setNewSetWeight(progressionSuggestion.suggestedWeightKg)
-    setNewSetReps(progressionSuggestion.suggestedReps)
-  }
+  useEffect(() => {
+    if (progressionSuggestion) {
+      setNewSetWeight(progressionSuggestion.suggestedWeightKg)
+      setNewSetReps(progressionSuggestion.suggestedReps)
+    }
+  }, [progressionSuggestion])
 
   // Re-sync when navigating to a different exercise
   if (currentExercise && prevActiveExerciseIndex !== activeExerciseIndex) {
