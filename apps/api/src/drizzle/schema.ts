@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, primaryKey, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, real, primaryKey, uniqueIndex, customType } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -138,7 +138,23 @@ export const userProfiles = pgTable('user_profiles', {
   age: integer('age'),
   heightCm: integer('height_cm'),
   experienceLevel: text('experience_level'), // 'beginner' | 'intermediate' | 'advanced'
+  goal: text('goal'),                         // 'hypertrophy' | 'strength' | 'powerlifting' | 'general'
+  trainingPhase: text('training_phase'),       // 'accumulation' | 'strength' | 'peaking' | 'maintenance'
   updatedAt: integer('updated_at').notNull(),
+})
+
+const vector = (name: string, dimensions: number) =>
+  customType<{ data: number[]; driverData: string }>({
+    dataType() { return `vector(${dimensions})` },
+    toDriver(value: number[]): string { return `[${value.join(',')}]` },
+    fromDriver(value: string): number[] { return value.slice(1, -1).split(',').map(Number) },
+  })(name)
+
+export const coachingKnowledge = pgTable('coaching_knowledge', {
+  id: text('id').primaryKey(),
+  category: text('category').notNull(),
+  content: text('content').notNull(),
+  embedding: vector('embedding', 768).notNull(),
 })
 
 export const progressionSuggestions = pgTable('progression_suggestions', {
