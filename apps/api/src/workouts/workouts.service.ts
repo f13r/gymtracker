@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common'
 import { eq, and, desc } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
@@ -8,13 +8,17 @@ import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { toWorkoutSession, toWorkoutSet } from '../drizzle/mappers'
 import { SessionRepository } from '../sessions/session.repository'
+import { ProgressionService } from '../progression/progression.service'
 import { randomUUID } from 'crypto'
 
 @Injectable()
 export class WorkoutsService {
+  private readonly logger = new Logger(WorkoutsService.name)
+
   constructor(
     @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
     private sessions: SessionRepository,
+    private progressionService: ProgressionService,
   ) {}
 
   async getTemplates(userId: string) {
@@ -131,6 +135,11 @@ export class WorkoutsService {
       .update(schema.workoutSessions)
       .set({ finishedAt: Math.floor(Date.now() / 1000), notes: dto.notes ?? null })
       .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId)))
+
+    this.progressionService.generateForSession(id, userId).catch(err => {
+      this.logger.error(`Progression generation failed for session ${id}`, err)
+    })
+
     return this.getSession(id, userId)
   }
 
