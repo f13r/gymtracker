@@ -29,6 +29,13 @@
       "when": 1778845290265,
       "tag": "0003_thankful_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779200659033,
+      "tag": "0004_shallow_talos",
+      "breakpoints": true
     }
   ]
 }

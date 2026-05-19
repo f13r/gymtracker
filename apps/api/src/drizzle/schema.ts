@@ -132,3 +132,25 @@ export const equipmentExercises = pgTable('equipment_exercises', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.equipmentId, t.exerciseId] }),
 }))
+
+export const userProfiles = pgTable('user_profiles', {
+  userId: text('user_id').primaryKey().references(() => users.id),
+  age: integer('age'),
+  heightCm: integer('height_cm'),
+  experienceLevel: text('experience_level'), // 'beginner' | 'intermediate' | 'advanced'
+  updatedAt: integer('updated_at').notNull(),
+})
+
+export const progressionSuggestions = pgTable('progression_suggestions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  exerciseId: text('exercise_id').notNull().references(() => exercises.id),
+  suggestedSets: integer('suggested_sets').notNull(),
+  suggestedReps: integer('suggested_reps').notNull(),
+  suggestedWeightKg: real('suggested_weight_kg').notNull(),
+  reason: text('reason').notNull(),
+  evidence: text('evidence').notNull(), // JSON.stringify(string[])
+  createdAt: integer('created_at').notNull(),
+}, (t) => ({
+  userExercise: uniqueIndex('progression_suggestions_user_exercise').on(t.userId, t.exerciseId),
+}))
