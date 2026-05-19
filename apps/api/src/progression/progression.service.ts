@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto'
+
 import { Injectable, Inject, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { eq, and, sql, desc, isNotNull } from 'drizzle-orm'
@@ -5,6 +7,18 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+
+const GEMINI_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+
+type GeminiSuggestionRaw = {
+  exerciseId: string
+  suggestedSets: number
+  suggestedReps: number
+  suggestedWeightKg: number
+  reason: string
+  evidence: string[]
+}
 
 type ExerciseContext = {
   exerciseId: string
@@ -176,5 +190,141 @@ export class ProgressionService {
       '',
       exerciseBlocks,
     ].join('\n')
+  }
+
+  private async callGemini(prompt: string): Promise<GeminiSuggestionRaw[]> {
+    const response = await fetch(`${GEMINI_URL}?key=${this.geminiApiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              suggestions: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    exerciseId:        { type: 'STRING' },
+                    suggestedSets:     { type: 'INTEGER' },
+                    suggestedReps:     { type: 'INTEGER' },
+                    suggestedWeightKg: { type: 'NUMBER' },
+                    reason:            { type: 'STRING' },
+                    evidence:          { type: 'ARRAY', items: { type: 'STRING' } },
+                  },
+                  required: ['exerciseId', 'suggestedSets', 'suggestedReps',
+                             'suggestedWeightKg', 'reason', 'evidence'],
+                },
+              },
+            },
+            required: ['suggestions'],
+          },
+        },
+      }),
+    })
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '(unreadable)')
+      throw new Error(`Gemini ${response.status}: ${body}`)
+    }
+
+    const json = await response.json() as {
+      candidates: Array<{ content: { parts: Array<{ text: string }> } }>
+    }
+    const text = json.candidates[0]?.content.parts[0]?.text
+    if (!text) throw new Error('Gemini returned empty response')
+
+    const parsed = JSON.parse(text) as { suggestions: GeminiSuggestionRaw[] }
+    return parsed.suggestions ?? []
+  }
+
+  async generateForSession(sessionId: string, userId: string): Promise<void> {
+    // Collect all exercises with at least one done set in this session
+    const doneRows = await this.db
+      .selectDistinct({ exerciseId: schema.sets.exerciseId })
+      .from(schema.sets)
+      .where(and(eq(schema.sets.sessionId, sessionId), eq(schema.sets.done, 1), isNotNull(schema.sets.exerciseId)))
+
+    if (doneRows.length === 0) return
+
+    const [userCtx, ...exerciseContexts] = await Promise.all([
+      this.getUserContext(userId),
+      ...doneRows.map(r => this.buildExerciseContext(r.exerciseId!, userId, sessionId)),
+    ])
+
+    const validContexts = exerciseContexts.filter((c): c is ExerciseContext => c !== null)
+    if (validContexts.length === 0) return
+
+    const prompt = this.buildPrompt(validContexts, userCtx)
+
+    let suggestions: GeminiSuggestionRaw[]
+    try {
+      suggestions = await this.callGemini(prompt)
+    } catch (err) {
+      this.logger.error(`Gemini call failed for session ${sessionId}`, err)
+      return
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    for (const s of suggestions) {
+      if (!s.exerciseId || !s.suggestedSets || !s.suggestedReps || !s.suggestedWeightKg) continue
+      await this.db
+        .insert(schema.progressionSuggestions)
+        .values({
+          id: randomUUID(),
+          userId,
+          exerciseId: s.exerciseId,
+          suggestedSets: s.suggestedSets,
+          suggestedReps: s.suggestedReps,
+          suggestedWeightKg: s.suggestedWeightKg,
+          reason: s.reason,
+          evidence: JSON.stringify(s.evidence),
+          createdAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [schema.progressionSuggestions.userId, schema.progressionSuggestions.exerciseId],
+          set: {
+            id: randomUUID(),
+            suggestedSets: s.suggestedSets,
+            suggestedReps: s.suggestedReps,
+            suggestedWeightKg: s.suggestedWeightKg,
+            reason: s.reason,
+            evidence: JSON.stringify(s.evidence),
+            createdAt: now,
+          },
+        })
+    }
+
+    this.logger.log(`Generated ${suggestions.length} progression suggestions for session ${sessionId}`)
+  }
+
+  async getForExercise(exerciseId: string, userId: string) {
+    const [row] = await this.db
+      .select()
+      .from(schema.progressionSuggestions)
+      .where(
+        and(
+          eq(schema.progressionSuggestions.exerciseId, exerciseId),
+          eq(schema.progressionSuggestions.userId, userId),
+        ),
+      )
+      .limit(1)
+
+    if (!row) return null
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      exerciseId: row.exerciseId,
+      suggestedSets: row.suggestedSets,
+      suggestedReps: row.suggestedReps,
+      suggestedWeightKg: row.suggestedWeightKg,
+      reason: row.reason,
+      evidence: JSON.parse(row.evidence) as string[],
+      createdAt: row.createdAt,
+    }
   }
 }
