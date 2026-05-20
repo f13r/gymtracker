@@ -11,6 +11,7 @@ import { HealthController } from './health.controller'
 import { EquipmentModule } from './equipment/equipment.module'
 import { PhotosModule } from './photos/photos.module'
 import { ProgressionModule } from './progression/progression.module'
+import { ProgramModule } from './program/program.module'
 import { SchedulesModule } from './schedules/schedules.module'
 import { SeedModule } from './seed/seed.module'
 import { SetsModule } from './sets/sets.module'
@@ -32,6 +33,7 @@ import { WorkoutsModule } from './workouts/workouts.module'
     PhotosModule,
     EquipmentModule,
     ProgressionModule,
+    ProgramModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: CacheControlInterceptor }],

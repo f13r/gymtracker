@@ -9,6 +9,7 @@ import * as schema from '../drizzle/schema'
 import { toWorkoutSession, toWorkoutSet } from '../drizzle/mappers'
 import { SessionRepository } from '../sessions/session.repository'
 import { ProgressionService } from '../progression/progression.service'
+import { ProgramService } from '../program/program.service'
 import { randomUUID } from 'crypto'
 
 @Injectable()
@@ -19,6 +20,7 @@ export class WorkoutsService {
     @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
     private sessions: SessionRepository,
     private progressionService: ProgressionService,
+    private programService: ProgramService,
   ) {}
 
   async getTemplates(userId: string) {
@@ -126,6 +128,22 @@ export class WorkoutsService {
         finishedAt: null,
         notes: null,
       })
+
+    if (dto.templateId) {
+      const [phaseTemplate] = await this.db
+        .select({ phaseId: schema.programPhaseTemplates.phaseId })
+        .from(schema.programPhaseTemplates)
+        .where(eq(schema.programPhaseTemplates.templateId, dto.templateId))
+        .limit(1)
+
+      if (phaseTemplate) {
+        await this.db
+          .update(schema.workoutSessions)
+          .set({ programPhaseId: phaseTemplate.phaseId })
+          .where(eq(schema.workoutSessions.id, id))
+      }
+    }
+
     return this.getSession(id, userId)
   }
 
@@ -138,6 +156,10 @@ export class WorkoutsService {
 
     this.progressionService.generateForSession(id, userId).catch(err => {
       this.logger.error(`Progression generation failed for session ${id}`, err)
+    })
+
+    this.programService.evaluateAfterSession(id, userId).catch(err => {
+      this.logger.error(`Program adaptation evaluation failed for session ${id}`, err)
     })
 
     return this.getSession(id, userId)

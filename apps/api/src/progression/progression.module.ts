@@ -7,6 +7,6 @@ import { ProgressionService } from './progression.service'
 @Module({
   controllers: [ProgressionController],
   providers: [ProgressionService, CoachingKnowledgeService],
-  exports: [ProgressionService],
+  exports: [ProgressionService, CoachingKnowledgeService],
 })
 export class ProgressionModule {}
