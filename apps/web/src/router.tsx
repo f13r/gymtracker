@@ -8,12 +8,20 @@ import {
 } from '@tanstack/react-router'
 
 import { AppLayout } from './components/layout/AppLayout'
+import { profileApi } from './api/profile'
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> })
 
 const layoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'layout',
+  beforeLoad: async ({ location }) => {
+    if (location.pathname === '/onboarding') return
+    const profile = await profileApi.get().catch(() => null)
+    if (!profile?.trainingDays) {
+      throw redirect({ to: '/onboarding' })
+    }
+  },
   component: () => (
     <AppLayout>
       <Outlet />
@@ -99,6 +107,12 @@ const gymRoute = createRoute({
   component: lazyRouteComponent(() => import('./routes/gym').then(m => ({ default: m.GymPage }))),
 })
 
+const programRoute = createRoute({
+  getParentRoute: () => layoutRoute,
+  path: '/program',
+  component: lazyRouteComponent(() => import('./routes/program').then(m => ({ default: m.ProgramPage }))),
+})
+
 // Workout logger is fullscreen — outside AppLayout
 const workoutSessionRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -106,6 +120,13 @@ const workoutSessionRoute = createRoute({
   component: lazyRouteComponent(() =>
     import('./routes/workout.$sessionId').then(m => ({ default: m.WorkoutSessionPage })),
   ),
+})
+
+// Onboarding — outside AppLayout, no auth gate
+const onboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/onboarding',
+  component: lazyRouteComponent(() => import('./routes/onboarding').then(m => ({ default: m.OnboardingPage }))),
 })
 
 const routeTree = rootRoute.addChildren([
@@ -122,8 +143,10 @@ const routeTree = rootRoute.addChildren([
     workoutStartRoute,
     workoutTemplateNewRoute,
     gymRoute,
+    programRoute,
   ]),
   workoutSessionRoute,
+  onboardingRoute,
 ])
 
 export const router = createRouter({ routeTree })

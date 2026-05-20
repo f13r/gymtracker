@@ -1,12 +1,12 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Home, Dumbbell, BookOpen, BarChart2, Activity, Settings, Building2 } from 'lucide-react'
+import { Home, Dumbbell, BarChart2, Activity, Settings, Building2, Trophy } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
 const NAV = [
   { to: '/dashboard', label: 'Home', Icon: Home },
   { to: '/workout/start', label: 'Workouts', Icon: Dumbbell },
-  { to: '/exercises', label: 'Exercises', Icon: BookOpen },
+  { to: '/program', label: 'Program', Icon: Trophy },
   { to: '/gym', label: 'Gym', Icon: Building2 },
   { to: '/stats', label: 'Stats', Icon: BarChart2 },
   { to: '/body', label: 'Body', Icon: Activity },
