@@ -40,6 +40,7 @@ export const workoutSessions = pgTable('workout_sessions', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   templateId: text('template_id').references(() => workoutTemplates.id),
+  programPhaseId: text('program_phase_id').references(() => programPhases.id), // nullable FK
   name: text('name').notNull(),
   startedAt: integer('started_at').notNull(),
   finishedAt: integer('finished_at'),
@@ -140,6 +141,8 @@ export const userProfiles = pgTable('user_profiles', {
   experienceLevel: text('experience_level'), // 'beginner' | 'intermediate' | 'advanced'
   goal: text('goal'),                         // 'hypertrophy' | 'strength' | 'powerlifting' | 'general'
   trainingPhase: text('training_phase'),       // 'accumulation' | 'strength' | 'peaking' | 'maintenance'
+  trainingDays: text('training_days'),         // JSON: string[] e.g. ["monday","wednesday","friday"]
+  sessionDurationMinutes: integer('session_duration_minutes'),
   updatedAt: integer('updated_at').notNull(),
 })
 
@@ -170,3 +173,45 @@ export const progressionSuggestions = pgTable('progression_suggestions', {
 }, (t) => ({
   userExercise: uniqueIndex('progression_suggestions_user_exercise').on(t.userId, t.exerciseId),
 }))
+
+export const programs = pgTable('programs', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  name: text('name').notNull(),
+  goal: text('goal').notNull(),
+  experienceLevel: text('experience_level').notNull(),
+  status: text('status').notNull().default('active'), // 'active' | 'completed' | 'abandoned'
+  createdAt: integer('created_at').notNull(),
+})
+
+export const programPhases = pgTable('program_phases', {
+  id: text('id').primaryKey(),
+  programId: text('program_id').notNull().references(() => programs.id),
+  name: text('name').notNull(),
+  type: text('type').notNull(), // 'accumulation' | 'strength' | 'peaking' | 'maintenance'
+  orderIndex: integer('order_index').notNull(),
+  targetSessionCount: integer('target_session_count').notNull(),
+  completedSessionCount: integer('completed_session_count').notNull().default(0),
+  splitType: text('split_type').notNull(), // 'full_body' | 'upper_lower' | 'push_pull_legs'
+  rationale: text('rationale').notNull(),
+  status: text('status').notNull().default('pending'), // 'pending' | 'active' | 'completed'
+})
+
+export const programPhaseTemplates = pgTable('program_phase_templates', {
+  id: text('id').primaryKey(),
+  phaseId: text('phase_id').notNull().references(() => programPhases.id),
+  templateId: text('template_id').notNull().references(() => workoutTemplates.id),
+  dayLabel: text('day_label').notNull(), // 'A', 'B', 'C'
+})
+
+export const programUpdates = pgTable('program_updates', {
+  id: text('id').primaryKey(),
+  programId: text('program_id').notNull().references(() => programs.id),
+  type: text('type').notNull(), // 'phase_transition' | 'exercise_swap' | 'deload' | 'phase_extension'
+  description: text('description').notNull(),
+  reason: text('reason').notNull(),
+  evidence: text('evidence').notNull(), // JSON: string[]
+  proposedChanges: text('proposed_changes').notNull(), // JSON: structured payload
+  status: text('status').notNull().default('pending'), // 'pending' | 'accepted' | 'dismissed'
+  createdAt: integer('created_at').notNull(),
+})
