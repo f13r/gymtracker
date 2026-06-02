@@ -21,6 +21,8 @@ function ctx(overrides: Partial<ExerciseContext> = {}): ExerciseContext {
     categoryWeeklySetCount: 12,
     hoursSinceCategorySession: 72,
     consecutiveWeeksActive: 6,
+    currentE1rmKg: 132,
+    e1rmTrend: [116.6667, 132],
     ...overrides,
   }
 }
@@ -85,5 +87,17 @@ describe('formatExerciseFacts', () => {
     const none = formatExerciseFacts(ctx({ weeklyVolumes: [] }))
     expect(none.volumeTrend).toBe('insufficient data')
     expect(none.volumeSeries).toBeNull()
+  })
+
+  it('rounds the current e1RM and renders the populated-week trend', () => {
+    const f = formatExerciseFacts(ctx())
+    expect(f.e1rmCurrent).toBe(132)
+    expect(f.e1rmTrend).toBe('117 → 132kg')
+  })
+
+  it('emits no e1RM facts when there is no qualifying e1RM', () => {
+    const f = formatExerciseFacts(ctx({ currentE1rmKg: null, e1rmTrend: [] }))
+    expect(f.e1rmCurrent).toBeNull()
+    expect(f.e1rmTrend).toBeNull()
   })
 })

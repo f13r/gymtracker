@@ -20,6 +20,10 @@ export type ExerciseFactFragments = {
   volumeTrend: 'increasing' | 'flat or decreasing' | 'insufficient data'
   /** 4-week volume series, "1920kg → 2010kg", or null if no data. */
   volumeSeries: string | null
+  /** Best e1RM over the last 4 weeks, rounded, or null if no qualifying sets. */
+  e1rmCurrent: number | null
+  /** 4-week e1RM trend across populated weeks, "117 → 132kg", or null if none. */
+  e1rmTrend: string | null
   /** Raw passthroughs — interpolated with consumer-specific labels. */
   prWeightKg: number | null
   prReps: number | null
@@ -68,6 +72,11 @@ export function formatExerciseFacts(ex: ExerciseContext): ExerciseFactFragments 
     volumeSeries:
       ex.weeklyVolumes.length > 0
         ? ex.weeklyVolumes.map(v => `${v.volume.toFixed(0)}kg`).join(' → ')
+        : null,
+    e1rmCurrent: ex.currentE1rmKg !== null ? Math.round(ex.currentE1rmKg) : null,
+    e1rmTrend:
+      ex.e1rmTrend.length > 0
+        ? `${ex.e1rmTrend.map(v => Math.round(v)).join(' → ')}kg`
         : null,
     prWeightKg: ex.prWeightKg,
     prReps: ex.prReps,

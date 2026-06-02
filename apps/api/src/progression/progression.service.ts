@@ -78,6 +78,7 @@ export class ProgressionService {
       const twoForTwoInfo = f.twoForTwoTopSets
         ? `last 2 sessions top sets: ${f.twoForTwoTopSets}`
         : 'fewer than 2 prior sessions'
+      const e1rmInfo = f.e1rmCurrent !== null ? `e1RM ${f.e1rmCurrent}kg` : 'e1RM n/a'
       parts.push(
         `Exercise: ${f.nameWithCategory}, ` +
         `${f.sessionCount} sessions logged, ` +
@@ -85,6 +86,7 @@ export class ProgressionService {
         `last: ${f.lastSet ?? 'no data'}, ` +
         `${twoForTwoInfo}, ` +
         `PR: ${f.prWeightKg ?? 'none'}kg, ` +
+        `${e1rmInfo}, ` +
         `volume trend: ${f.volumeTrend}, ` +
         `category ${f.categoryWeeklySetCount} sets/week, ` +
         `${f.hoursSinceCategorySession !== null ? `${f.hoursSinceCategorySession}h since last ${f.category ?? 'category'} session` : 'no prior category session'}, ` +
@@ -121,11 +123,16 @@ export class ProgressionService {
         const twoForTwo = f.twoForTwoTopSets
           ? `Last 2 sessions top sets: ${f.twoForTwoTopSets}`
           : 'Last 2 sessions: insufficient history'
+        const e1rmLine =
+          f.e1rmCurrent !== null
+            ? `Estimated 1RM: ${f.e1rmCurrent}kg (current) | 4-week e1RM trend: ${f.e1rmTrend ?? 'insufficient data'}`
+            : null
         return [
           `EXERCISE [${ex.exerciseId}] ${f.nameWithCategory}`,
           `This session: ${f.sessionSets ?? 'no done sets'}`,
           prLine,
           volumeLine,
+          ...(e1rmLine ? [e1rmLine] : []),
           twoForTwo,
           `Sessions logged: ${f.sessionCount} | Consecutive weeks active: ${f.consecutiveWeeksActive}`,
           `Category sets/week: ${f.categoryWeeklySetCount} | Hours since last ${f.category ?? 'category'} session: ${f.hoursSinceCategorySession ?? 'unknown'}`,
@@ -143,6 +150,7 @@ export class ProgressionService {
       'You are a certified strength and conditioning coach.',
       'Analyse the training data below and return a progression suggestion for each exercise.',
       'Rules: conservative increments (2.5–5 kg max), always cite specific numbers in evidence[].',
+      'You may reference the estimated 1-rep max (e1RM) in plain language in evidence[] when it supports the suggestion (e.g. "estimated 1-rep max rose 118→123kg"). e1RM is a signal — you still own the prescribed sets/reps/weight.',
       'If fewer than 3 sessions of history exist for an exercise, suggest +2–3% and include',
       '"Insufficient history — suggestion will improve as more data accumulates" in evidence[].',
       '',
