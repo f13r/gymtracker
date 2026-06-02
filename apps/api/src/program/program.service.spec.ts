@@ -108,3 +108,23 @@ describe('ProgramService.buildAdaptationPrompt', () => {
     expect(prompt).toContain('Volume plateau means MRV is breached.')
   })
 })
+
+describe('ProgramService.abandonActiveProgram', () => {
+  it('marks the active program abandoned and clears the weekly schedule', async () => {
+    const updateWhere = vi.fn().mockResolvedValue(undefined)
+    const updateSet = vi.fn(() => ({ where: updateWhere }))
+    const update = vi.fn(() => ({ set: updateSet }))
+    const deleteWhere = vi.fn().mockResolvedValue(undefined)
+    const del = vi.fn(() => ({ where: deleteWhere }))
+
+    const db = { update, delete: del }
+    const svc = new ProgramService(db as any, mockGemini as any, mockCoaching as any)
+
+    await svc.abandonActiveProgram('user-1')
+
+    expect(updateSet).toHaveBeenCalledWith({ status: 'abandoned' })
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(del).toHaveBeenCalledTimes(1)
+    expect(deleteWhere).toHaveBeenCalledTimes(1)
+  })
+})

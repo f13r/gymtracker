@@ -372,6 +372,20 @@ export class ProgramService {
     return this.getActiveProgram(userId)
   }
 
+  async abandonActiveProgram(userId: string) {
+    await this.db
+      .update(schema.programs)
+      .set({ status: 'abandoned' })
+      .where(and(eq(schema.programs.userId, userId), eq(schema.programs.status, 'active')))
+
+    // Clear the weekly schedule so the user truly starts fresh; a new program
+    // re-creates these in persistProgram. Session history is preserved because
+    // sessions reference programPhaseId, not the schedule.
+    await this.db
+      .delete(schema.workoutSchedules)
+      .where(and(eq(schema.workoutSchedules.userId, userId), eq(schema.workoutSchedules.type, 'weekly')))
+  }
+
   async getActiveProgram(userId: string) {
     const [program] = await this.db
       .select()

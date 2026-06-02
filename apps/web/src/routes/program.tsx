@@ -1,9 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Zap } from 'lucide-react'
+import { Trash2, Zap } from 'lucide-react'
+import { useState } from 'react'
 
 import type { Program, ProgramPhase } from '@gymtracker/shared'
 
 import { programApi } from '@/api/program'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const PHASE_TYPE_LABELS: Record<string, string> = {
   accumulation: 'Accumulation',
@@ -41,6 +52,7 @@ function PhaseProgressBar({ phase }: { phase: ProgramPhase }) {
 
 function ProgramView({ program }: { program: Program }) {
   const queryClient = useQueryClient()
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   const activePhase = program.phases.find(p => p.status === 'active')
   const pendingPhases = program.phases.filter(p => p.status === 'pending')
@@ -54,6 +66,14 @@ function ProgramView({ program }: { program: Program }) {
   const evaluate = useMutation({
     mutationFn: programApi.evaluate,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['program'] }),
+  })
+
+  const remove = useMutation({
+    mutationFn: programApi.remove,
+    onSuccess: () => {
+      setConfirmRemove(false)
+      queryClient.invalidateQueries({ queryKey: ['program'] })
+    },
   })
 
   return (
@@ -149,6 +169,37 @@ function ProgramView({ program }: { program: Program }) {
       >
         {evaluate.isPending ? 'Evaluating…' : 'Re-evaluate my program'}
       </button>
+
+      <button
+        className="text-destructive/70 hover:text-destructive flex w-full items-center justify-center gap-2 py-2 text-sm transition-colors"
+        type="button"
+        onClick={() => setConfirmRemove(true)}
+      >
+        <Trash2 size={16} strokeWidth={1.5} />
+        Remove program
+      </button>
+
+      <Dialog open={confirmRemove} onOpenChange={open => !open && setConfirmRemove(false)}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Remove program?</DialogTitle>
+            <DialogDescription>
+              {program.name} and its weekly schedule will be removed so you can start again. Your past workout history is
+              kept.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <DialogClose asChild>
+              <Button className="flex-1" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button className="flex-1" disabled={remove.isPending} variant="destructive" onClick={() => remove.mutate()}>
+              {remove.isPending ? 'Removing…' : 'Remove'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Req } from '@nestjs/common'
+import { Controller, Get, Post, Delete, HttpCode, Param, Body, Req } from '@nestjs/common'
 import { createZodDto } from 'nestjs-zod'
 import { AcknowledgeProgramUpdateSchema } from '@gymtracker/shared'
 import { ProgramService } from './program.service'
@@ -18,6 +18,12 @@ export class ProgramController {
   @Post('generate')
   generateProgram(@Req() req: AuthenticatedRequest) {
     return this.svc.generateProgram(req.user.id)
+  }
+
+  @Delete()
+  @HttpCode(204)
+  abandonProgram(@Req() req: AuthenticatedRequest) {
+    return this.svc.abandonActiveProgram(req.user.id)
   }
 
   @Post('evaluate')
