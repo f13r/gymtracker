@@ -105,7 +105,7 @@ export function PhotosPage() {
           {photos.map((p: ProgressPhoto) => (
             <div key={p.id} className="bg-card relative aspect-square">
               <img
-                alt="Progress photo"
+                alt="Progress"
                 className="h-full w-full object-cover"
                 loading="lazy"
                 src={`/api/photos/file/${p.thumbPath.split('/').pop()}`}

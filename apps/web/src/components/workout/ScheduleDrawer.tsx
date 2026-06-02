@@ -114,7 +114,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
             <div className="grid grid-cols-7 gap-1">
               {DAYS.map((label, i) => (
                 <button
-                  key={i}
+                  key={label}
                   type="button"
                   className={cn(
                     'flex flex-col items-center rounded-lg py-2 text-xs font-semibold transition-colors',

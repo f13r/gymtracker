@@ -393,8 +393,8 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
           <div className="bg-background w-full max-w-sm space-y-4 rounded-2xl p-6">
             <h3 className="font-semibold">Rename exercises in your library?</h3>
             <ul className="space-y-1">
-              {renameConfirm.map(({ from, to }, idx) => (
-                <li key={idx} className="text-muted-foreground text-sm">
+              {renameConfirm.map(({ from, to }) => (
+                <li key={`${from}->${to}`} className="text-muted-foreground text-sm">
                   "{from}" → "{to}"
                 </li>
               ))}

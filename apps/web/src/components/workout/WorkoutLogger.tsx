@@ -275,8 +275,8 @@ function PendingSetRow({
             <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
               <p className="text-[12px] leading-snug">{progressionSuggestion!.reason}</p>
               <ul className="list-disc list-inside space-y-0.5">
-                {progressionSuggestion!.evidence.map((e, i) => (
-                  <li key={i} className="text-muted-foreground text-[11px]">{e}</li>
+                {progressionSuggestion!.evidence.map(e => (
+                  <li key={e} className="text-muted-foreground text-[11px]">{e}</li>
                 ))}
               </ul>
             </div>
