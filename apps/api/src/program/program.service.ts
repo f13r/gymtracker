@@ -1,15 +1,12 @@
 import { Injectable, Inject, Logger, BadRequestException } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { eq, and, desc } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { randomUUID } from 'crypto'
 
+import { GeminiService } from '../ai/gemini.service'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { CoachingKnowledgeService } from '../progression/coaching-knowledge.service'
-
-const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 type UserProgramContext = {
   experienceLevel: string
@@ -63,15 +60,12 @@ type PhaseWithTemplates = {
 @Injectable()
 export class ProgramService {
   private readonly logger = new Logger(ProgramService.name)
-  private readonly geminiApiKey: string
 
   constructor(
     @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
-    config: ConfigService,
+    private readonly gemini: GeminiService,
     private readonly coachingKnowledge: CoachingKnowledgeService,
-  ) {
-    this.geminiApiKey = config.getOrThrow<string>('GEMINI_API_KEY')
-  }
+  ) {}
 
   async generateProgram(userId: string) {
     const userCtx = await this.getUserProgramContext(userId)
@@ -91,13 +85,13 @@ export class ProgramService {
     const situationSummary = `${userCtx.experienceLevel} lifter, goal: ${userCtx.goal}, ${userCtx.trainingDays.length} days/week, ${userCtx.sessionDurationMinutes} min sessions, creating new program from scratch`
     let coachingChunks: string[] = []
     try {
-      coachingChunks = await this.coachingKnowledge.retrieveForSituation(situationSummary)
+      coachingChunks = await this.coachingKnowledge.retrieveForSituation(situationSummary, userId)
     } catch {
       this.logger.warn('Coaching RAG failed during program generation — proceeding without chunks')
     }
 
     const prompt = this.buildGenerationPrompt(userCtx, exercises, coachingChunks)
-    const raw = await this.callGemini(prompt)
+    const raw = await this.callGemini(prompt, userId)
     const parsed = this.parseGeminiProgram(raw, userCtx.trainingDays.length)
 
     return this.persistProgram(userId, parsed, userCtx.trainingDays)
@@ -230,23 +224,10 @@ export class ProgramService {
     ].join('\n')
   }
 
-  private async callGemini(prompt: string): Promise<unknown> {
-    const response = await fetch(`${GEMINI_URL}?key=${this.geminiApiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json' },
-      }),
-    })
-    if (!response.ok) {
-      const body = await response.text().catch(() => '(unreadable)')
-      throw new Error(`Gemini program generation failed ${response.status}: ${body}`)
-    }
-    const json = await response.json() as { candidates: { content: { parts: { text: string }[] } }[] }
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!text) throw new Error('Gemini returned empty response')
-    return JSON.parse(text)
+  private async callGemini(prompt: string, userId: string): Promise<unknown> {
+    // No responseSchema — program JSON shape is enforced by the prompt itself.
+    // Logged automatically by GeminiService under the 'program' feature tag.
+    return this.gemini.generateStructured<unknown>({ feature: 'program', prompt, userId })
   }
 
   private async getUserProgramContext(userId: string): Promise<UserProgramContext> {
@@ -483,11 +464,11 @@ export class ProgramService {
     const situationSummary = `${activePhase.type} phase, ${activePhase.completedSessionCount}/${activePhase.targetSessionCount} sessions done, RPE avg ${signals.averageRpe}, plateau: ${signals.volumePlateau}`
     let coachingChunks: string[] = []
     try {
-      coachingChunks = await this.coachingKnowledge.retrieveForSituation(situationSummary)
+      coachingChunks = await this.coachingKnowledge.retrieveForSituation(situationSummary, userId)
     } catch { /* proceed without */ }
 
     const prompt = this.buildAdaptationPrompt(activePhase, { ...signals, isLastPhase }, coachingChunks)
-    const raw = await this.callGemini(prompt)
+    const raw = await this.callGemini(prompt, userId)
     await this.persistProgramUpdate(program.id, raw)
   }
 

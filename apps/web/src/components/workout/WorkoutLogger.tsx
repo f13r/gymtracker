@@ -7,11 +7,13 @@ import type { Exercise, WorkoutSet } from '@gymtracker/shared'
 import { calculateVolume, getDoneSets } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
+import { queryKeys } from '@/api/queryKeys'
 import { setsApi } from '@/api/sets'
 import { workoutsApi } from '@/api/workouts'
 import { NumericInput } from '@/components/inputs/NumericInput'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
+import { usePrepopulatedSet } from '@/components/workout/usePrepopulatedSet'
 import { cn, formatElapsed } from '@/lib/utils'
 import { useWorkoutStore } from '@/stores/workout.store'
 
@@ -118,6 +120,7 @@ function InlineSetRow({
           <div className="flex gap-2">
             <button
               className="border-border h-10 rounded-xl border px-4 text-sm font-semibold"
+              type="button"
               onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false) }}
             >
               Cancel
@@ -125,6 +128,7 @@ function InlineSetRow({
             <button
               className="bg-destructive text-destructive-foreground h-10 rounded-xl px-4 text-sm font-semibold disabled:opacity-40"
               disabled={isDeletePending}
+              type="button"
               onClick={(e) => { e.stopPropagation(); onDelete() }}
             >
               {isDeletePending ? '…' : 'Delete'}
@@ -262,6 +266,7 @@ function PendingSetRow({
           )}
           <button
             className="text-primary text-[11px] underline-offset-2 hover:underline"
+            type="button"
             onClick={e => { e.stopPropagation(); setShowReason(v => !v) }}
           >
             {showReason ? 'Hide reason' : 'Why this weight?'}
@@ -390,6 +395,7 @@ function ExerciseStrip({
   return (
     <button
       className="border-border/60 active:bg-muted/50 flex w-full items-center justify-between px-4 py-2.5 transition-colors"
+      type="button"
       onClick={onClick}
     >
       <div className="flex min-w-0 items-center gap-2">
@@ -428,18 +434,18 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const [workoutSeconds, setWorkoutSeconds] = useState(0)
 
   const { data: session } = useQuery({
-    queryKey: ['session', sessionId],
+    queryKey: queryKeys.session(sessionId),
     queryFn: () => workoutsApi.getSession(sessionId),
   })
 
   const { data: template } = useQuery({
-    queryKey: ['template', session?.templateId],
+    queryKey: queryKeys.template(session?.templateId),
     queryFn: () => workoutsApi.getTemplate(session!.templateId!),
     enabled: !!session?.templateId,
   })
 
   const { data: allExercises = [] } = useQuery({
-    queryKey: ['exercises'],
+    queryKey: queryKeys.exercises(),
     queryFn: exercisesApi.getAll,
   })
 
@@ -481,39 +487,19 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const loggedCount = currentExercise?.loggedSets.length ?? 0
   const doneCount = currentExercise?.loggedSets.filter((s: WorkoutSet) => s.done).length ?? 0
 
-  const { data: prevSets = [] } = useQuery({
-    queryKey: ['exercise-last-sets', currentExercise?.id],
-    queryFn: () => exercisesApi.getLastSets(currentExercise!.id),
-    enabled: !!currentExercise?.id,
-    staleTime: 60_000,
-  })
+  // Single seam for the Set Pre-population Hierarchy
+  // (Progression Suggestion → last-done Set → Template default → fallback).
+  const { prepopulated, prevSets, lastDoneSet, progressionSuggestion } =
+    usePrepopulatedSet(currentExercise)
 
-  const { data: progressionSuggestion } = useQuery({
-    queryKey: ['progression-suggestion', currentExercise?.id],
-    queryFn: () => exercisesApi.getProgressionSuggestion(currentExercise!.id),
-    enabled: !!currentExercise?.id,
-    staleTime: 5 * 60_000,
-    retry: false,
-  })
-
-  const lastDoneSet = prevSets.at(-1)
-
+  // Initial population.
   if (currentExercise && !newSetInitialized.current) {
     newSetInitialized.current = true
-    setNewSetWeight(
-      progressionSuggestion?.suggestedWeightKg
-      ?? lastDoneSet?.weightKg
-      ?? currentExercise.defaultWeightKg
-      ?? 0
-    )
-    setNewSetReps(
-      progressionSuggestion?.suggestedReps
-      ?? lastDoneSet?.reps
-      ?? currentExercise.defaultReps
-      ?? 8
-    )
+    setNewSetWeight(prepopulated.weightKg)
+    setNewSetReps(prepopulated.reps)
   }
 
+  // A progression suggestion arriving (async) overrides the pending set.
   useEffect(() => {
     if (progressionSuggestion) {
       setNewSetWeight(progressionSuggestion.suggestedWeightKg)
@@ -521,21 +507,11 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     }
   }, [progressionSuggestion])
 
-  // Re-sync when navigating to a different exercise
+  // Re-sync when navigating to a different exercise.
   if (currentExercise && prevActiveExerciseIndex !== activeExerciseIndex) {
     setPrevActiveExerciseIndex(activeExerciseIndex)
-    setNewSetWeight(
-      progressionSuggestion?.suggestedWeightKg
-      ?? lastDoneSet?.weightKg
-      ?? currentExercise.defaultWeightKg
-      ?? 0
-    )
-    setNewSetReps(
-      progressionSuggestion?.suggestedReps
-      ?? lastDoneSet?.reps
-      ?? currentExercise.defaultReps
-      ?? 8
-    )
+    setNewSetWeight(prepopulated.weightKg)
+    setNewSetReps(prepopulated.reps)
   }
 
   const allDone =
@@ -558,7 +534,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     mutationFn: ({ setId, done }: { setId: string; done: boolean }) =>
       setsApi.updateSet(sessionId, setId, { done }),
     onSuccess: (_, { setId, done }) => {
-      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
       if (done && template && currentExercise && currentExercise.defaultSets > 0) {
         const allLogged = currentExercise.loggedSets.length >= currentExercise.defaultSets
         const allOtherDone = currentExercise.loggedSets.every(s => s.id === setId || s.done)
@@ -570,7 +546,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const deleteSet = useMutation({
     mutationFn: (setId: string) => setsApi.deleteSet(sessionId, setId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
     },
   })
 
@@ -587,7 +563,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
       if ('vibrate' in navigator) { navigator.vibrate(50) }
       setSelectedExerciseId(null)
       setSelectedExerciseName(null)
@@ -606,7 +582,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
       if ('vibrate' in navigator) { navigator.vibrate(50) }
       if (template && currentExercise && currentExercise.defaultSets > 0) {
         const newLength = currentExercise.loggedSets.length + 1
@@ -620,15 +596,15 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     mutationFn: ({ setId, data }: { setId: string; data: { weightKg: number; reps: number } }) =>
       setsApi.updateSet(sessionId, setId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
     },
   })
 
   const finishWorkout = useMutation({
     mutationFn: () => workoutsApi.finishSession(sessionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activeSession'] })
-      queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions() })
       navigate({ to: '/dashboard' })
     },
   })
@@ -657,6 +633,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       <div className="border-border flex shrink-0 items-center justify-between border-b px-4 py-3">
         <button
           className="text-muted-foreground flex min-w-[60px] items-center gap-1"
+          type="button"
           onClick={() => navigate({ to: '/dashboard' })}
         >
           <ChevronLeft size={20} />
@@ -669,6 +646,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
             className="text-destructive"
             disabled={finishWorkout.isPending}
             title="Finish workout"
+            type="button"
             onClick={() => finishWorkout.mutate()}
           >
             <Square fill="currentColor" size={18} />
@@ -703,7 +681,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         </div>
       ) : !isTemplateBased ? (
         <div className="border-border shrink-0 border-b px-4 py-3">
-          <button className="group flex w-full items-center justify-between" onClick={() => setShowPicker(true)}>
+          <button className="group flex w-full items-center justify-between" type="button" onClick={() => setShowPicker(true)}>
             <div>
               <p className="text-muted-foreground mb-0.5 text-xs font-semibold tracking-widest uppercase">
                 {exercises.length > 0 ? `Exercise ${activeExerciseIndex + 1} of ${exercises.length}` : 'Exercise'}
@@ -740,12 +718,12 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
               return (
                 <PendingSetRow
                   key={`${currentExercise?.id}-${progressionSuggestion ? 'ps' : 'no-ps'}`}
-                  index={i}
-                  defaultWeight={newSetWeight}
                   defaultReps={newSetReps}
-                  progressionSuggestion={progressionSuggestion}
-                  lastDoneWeightKg={lastDoneSet?.weightKg}
+                  defaultWeight={newSetWeight}
+                  index={i}
                   lastDoneReps={lastDoneSet?.reps}
+                  lastDoneWeightKg={lastDoneSet?.weightKg}
+                  progressionSuggestion={progressionSuggestion}
                   onLog={(weightKg, reps) => logSet.mutate({ weightKg, reps })}
                 />
               )
@@ -765,7 +743,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         {/* Free workout: empty state */}
         {!isTemplateBased && !currentExercise?.loggedSets.length && (
           <div className="flex flex-col items-center justify-center gap-3 py-10">
-            <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+            <div className="bg-muted flex size-12 items-center justify-center rounded-full">
               <Plus className="text-muted-foreground" size={24} />
             </div>
             {!(selectedExerciseId ?? currentExercise?.id) ? (
@@ -784,6 +762,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
           <button
             className="text-muted-foreground active:bg-muted/50 flex w-full items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors disabled:opacity-40"
             disabled={isLogPending}
+            type="button"
             onClick={() => isTemplateBased ? logSet.mutate({ weightKg: newSetWeight, reps: newSetReps }) : freeLogSet.mutate()}
           >
             <Plus size={15} strokeWidth={2} />
@@ -812,6 +791,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
             <button
               className="border-border text-muted-foreground active:bg-muted flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-medium transition-colors disabled:opacity-40"
               disabled={activeExerciseIndex === 0}
+              type="button"
               onClick={prevExercise}
             >
               <ChevronLeft size={16} />
@@ -819,6 +799,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
             </button>
             <button
               className="border-border text-muted-foreground active:bg-muted flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-medium transition-colors"
+              type="button"
               onClick={nextExercise}
             >
               Next
@@ -859,6 +840,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
             <DrawerFooter>
               <button
                 className="bg-primary text-primary-foreground font-display font-700 h-14 w-full rounded-xl text-lg tracking-widest transition-transform active:scale-[0.97]"
+                type="button"
                 onClick={() => {
                   setAllDoneOpen(false)
                   navigate({ to: '/dashboard' })
@@ -868,6 +850,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
               </button>
               <button
                 className="text-muted-foreground h-11 w-full text-sm font-medium"
+                type="button"
                 onClick={() => setAllDoneOpen(false)}
               >
                 Keep going here

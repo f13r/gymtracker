@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import type { Exercise, WorkoutSet } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
+import { queryKeys } from '@/api/queryKeys'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,19 +26,19 @@ export function HistoryDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const { data: session } = useQuery({
-    queryKey: ['session', sessionId],
+    queryKey: queryKeys.session(sessionId),
     queryFn: () => workoutsApi.getSession(sessionId),
   })
 
   const { data: allExercises = [] } = useQuery({
-    queryKey: ['exercises'],
+    queryKey: queryKeys.exercises(),
     queryFn: exercisesApi.getAll,
   })
 
   const { mutate: deleteSession, isPending } = useMutation({
     mutationFn: () => workoutsApi.deleteSession(sessionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions() })
       navigate({ to: '/history' })
     },
   })
@@ -53,7 +54,7 @@ export function HistoryDetailPage() {
   if (!session) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
+        <div className="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent" />
       </div>
     )
   }
@@ -78,6 +79,7 @@ export function HistoryDetailPage() {
         <div className="mb-3 flex items-center justify-between">
           <button
             className="text-muted-foreground -ml-1 flex items-center gap-1"
+            type="button"
             onClick={() => navigate({ to: '/history' })}
           >
             <ChevronLeft size={18} />
@@ -85,7 +87,8 @@ export function HistoryDetailPage() {
           </button>
           <button
             aria-label="Delete workout"
-            className="text-destructive/50 active:text-destructive -mr-1 flex h-11 w-11 items-center justify-center transition-colors"
+            className="text-destructive/50 active:text-destructive -mr-1 flex size-11 items-center justify-center transition-colors"
+            type="button"
             onClick={() => setConfirmDelete(true)}
           >
             <Trash2 size={22} strokeWidth={1.5} />

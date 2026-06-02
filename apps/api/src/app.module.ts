@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { APP_INTERCEPTOR } from '@nestjs/core'
 
+import { AiLogModule } from './ai-log/ai-log.module'
 import { AuthModule } from './auth/auth.module'
 import { BodyModule } from './body/body.module'
 import { CacheControlInterceptor } from './cache-control.interceptor'
@@ -23,6 +24,7 @@ import { WorkoutsModule } from './workouts/workouts.module'
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DrizzleModule,
+    AiLogModule,
     AuthModule,
     SeedModule,
     ExercisesModule,

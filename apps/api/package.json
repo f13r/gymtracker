@@ -6,7 +6,8 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:reset": "node -r dotenv/config dist/scripts/reset.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

@@ -5,6 +5,7 @@ import { useState } from 'react'
 import type { Exercise } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
+import { queryKeys } from '@/api/queryKeys'
 
 const CATEGORY_COLORS: Record<string, string> = {
   push: 'text-orange-400',
@@ -26,7 +27,7 @@ const EQUIPMENT_LABELS: Record<string, string> = {
 
 export function ExercisesPage() {
   const [search, setSearch] = useState('')
-  const { data: exercises = [] } = useQuery({ queryKey: ['exercises'], queryFn: exercisesApi.getAll })
+  const { data: exercises = [] } = useQuery({ queryKey: queryKeys.exercises(), queryFn: exercisesApi.getAll })
 
   const filtered = exercises.filter(e => e.name.toLowerCase().includes(search.toLowerCase()))
 

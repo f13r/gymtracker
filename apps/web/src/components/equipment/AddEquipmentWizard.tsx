@@ -1,10 +1,11 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Camera, ChevronLeft, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 import type { AnalyzeSuggestion, SaveExerciseInput, SuggestedExercise } from '@gymtracker/shared'
 
 import { equipmentApi } from '@/api/equipment'
+import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
 
 const EQUIPMENT_TYPES = [
@@ -88,7 +89,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
   return (
     <div className="bg-background fixed inset-0 z-50 flex flex-col">
       <div className="border-border flex items-center gap-3 border-b px-4 py-3">
-        <button className="flex h-9 w-9 items-center justify-center rounded-full" onClick={onClose}>
+        <button className="flex size-9 items-center justify-center rounded-full" type="button" onClick={onClose}>
           <X size={20} />
         </button>
         <h2 className="flex-1 text-base font-semibold">Add Equipment</h2>
@@ -102,6 +103,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
           </label>
           <button
             className="bg-muted border-border flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed py-8 transition-colors active:scale-95"
+            type="button"
             onClick={() => fileRef.current?.click()}
           >
             {s1.previewUrl ? (
@@ -141,6 +143,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border text-muted-foreground'
                 }`}
+                type="button"
                 onClick={() => setS1(prev => ({ ...prev, equipmentType: value }))}
               >
                 {label}
@@ -199,6 +202,7 @@ type Step2Props = {
 }
 
 function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
+  const queryClient = useQueryClient()
   const save = useMutation({
     mutationFn: () => {
       const exercises: SaveExerciseInput[] = s2.suggestion.exercises.flatMap((ex: SuggestedExercise, i: number) =>
@@ -220,7 +224,11 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         exercises,
       )
     },
-    onSuccess: onSaved,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['equipment'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.exercises() })
+      onSaved()
+    },
   })
 
   const [renameConfirm, setRenameConfirm] = useState<Array<{ from: string; to: string }> | null>(null)
@@ -247,11 +255,11 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
   return (
     <div className="bg-background fixed inset-0 z-50 flex flex-col">
       <div className="border-border flex items-center gap-3 border-b px-4 py-3">
-        <button className="flex h-9 w-9 items-center justify-center rounded-full" onClick={onBack}>
+        <button className="flex size-9 items-center justify-center rounded-full" type="button" onClick={onBack}>
           <ChevronLeft size={20} />
         </button>
         <h2 className="flex-1 text-base font-semibold">Review Suggestions</h2>
-        <button className="flex h-9 w-9 items-center justify-center rounded-full" onClick={onClose}>
+        <button className="flex size-9 items-center justify-center rounded-full" type="button" onClick={onClose}>
           <X size={20} />
         </button>
       </div>
@@ -285,8 +293,10 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                       tagsInput: e.target.value,
                       tags: e.target.value
                         .split(',')
-                        .map(t => t.trim())
-                        .filter(Boolean),
+                        .flatMap(t => {
+                          const trimmed = t.trim()
+                          return trimmed ? [trimmed] : []
+                        }),
                     }
                   : prev,
               )
@@ -361,7 +371,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
 
       <div className="border-border border-t p-4 pb-safe">
         {save.isError && (
-          <p className="text-destructive mb-3 text-center text-sm">Failed to save — try again</p>
+          <p className="text-destructive mb-3 text-center text-sm">Failed to save, try again</p>
         )}
         <Button
           className="w-full"

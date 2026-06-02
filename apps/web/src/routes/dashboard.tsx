@@ -7,6 +7,7 @@ import type { WorkoutSession, WorkoutSet } from '@gymtracker/shared'
 import { calculateVolume, getDoneSets } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
+import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
@@ -127,23 +128,23 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   const { data: session } = useQuery({
-    queryKey: ['session', sessionId],
+    queryKey: queryKeys.session(sessionId),
     queryFn: () => workoutsApi.getSession(sessionId),
   })
 
   const { data: template } = useQuery({
-    queryKey: ['template', session?.templateId],
+    queryKey: queryKeys.template(session?.templateId),
     queryFn: () => workoutsApi.getTemplate(session!.templateId!),
     enabled: !!session?.templateId,
   })
 
   const { data: allExercises = [] } = useQuery({
-    queryKey: ['exercises'],
+    queryKey: queryKeys.exercises(),
     queryFn: exercisesApi.getAll,
   })
 
   const { data: allSessions = [] } = useQuery({
-    queryKey: ['sessions'],
+    queryKey: queryKeys.sessions(),
     queryFn: workoutsApi.getSessions,
   })
 
@@ -161,7 +162,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   }, [allSessions, templateId, sessionId])
 
   const { data: prevSessionData } = useQuery({
-    queryKey: ['session', prevSession?.id],
+    queryKey: queryKeys.session(prevSession?.id),
     queryFn: () => workoutsApi.getSession(prevSession!.id),
     enabled: !!prevSession?.id,
   })
@@ -246,8 +247,8 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     mutationFn: () => workoutsApi.finishSession(sessionId),
     onSuccess: () => {
       setActiveSession(null)
-      queryClient.invalidateQueries({ queryKey: ['activeSession'] })
-      queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions() })
       navigate({ to: '/dashboard' })
     },
   })
@@ -292,6 +293,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
             return (
               <button
                 key={ex.id}
+                type="button"
                 className={cn(
                   'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors last:border-b-0',
                   isCurrent && !isComplete && 'bg-primary/5',
@@ -305,12 +307,12 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                   {isComplete ? (
                     <CheckCircle2 className="text-accent shrink-0" size={18} />
                   ) : isCurrent ? (
-                    <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+                    <span className="relative flex size-4 shrink-0 items-center justify-center">
                       <span className="bg-primary absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" />
-                      <span className="bg-primary relative inline-flex h-2.5 w-2.5 rounded-full" />
+                      <span className="bg-primary relative inline-flex size-2.5 rounded-full" />
                     </span>
                   ) : isInProgress ? (
-                    <span className="bg-primary/60 relative flex h-2.5 w-2.5 shrink-0 rounded-full" />
+                    <span className="bg-primary/60 relative flex size-2.5 shrink-0 rounded-full" />
                   ) : (
                     <Circle className="text-muted-foreground/40 shrink-0" size={18} />
                   )}
@@ -346,6 +348,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
 
       {/* Finish button */}
       <button
+        type="button"
         className="border-destructive/30 text-destructive active:bg-destructive/5 h-12 w-full rounded-xl border text-sm font-semibold transition-colors disabled:opacity-40"
         disabled={finishWorkout.isPending}
         onClick={() => finishWorkout.mutate()}
@@ -365,8 +368,8 @@ export function DashboardPage() {
   const greeting = useMemo(() => getGreeting(), [])
   const dayName = useMemo(() => new Date().toLocaleDateString('en', { weekday: 'long' }), [])
 
-  const { data: active } = useQuery({ queryKey: ['activeSession'], queryFn: workoutsApi.getActiveSession })
-  const { data: sessions = [] } = useQuery({ queryKey: ['sessions'], queryFn: workoutsApi.getSessions })
+  const { data: active } = useQuery({ queryKey: queryKeys.activeSession(), queryFn: workoutsApi.getActiveSession })
+  const { data: sessions = [] } = useQuery({ queryKey: queryKeys.sessions(), queryFn: workoutsApi.getSessions })
   const { data: todaySchedule } = useQuery({
     queryKey: ['todaySchedule'],
     queryFn: schedulesApi.getToday,
@@ -380,7 +383,7 @@ export function DashboardPage() {
       }),
     onSuccess: session => {
       setActiveSession(session.id)
-      queryClient.invalidateQueries({ queryKey: ['activeSession'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
       queryClient.invalidateQueries({ queryKey: ['todaySchedule'] })
       navigate({ to: '/workout/$sessionId', params: { sessionId: session.id } })
     },
@@ -407,7 +410,7 @@ export function DashboardPage() {
   if (showPrompt) {
     return (
       <div className="bg-background flex h-svh flex-col items-center justify-center px-6 text-center">
-        <div className="bg-primary/10 mb-6 flex h-20 w-20 items-center justify-center rounded-3xl">
+        <div className="bg-primary/10 mb-6 flex size-20 items-center justify-center rounded-3xl">
           <Dumbbell className="text-primary" size={36} />
         </div>
         <p className="text-muted-foreground mb-1 text-sm font-semibold tracking-widest uppercase">{dayName}</p>
@@ -418,13 +421,14 @@ export function DashboardPage() {
           {todaySchedule!.exerciseCount} exercise{todaySchedule!.exerciseCount !== 1 ? 's' : ''} planned
         </p>
         <button
+          type="button"
           className="bg-primary text-primary-foreground font-display font-700 shadow-primary/30 mb-3 h-16 w-full max-w-sm rounded-2xl text-2xl tracking-widest shadow-lg transition-all active:scale-[0.97] disabled:opacity-60"
           disabled={startFromSchedule.isPending}
           onClick={() => startFromSchedule.mutate()}
         >
           {startFromSchedule.isPending ? '…' : "LET'S GO"}
         </button>
-        <button className="text-muted-foreground text-sm font-medium" onClick={dismissPrompt}>
+        <button type="button" className="text-muted-foreground text-sm font-medium" onClick={dismissPrompt}>
           Skip today
         </button>
       </div>
@@ -468,7 +472,7 @@ export function DashboardPage() {
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="bg-muted flex h-9 w-9 items-center justify-center rounded-lg">
+                    <div className="bg-muted flex size-9 items-center justify-center rounded-lg">
                       <Dumbbell className="text-muted-foreground" size={16} />
                     </div>
                     <div>

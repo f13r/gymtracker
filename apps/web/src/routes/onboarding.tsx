@@ -84,6 +84,7 @@ export function OnboardingPage() {
                 {(['beginner', 'intermediate', 'advanced'] as const).map(lvl => (
                   <button
                     key={lvl}
+                    type="button"
                     onClick={() => setExperienceLevel(lvl)}
                     className={cn(
                       'w-full rounded-xl border p-4 text-left transition-all',
@@ -114,6 +115,7 @@ export function OnboardingPage() {
                 {(['hypertrophy', 'strength', 'powerlifting', 'general'] as const).map(g => (
                   <button
                     key={g}
+                    type="button"
                     onClick={() => setGoal(g)}
                     className={cn(
                       'w-full rounded-xl border p-4 text-left transition-all',
@@ -145,6 +147,7 @@ export function OnboardingPage() {
                 {DAYS.map(day => (
                   <button
                     key={day}
+                    type="button"
                     onClick={() => toggleDay(day)}
                     className={cn(
                       'flex h-12 flex-col items-center justify-center rounded-lg text-xs font-semibold transition-all',
@@ -175,6 +178,7 @@ export function OnboardingPage() {
                 {DURATION_OPTIONS.map(min => (
                   <button
                     key={min}
+                    type="button"
                     onClick={() => setSessionDuration(min)}
                     className={cn(
                       'font-display font-600 h-14 rounded-xl text-sm tracking-wide transition-all',
@@ -195,6 +199,7 @@ export function OnboardingPage() {
       <div className="px-4 pb-safe-bottom pt-4">
         <div className="mx-auto max-w-md">
           <button
+            type="button"
             onClick={next}
             disabled={!canNext() || save.isPending}
             className="bg-primary text-primary-foreground disabled:opacity-40 font-display font-600 h-12 w-full rounded-xl tracking-wide transition-all active:scale-95"
@@ -203,6 +208,7 @@ export function OnboardingPage() {
           </button>
           {step > 0 && (
             <button
+              type="button"
               onClick={() => setStep((step - 1) as Step)}
               className="text-muted-foreground mt-3 w-full text-sm"
             >

@@ -1,0 +1,3 @@
+# Gemini for Progression Suggestions
+
+All AI features in this project use Gemini (Google AI Studio) for consistency with ADR 0003. Progression Suggestions are generated as text-only calls (no vision) using Gemini's structured JSON output via `responseSchema`, the same pattern as Equipment Analysis. Claude was the alternative — its tool-use pattern gives typed structured output natively and reasoning quality on nuanced coaching judgment is strong — but adding a second AI provider for a feature where Gemini is already proven would fragment the integration surface without a clear quality win. If reasoning quality proves insufficient in practice, migrating to Claude is the escape hatch.

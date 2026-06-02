@@ -5,6 +5,7 @@ import { useState } from 'react'
 import type { Exercise } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
+import { queryKeys } from '@/api/queryKeys'
 
 interface ExercisePickerProps {
   onClose: () => void
@@ -13,7 +14,7 @@ interface ExercisePickerProps {
 
 export function ExercisePicker({ onClose, onSelect }: ExercisePickerProps) {
   const [search, setSearch] = useState('')
-  const { data: exercises = [] } = useQuery({ queryKey: ['exercises'], queryFn: exercisesApi.getAll })
+  const { data: exercises = [] } = useQuery({ queryKey: queryKeys.exercises(), queryFn: exercisesApi.getAll })
 
   const filtered = exercises.filter((e: Exercise) => e.name.toLowerCase().includes(search.toLowerCase()))
 
@@ -29,7 +30,7 @@ export function ExercisePicker({ onClose, onSelect }: ExercisePickerProps) {
   return (
     <div className="bg-background fixed inset-0 z-50 flex flex-col">
       <div className="border-border flex items-center gap-3 border-b px-4 pt-4 pb-3">
-        <button className="text-muted-foreground p-1" onClick={onClose}>
+        <button type="button" className="text-muted-foreground p-1" onClick={onClose}>
           <X size={22} />
         </button>
         <span className="font-display font-600 text-lg tracking-wide uppercase">Select Exercise</span>
@@ -63,6 +64,7 @@ export function ExercisePicker({ onClose, onSelect }: ExercisePickerProps) {
             {exs.map(ex => (
               <button
                 key={ex.id}
+                type="button"
                 className="border-border/50 active:bg-card flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors"
                 onClick={() => onSelect(ex.id, ex.name)}
               >

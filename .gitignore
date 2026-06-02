@@ -6,3 +6,12 @@ data/photos/
 *.db
 *.db-wal
 *.db-shm
+apps/api/logs/*.log
+
+# --- Tooling: committed-vs-ignored boundary (see issue #8, finding 4) ---
+# Generated tooling output (knowledge graph, fingerprints, meta) — never source.
+.understand-anything/
+# Per-machine local overrides: the `.local` convention is machine-local and must
+# not be committed, so one developer's config never overwrites another's.
+# Shared tooling stays tracked: .claude/settings.json, docs/adr/, docs/superpowers/plans/.
+**/settings.local.json

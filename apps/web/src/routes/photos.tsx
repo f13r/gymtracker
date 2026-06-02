@@ -56,10 +56,11 @@ export function PhotosPage() {
         <button
           className="bg-primary text-primary-foreground mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-transform active:scale-95 disabled:opacity-60"
           disabled={upload.isPending}
+          type="button"
           onClick={() => fileRef.current?.click()}
         >
           {upload.isPending ? (
-            <span className="border-primary-foreground/30 border-t-primary-foreground h-4 w-4 animate-spin rounded-full border-2" />
+            <span className="border-primary-foreground/30 border-t-primary-foreground size-4 animate-spin rounded-full border-2" />
           ) : (
             <Plus size={16} strokeWidth={2.5} />
           )}
@@ -84,7 +85,7 @@ export function PhotosPage() {
 
       {photos.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
-          <div className="bg-card border-border flex h-16 w-16 items-center justify-center rounded-2xl border">
+          <div className="bg-card border-border flex size-16 items-center justify-center rounded-2xl border">
             <Camera className="text-muted-foreground" size={28} />
           </div>
           <div className="text-center">
@@ -93,6 +94,7 @@ export function PhotosPage() {
           </div>
           <button
             className="bg-primary text-primary-foreground font-display font-600 mt-2 rounded-xl px-5 py-2.5 text-sm tracking-wide uppercase transition-transform active:scale-95"
+            type="button"
             onClick={() => fileRef.current?.click()}
           >
             Upload Photo
@@ -115,10 +117,11 @@ export function PhotosPage() {
               {/* delete button — top-right, large touch target */}
               <button
                 aria-label="Delete photo"
-                className="absolute top-0 right-0 flex h-14 w-14 items-center justify-center"
+                className="absolute top-0 right-0 flex size-14 items-center justify-center"
+                type="button"
                 onClick={() => setPendingDeleteId(p.id)}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
+                <span className="flex size-9 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
                   <Trash2 className="text-white/90" size={16} strokeWidth={1.5} />
                 </span>
               </button>

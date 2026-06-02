@@ -5,6 +5,7 @@ import { useState } from 'react'
 
 import type { WorkoutTemplateWithExercises } from '@gymtracker/shared'
 
+import { queryKeys } from '@/api/queryKeys'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,7 +37,7 @@ export function WorkoutStartPage() {
       workoutsApi.startSession({ name, templateId }),
     onSuccess: session => {
       setActiveSession(session.id)
-      queryClient.invalidateQueries({ queryKey: ['activeSession'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
       navigate({ to: '/workout/$sessionId', params: { sessionId: session.id } })
     },
   })
@@ -61,17 +62,18 @@ export function WorkoutStartPage() {
         </div>
         <button
           aria-label="Create template"
-          className="bg-primary text-primary-foreground mt-1 flex h-10 w-10 items-center justify-center rounded-xl transition-transform active:scale-95"
+          className="bg-primary text-primary-foreground mt-1 flex size-10 items-center justify-center rounded-xl transition-transform active:scale-95"
+          type="button"
           onClick={() => navigate({ to: '/workout/template/new' })}
         >
           <Plus size={22} strokeWidth={2.5} />
         </button>
       </div>
 
-      <div className="flex-1 px-4 py-4">
+      <div className="flex-1 p-4">
         {templates.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20">
-            <div className="bg-card border-border flex h-16 w-16 items-center justify-center rounded-2xl border">
+            <div className="bg-card border-border flex size-16 items-center justify-center rounded-2xl border">
               <Dumbbell className="text-muted-foreground" size={28} />
             </div>
             <div className="text-center">
@@ -80,6 +82,7 @@ export function WorkoutStartPage() {
             </div>
             <button
               className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-5 py-2.5 text-sm tracking-wide uppercase transition-transform active:scale-95"
+              type="button"
               onClick={() => navigate({ to: '/workout/template/new' })}
             >
               Create Template
@@ -99,14 +102,16 @@ export function WorkoutStartPage() {
                   <div className="flex items-center gap-0.5">
                     <button
                       aria-label="Schedule template"
-                      className="text-muted-foreground/60 active:text-primary flex h-11 w-11 items-center justify-center transition-colors"
+                      className="text-muted-foreground/60 active:text-primary flex size-11 items-center justify-center transition-colors"
+                      type="button"
                       onClick={() => setScheduleTemplateId(t.id)}
                     >
                       <CalendarDays size={18} strokeWidth={1.5} />
                     </button>
                     <button
                       aria-label="Delete template"
-                      className="text-destructive/50 active:text-destructive -mr-1 flex h-11 w-11 items-center justify-center transition-colors"
+                      className="text-destructive/50 active:text-destructive -mr-1 flex size-11 items-center justify-center transition-colors"
+                      type="button"
                       onClick={() => setPendingDeleteId(t.id)}
                     >
                       <Trash2 size={18} strokeWidth={1.5} />
@@ -117,6 +122,7 @@ export function WorkoutStartPage() {
                   <button
                     className="bg-primary text-primary-foreground font-display font-600 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base tracking-wide transition-transform active:scale-[0.98] disabled:opacity-60"
                     disabled={start.isPending}
+                    type="button"
                     onClick={() => start.mutate({ templateId: t.id, name: t.name })}
                   >
                     <Play fill="currentColor" size={18} strokeWidth={0} />
@@ -130,10 +136,11 @@ export function WorkoutStartPage() {
       </div>
 
       {/* Quick Start — always available at the bottom */}
-      <div className="border-border border-t px-4 py-4">
+      <div className="border-border border-t p-4">
         <button
           className="border-border text-muted-foreground active:bg-card font-display font-600 flex w-full items-center justify-center gap-2 rounded-xl border py-3.5 text-sm tracking-wide uppercase transition-colors disabled:opacity-60"
           disabled={start.isPending}
+          type="button"
           onClick={() => start.mutate({ name: 'Quick Workout' })}
         >
           <Zap size={16} />

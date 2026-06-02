@@ -6,12 +6,12 @@ const mockDb = {
   insert: vi.fn(() => ({ values: vi.fn(() => Promise.resolve()) })),
   execute: vi.fn(),
 }
-const mockConfig = { getOrThrow: () => 'fake-key' }
+const mockGemini = { generateStructured: vi.fn(), embed: vi.fn() }
 const mockCoaching = { retrieveForSituation: vi.fn().mockResolvedValue([]) }
 
 describe('ProgramService.buildGenerationPrompt', () => {
   it('includes experience level, goal, training days, and session duration', () => {
-    const svc = new ProgramService(mockDb as any, mockConfig as any, mockCoaching as any)
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
     const prompt = svc.buildGenerationPrompt(
       { experienceLevel: 'beginner', goal: 'hypertrophy', trainingDays: ['monday', 'wednesday', 'friday'], sessionDurationMinutes: 60, latestBodyWeightKg: 75 },
       [{ id: 'squat-id', name: 'Squat', category: 'legs' }, { id: 'bench-id', name: 'Bench Press', category: 'push' }],
@@ -27,7 +27,7 @@ describe('ProgramService.buildGenerationPrompt', () => {
   })
 
   it('includes JSON output format instructions', () => {
-    const svc = new ProgramService(mockDb as any, mockConfig as any, mockCoaching as any)
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
     const prompt = svc.buildGenerationPrompt(
       { experienceLevel: 'beginner', goal: 'strength', trainingDays: ['tuesday', 'thursday'], sessionDurationMinutes: 45, latestBodyWeightKg: null },
       [],
@@ -41,7 +41,7 @@ describe('ProgramService.buildGenerationPrompt', () => {
 
 describe('ProgramService.parseGeminiProgram', () => {
   it('parses valid AI response into Program structure', () => {
-    const svc = new ProgramService(mockDb as any, mockConfig as any, mockCoaching as any)
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
     const raw = {
       name: 'My 16-Week Journey',
       phases: [
@@ -71,14 +71,14 @@ describe('ProgramService.parseGeminiProgram', () => {
   })
 
   it('throws on missing required fields', () => {
-    const svc = new ProgramService(mockDb as any, mockConfig as any, mockCoaching as any)
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
     expect(() => svc.parseGeminiProgram({ phases: [] }, 3)).toThrow()
   })
 })
 
 describe('ProgramService.buildAdaptationPrompt', () => {
   it('includes current phase type, session count, and performance signals', () => {
-    const svc = new ProgramService(mockDb as any, mockConfig as any, mockCoaching as any)
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
     const prompt = svc.buildAdaptationPrompt(
       {
         id: 'phase-1',

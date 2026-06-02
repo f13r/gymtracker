@@ -84,6 +84,7 @@ export function NewTemplatePage() {
       <div className="border-border border-b px-4 pt-4 pb-3">
         <button
           className="text-muted-foreground mb-3 -ml-1 flex items-center gap-1"
+          type="button"
           onClick={() => navigate({ to: '/workout/start' })}
         >
           <ChevronLeft size={18} />
@@ -93,7 +94,7 @@ export function NewTemplatePage() {
         <h1 className="font-display font-700 text-3xl tracking-wide">TEMPLATE</h1>
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
+      <div className="flex-1 space-y-5 overflow-y-auto p-4">
         {/* Template name */}
         <Input
           className="bg-card border-border h-12 rounded-xl text-base"
@@ -109,7 +110,7 @@ export function NewTemplatePage() {
             <div key={row.key} className="bg-card border-border overflow-hidden rounded-2xl border">
               {/* Exercise header */}
               <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                <button className="flex-1 text-left" onClick={() => setPickerForKey(row.key)}>
+                <button className="flex-1 text-left" type="button" onClick={() => setPickerForKey(row.key)}>
                   {row.exerciseId ? (
                     <p className="font-display font-600 text-base tracking-wide">{row.exerciseName}</p>
                   ) : (
@@ -121,7 +122,8 @@ export function NewTemplatePage() {
                   {rows.length > 1 && (
                     <button
                       aria-label="Remove exercise"
-                      className="text-destructive/50 active:text-destructive flex h-10 w-10 items-center justify-center transition-colors"
+                      className="text-destructive/50 active:text-destructive flex size-10 items-center justify-center transition-colors"
+                      type="button"
                       onClick={() => removeRow(row.key)}
                     >
                       <Trash2 size={16} strokeWidth={1.5} />
@@ -167,6 +169,7 @@ export function NewTemplatePage() {
         {/* Add exercise */}
         <button
           className="border-border text-muted-foreground active:bg-card flex w-full items-center justify-center gap-2 rounded-xl border py-3.5 text-sm font-medium transition-colors"
+          type="button"
           onClick={() => setRows(prev => [...prev, makeRow()])}
         >
           <Plus size={16} strokeWidth={2} />
@@ -175,10 +178,11 @@ export function NewTemplatePage() {
       </div>
 
       {/* Save — sticky at bottom */}
-      <div className="border-border bg-background border-t px-4 py-4">
+      <div className="border-border bg-background border-t p-4">
         <button
           className="bg-primary text-primary-foreground font-display font-700 flex w-full items-center justify-center rounded-xl py-4 text-lg tracking-widest transition-transform active:scale-[0.98] disabled:opacity-50"
           disabled={!canSave || save.isPending}
+          type="button"
           onClick={() => save.mutate()}
         >
           {save.isPending ? 'Saving…' : 'SAVE TEMPLATE'}

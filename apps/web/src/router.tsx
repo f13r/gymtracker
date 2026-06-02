@@ -122,6 +122,13 @@ const workoutSessionRoute = createRoute({
   ),
 })
 
+// AI log — debug tool, no auth gate, no AppLayout chrome
+const aiLogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/ai-log',
+  component: lazyRouteComponent(() => import('./routes/ai-log').then(m => ({ default: m.AiLogPage }))),
+})
+
 // Onboarding — outside AppLayout, no auth gate
 const onboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -147,6 +154,7 @@ const routeTree = rootRoute.addChildren([
   ]),
   workoutSessionRoute,
   onboardingRoute,
+  aiLogRoute,
 ])
 
 export const router = createRouter({ routeTree })

@@ -5,6 +5,7 @@ import { calculateStreak } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+import { doneSetFilter, doneSetSql, volumeSumExpr } from '../drizzle/set-queries'
 import type { VolumePoint, FrequencyPoint, PersonalRecord, WorkoutStreak } from '@gymtracker/shared'
 
 @Injectable()
@@ -22,7 +23,7 @@ export class StatsService {
         FROM sets s
         JOIN workout_sessions ws ON s.session_id = ws.id
         JOIN exercises e ON s.exercise_id = e.id
-        WHERE ws.user_id = ${userId} AND s.done = 1
+        WHERE ws.user_id = ${userId} AND ${doneSetSql}
         ${exerciseId ? sql`AND s.exercise_id = ${exerciseId}` : sql``}
       )
       SELECT exercise_id AS "exerciseId", name, "maxWeightKg", "repsAtMax", "achievedAt"
@@ -37,7 +38,7 @@ export class StatsService {
   async getVolume(userId: string, exerciseId?: string, from?: number, to?: number): Promise<VolumePoint[]> {
     const conditions = [
       eq(schema.workoutSessions.userId, userId),
-      eq(schema.sets.done, 1),
+      doneSetFilter,
       isNotNull(schema.sets.reps),
       isNotNull(schema.sets.weightKg),
     ]
@@ -48,7 +49,7 @@ export class StatsService {
     return this.db
       .select({
         date: sql<string>`to_char(to_timestamp(${schema.sets.completedAt}), 'YYYY-MM-DD')`,
-        volume: sql<number>`SUM(${schema.sets.reps} * ${schema.sets.weightKg})`,
+        volume: volumeSumExpr,
       })
       .from(schema.sets)
       .innerJoin(schema.workoutSessions, eq(schema.sets.sessionId, schema.workoutSessions.id))

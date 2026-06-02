@@ -55,6 +55,7 @@ export function SettingsPage() {
           {(['kg', 'lb'] as const).map(u => (
             <button
               key={u}
+              type="button"
               className={cn(
                 'font-display font-600 h-11 flex-1 rounded-lg text-base tracking-wide uppercase transition-all',
                 unit === u
@@ -77,6 +78,7 @@ export function SettingsPage() {
           {REST_PRESETS.map(s => (
             <button
               key={s}
+              type="button"
               className={cn(
                 'font-display font-600 h-11 rounded-lg text-sm tracking-wide transition-all',
                 restTimerSeconds === s
@@ -111,6 +113,7 @@ export function SettingsPage() {
           {DAYS.map(day => (
             <button
               key={day}
+              type="button"
               onClick={() => toggleDay(day)}
               className={cn(
                 'flex h-10 flex-col items-center justify-center rounded-lg text-xs font-semibold transition-all',
@@ -133,6 +136,7 @@ export function SettingsPage() {
           {DURATION_OPTIONS.map(min => (
             <button
               key={min}
+              type="button"
               onClick={() => setDuration(min)}
               className={cn(
                 'font-display font-600 h-11 rounded-lg text-sm tracking-wide transition-all',

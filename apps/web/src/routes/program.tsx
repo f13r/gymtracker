@@ -111,8 +111,8 @@ function ProgramView({ program }: { program: Program }) {
             <p className="text-muted-foreground text-sm">{program.pendingUpdate.reason}</p>
             {program.pendingUpdate.evidence.length > 0 && (
               <ul className="space-y-1">
-                {program.pendingUpdate.evidence.map((e, i) => (
-                  <li key={i} className="text-muted-foreground flex items-start gap-2 text-sm">
+                {program.pendingUpdate.evidence.map(e => (
+                  <li key={e} className="text-muted-foreground flex items-start gap-2 text-sm">
                     <span className="text-primary mt-0.5">•</span>
                     {e}
                   </li>
@@ -121,6 +121,7 @@ function ProgramView({ program }: { program: Program }) {
             )}
             <div className="flex gap-2 pt-1">
               <button
+                type="button"
                 onClick={() => acknowledge.mutate({ action: 'accept' })}
                 disabled={acknowledge.isPending}
                 className="bg-primary text-primary-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
@@ -128,6 +129,7 @@ function ProgramView({ program }: { program: Program }) {
                 Accept
               </button>
               <button
+                type="button"
                 onClick={() => acknowledge.mutate({ action: 'dismiss' })}
                 disabled={acknowledge.isPending}
                 className="bg-muted text-muted-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
@@ -140,6 +142,7 @@ function ProgramView({ program }: { program: Program }) {
       )}
 
       <button
+        type="button"
         onClick={() => evaluate.mutate()}
         disabled={evaluate.isPending}
         className="border-border text-muted-foreground hover:text-foreground w-full rounded-xl border py-3 text-sm transition-colors disabled:opacity-50"
@@ -185,6 +188,7 @@ export function ProgramPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => generate.mutate()}
                 disabled={generate.isPending}
                 className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-8 py-3 tracking-wide transition-all active:scale-95 disabled:opacity-50"

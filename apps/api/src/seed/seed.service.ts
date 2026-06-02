@@ -1,4 +1,4 @@
-import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common'
+import { Injectable, Inject, Logger, OnModuleInit } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
@@ -42,12 +42,18 @@ const DEFAULT_EXERCISES = [
 ]
 
 @Injectable()
-export class SeedService implements OnApplicationBootstrap {
+export class SeedService implements OnModuleInit {
+  private readonly logger = new Logger(SeedService.name)
+
   constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
 
-  async onApplicationBootstrap(): Promise<void> {
-    await this.seedUser()
-    await this.seedExercises()
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.seedUser()
+      await this.seedExercises()
+    } catch (err) {
+      this.logger.error('Seed failed', err instanceof Error ? err.stack : String(err))
+    }
   }
 
   private async seedUser() {

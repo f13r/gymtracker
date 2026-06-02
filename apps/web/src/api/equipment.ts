@@ -1,32 +1,19 @@
 import type { AnalyzeSuggestion, EquipmentWithExercises, SaveExerciseInput } from '@gymtracker/shared'
 
-export const equipmentApi = {
-  list: async (): Promise<EquipmentWithExercises[]> => {
-    const res = await fetch('/api/equipment')
-    if (!res.ok) throw new Error('Failed to load equipment')
-    return res.json() as Promise<EquipmentWithExercises[]>
-  },
+import { api } from './client'
 
-  analyze: async (
-    file: File,
-    equipmentType: string,
-    description: string,
-  ): Promise<AnalyzeSuggestion> => {
+export const equipmentApi = {
+  list: (): Promise<EquipmentWithExercises[]> => api.get<EquipmentWithExercises[]>('/equipment'),
+
+  analyze: (file: File, equipmentType: string, description: string): Promise<AnalyzeSuggestion> => {
     const form = new FormData()
     form.append('file', file)
     form.append('equipmentType', equipmentType)
     form.append('description', description)
-    const res = await fetch('/api/equipment/analyze', { method: 'POST', body: form })
-    if (!res.ok) {
-      const err = (await res.json().catch(() => ({ message: 'AI analysis failed' }))) as {
-        message?: string
-      }
-      throw new Error(err.message ?? 'AI analysis failed')
-    }
-    return res.json() as Promise<AnalyzeSuggestion>
+    return api.post<AnalyzeSuggestion>('/equipment/analyze', form)
   },
 
-  create: async (
+  create: (
     file: File,
     name: string,
     equipmentType: string,
@@ -41,13 +28,8 @@ export const equipmentApi = {
     form.append('description', description)
     form.append('tags', JSON.stringify(tags))
     form.append('exercises', JSON.stringify(exercises))
-    const res = await fetch('/api/equipment', { method: 'POST', body: form })
-    if (!res.ok) throw new Error('Failed to save equipment')
-    return res.json() as Promise<EquipmentWithExercises>
+    return api.post<EquipmentWithExercises>('/equipment', form)
   },
 
-  delete: async (id: string): Promise<void> => {
-    const res = await fetch(`/api/equipment/${id}`, { method: 'DELETE' })
-    if (!res.ok) throw new Error('Failed to delete equipment')
-  },
+  delete: (id: string): Promise<void> => api.delete(`/equipment/${id}`),
 }

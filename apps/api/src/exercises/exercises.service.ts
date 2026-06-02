@@ -1,11 +1,12 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
-import { eq, and, or, sql } from 'drizzle-orm'
+import { eq, and, or } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { CreateExerciseDto, UpdateExerciseDto, WorkoutSet } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+import { lastFinishedSessionSetsSql } from '../drizzle/set-queries'
 import { randomUUID } from 'crypto'
 import type { DbSet } from '../drizzle/mappers'
 import { toWorkoutSet } from '../drizzle/mappers'
@@ -69,20 +70,7 @@ export class ExercisesService {
   }
 
   async getLastSets(exerciseId: string, userId: string): Promise<WorkoutSet[]> {
-    const result = await this.db.execute(sql`
-      SELECT s.id, s.session_id AS "sessionId", s.exercise_id AS "exerciseId",
-             s.set_number AS "setNumber", s.reps, s.weight_kg AS "weightKg",
-             s.duration_sec AS "durationSec", s.rpe,
-             s.completed_at AS "completedAt", s.done
-      FROM sets s
-      WHERE s.session_id = (
-        SELECT ws.id FROM workout_sessions ws
-        INNER JOIN sets s2 ON s2.session_id = ws.id
-        WHERE ws.user_id = ${userId} AND s2.exercise_id = ${exerciseId} AND ws.finished_at IS NOT NULL
-        ORDER BY ws.finished_at DESC LIMIT 1
-      ) AND s.exercise_id = ${exerciseId}
-      ORDER BY s.set_number ASC
-    `)
+    const result = await this.db.execute(lastFinishedSessionSetsSql(exerciseId, userId))
     return result.rows.map(r => toWorkoutSet(r as DbSet))
   }
 }

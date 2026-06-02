@@ -6,6 +6,7 @@ import sharp from 'sharp'
 
 import { AnalyzeSuggestion, EquipmentWithExercises, SuggestedExercise } from '@gymtracker/shared'
 
+import { GeminiService } from '../ai/gemini.service'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import { toEquipmentWithExercises } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
@@ -13,12 +14,6 @@ import { GymService } from '../gym/gym.service'
 import { randomUUID } from 'crypto'
 import { mkdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
-
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
-
-type GeminiRaw = {
-  candidates: Array<{ content: { parts: Array<{ text: string }> } }>
-}
 
 type GeminiParsed = {
   equipment: { name: string; tags: string[] }
@@ -28,15 +23,14 @@ type GeminiParsed = {
 @Injectable()
 export class EquipmentService {
   private readonly logger = new Logger(EquipmentService.name)
-  private readonly geminiApiKey: string
   private readonly photosDir: string
 
   constructor(
     @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
     private config: ConfigService,
     private gymService: GymService,
+    private readonly gemini: GeminiService,
   ) {
-    this.geminiApiKey = config.getOrThrow<string>('GEMINI_API_KEY')
     this.photosDir = config.getOrThrow<string>('PHOTOS_DIR')
   }
 
@@ -52,80 +46,55 @@ export class EquipmentService {
     description: string,
   ): Promise<AnalyzeSuggestion> {
     const base64 = buffer.toString('base64')
-
-    const response = await fetch(`${GEMINI_URL}?key=${this.geminiApiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { inlineData: { mimeType, data: base64 } },
-              {
-                text:
-                  `Analyze this gym equipment photo. Equipment type: ${equipmentType}. User description: ${description}.\n\n` +
-                  `List all exercises that can be performed with this equipment. ` +
-                  `Describe each exercise's body position accurately based on what the equipment shows (e.g. seated, lying, standing, incline) — do not assume a default position if the equipment clearly shows otherwise. ` +
-                  `Also suggest a concise name for this specific equipment instance (e.g. "Left Cable Tower", "Adjustable Incline Bench").`,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              equipment: {
-                type: 'OBJECT',
-                properties: {
-                  name: { type: 'STRING' },
-                  tags: { type: 'ARRAY', items: { type: 'STRING' } },
-                },
-                required: ['name', 'tags'],
-              },
-              exercises: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    name: { type: 'STRING' },
-                    category: {
-                      type: 'STRING',
-                      enum: ['push', 'pull', 'legs', 'core', 'cardio', 'other'],
-                    },
-                    equipmentType: {
-                      type: 'STRING',
-                      enum: ['barbell', 'dumbbell', 'machine', 'bodyweight', 'cable', 'other'],
-                    },
-                    tags: { type: 'ARRAY', items: { type: 'STRING' } },
-                  },
-                  required: ['name', 'category', 'equipmentType', 'tags'],
-                },
-              },
-            },
-            required: ['equipment', 'exercises'],
-          },
-        },
-      }),
-    })
-
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => '(unreadable)')
-      this.logger.error(`Gemini ${response.status}: ${errBody}`)
-      throw new UnprocessableEntityException('AI analysis failed — try again or fill in manually')
-    }
-
-    const gemini = (await response.json()) as GeminiRaw
-    const text = gemini.candidates[0]?.content.parts[0]?.text
-    if (!text) {
-      throw new UnprocessableEntityException('AI analysis failed — try again or fill in manually')
-    }
+    const promptText =
+      `Analyze this gym equipment photo. Equipment type: ${equipmentType}. User description: ${description}.\n\n` +
+      `List all exercises that can be performed with this equipment. ` +
+      `Describe each exercise's body position accurately based on what the equipment shows (e.g. seated, lying, standing, incline) — do not assume a default position if the equipment clearly shows otherwise. ` +
+      `Also suggest a concise name for this specific equipment instance (e.g. "Left Cable Tower", "Adjustable Incline Bench").`
 
     let parsed: GeminiParsed
     try {
-      parsed = JSON.parse(text) as GeminiParsed
-    } catch {
+      parsed = await this.gemini.generateStructured<GeminiParsed>({
+        feature: 'equipment',
+        prompt: promptText,
+        userId,
+        parts: [{ inlineData: { mimeType, data: base64 } }],
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            equipment: {
+              type: 'OBJECT',
+              properties: {
+                name: { type: 'STRING' },
+                tags: { type: 'ARRAY', items: { type: 'STRING' } },
+              },
+              required: ['name', 'tags'],
+            },
+            exercises: {
+              type: 'ARRAY',
+              items: {
+                type: 'OBJECT',
+                properties: {
+                  name: { type: 'STRING' },
+                  category: {
+                    type: 'STRING',
+                    enum: ['push', 'pull', 'legs', 'core', 'cardio', 'other'],
+                  },
+                  equipmentType: {
+                    type: 'STRING',
+                    enum: ['barbell', 'dumbbell', 'machine', 'bodyweight', 'cable', 'other'],
+                  },
+                  tags: { type: 'ARRAY', items: { type: 'STRING' } },
+                },
+                required: ['name', 'category', 'equipmentType', 'tags'],
+              },
+            },
+          },
+          required: ['equipment', 'exercises'],
+        },
+      })
+    } catch (err) {
+      this.logger.error('Equipment analysis failed', err)
       throw new UnprocessableEntityException('AI analysis failed — try again or fill in manually')
     }
 

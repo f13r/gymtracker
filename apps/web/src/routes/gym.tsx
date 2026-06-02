@@ -47,6 +47,7 @@ export function GymPage() {
           <h1 className="font-display font-700 text-3xl tracking-wide">GYM</h1>
         </div>
         <button
+          type="button"
           className="bg-primary text-primary-foreground mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-transform active:scale-95"
           onClick={() => setShowWizard(true)}
         >
@@ -67,6 +68,7 @@ export function GymPage() {
               Photograph a piece of gym equipment to get started
             </p>
             <button
+              type="button"
               className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-5 py-2.5 text-sm tracking-wide uppercase transition-transform active:scale-95"
               onClick={() => setShowWizard(true)}
             >
@@ -82,7 +84,7 @@ export function GymPage() {
           >
             <img
               alt={item.name}
-              className="bg-muted h-14 w-14 flex-shrink-0 rounded-xl object-cover"
+              className="bg-muted size-14 flex-shrink-0 rounded-xl object-cover"
               loading="lazy"
               src={`/api/equipment/photo/${(item.thumbPath ?? '').split('/').pop()}`}
               onError={e => {
@@ -106,8 +108,9 @@ export function GymPage() {
               )}
             </div>
             <button
+              type="button"
               aria-label="Delete equipment"
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors"
+              className="flex size-10 flex-shrink-0 items-center justify-center rounded-full transition-colors"
               onClick={() => setPendingDeleteId(item.id)}
             >
               <Trash2 className="text-muted-foreground" size={16} strokeWidth={1.5} />

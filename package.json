@@ -10,6 +10,7 @@
     "build": "npm run build --workspaces",
     "db:migrate": "npm run db:migrate --workspace=apps/api",
     "db:studio": "npm run db:studio --workspace=apps/api",
+    "db:reset": "npm run build --workspace=apps/api && npm run db:reset --workspace=apps/api",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

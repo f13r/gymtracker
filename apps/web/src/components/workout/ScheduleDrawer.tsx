@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 
 import type { WorkoutSchedule } from '@gymtracker/shared'
 
+import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { cn } from '@/lib/utils'
@@ -25,7 +26,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   const { data: allSchedules = [] } = useQuery({
-    queryKey: ['schedules'],
+    queryKey: queryKeys.schedules(),
     queryFn: schedulesApi.getSchedules,
     enabled: open,
   })
@@ -45,7 +46,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedules'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.schedules() })
       setSelectedDate('')
       setSelectedDays([])
     },
@@ -53,7 +54,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
 
   const remove = useMutation({
     mutationFn: (id: string) => schedulesApi.deleteSchedule(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schedules'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.schedules() }),
   })
 
   const toggleDay = (day: number) => {
@@ -73,6 +74,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
           {/* Type toggle */}
           <div className="grid grid-cols-2 gap-2">
             <button
+              type="button"
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors',
                 type === 'once'
@@ -85,6 +87,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
               One time
             </button>
             <button
+              type="button"
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors',
                 type === 'weekly'
@@ -112,6 +115,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
               {DAYS.map((label, i) => (
                 <button
                   key={i}
+                  type="button"
                   className={cn(
                     'flex flex-col items-center rounded-lg py-2 text-xs font-semibold transition-colors',
                     selectedDays.includes(i) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
@@ -127,6 +131,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
 
         <DrawerFooter>
           <button
+            type="button"
             className={cn(
               'font-display font-700 h-13 w-full rounded-xl text-base tracking-widest transition-all active:scale-[0.97]',
               canSave ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground cursor-not-allowed',
@@ -156,7 +161,8 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
                     </span>
                   </div>
                   <button
-                    className="text-destructive/60 active:text-destructive flex h-8 w-8 items-center justify-center transition-colors"
+                    type="button"
+                    className="text-destructive/60 active:text-destructive flex size-8 items-center justify-center transition-colors"
                     disabled={remove.isPending}
                     onClick={() => remove.mutate(s.id)}
                   >

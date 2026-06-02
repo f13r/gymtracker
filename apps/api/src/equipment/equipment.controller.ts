@@ -1,12 +1,10 @@
-import {
-  Controller, Get, Post, Delete, Param, Req, Res, PayloadTooLargeException,
-} from '@nestjs/common'
-import { createReadStream } from 'fs'
-import { join, basename } from 'path'
-import type { FastifyReply } from 'fastify'
+import { Controller, Get, Post, Delete, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common'
 
 import { EquipmentService } from './equipment.service'
 import { AuthenticatedRequest } from '../auth/request.types'
+import type { FastifyReply } from 'fastify'
+import { createReadStream } from 'fs'
+import { join, basename } from 'path'
 
 type FormField = { value: string }
 
@@ -22,7 +20,9 @@ export class EquipmentController {
   @Post('analyze')
   async analyze(@Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
     const data = await req.file()
-    if (!data) return res.code(400).send({ message: 'No file provided' })
+    if (!data) {
+      return res.code(400).send({ message: 'No file provided' })
+    }
 
     const buffer = await data.toBuffer()
     if (buffer.byteLength > 15 * 1024 * 1024) {
@@ -40,7 +40,9 @@ export class EquipmentController {
   @Post()
   async create(@Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
     const data = await req.file()
-    if (!data) return res.code(400).send({ message: 'No file provided' })
+    if (!data) {
+      return res.code(400).send({ message: 'No file provided' })
+    }
 
     const buffer = await data.toBuffer()
     if (buffer.byteLength > 15 * 1024 * 1024) {
@@ -77,11 +79,7 @@ export class EquipmentController {
   }
 
   @Get('photo/:filename')
-  servePhoto(
-    @Param('filename') filename: string,
-    @Req() req: AuthenticatedRequest,
-    @Res() res: FastifyReply,
-  ) {
+  servePhoto(@Param('filename') filename: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
     const safe = basename(filename)
     if (safe !== filename || filename.includes('..')) {
       return res.code(400).send({ message: 'Invalid filename' })

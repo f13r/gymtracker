@@ -5,6 +5,7 @@ import { useState } from 'react'
 
 import type { WorkoutSession } from '@gymtracker/shared'
 
+import { queryKeys } from '@/api/queryKeys'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
 import { formatSessionDuration } from '@/lib/utils'
@@ -42,13 +43,13 @@ function groupByMonth(sessions: WorkoutSession[]) {
 export function HistoryPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data: sessions = [] } = useQuery({ queryKey: ['sessions'], queryFn: workoutsApi.getSessions })
+  const { data: sessions = [] } = useQuery({ queryKey: queryKeys.sessions(), queryFn: workoutsApi.getSessions })
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const { mutate: deleteSession, isPending } = useMutation({
     mutationFn: (id: string) => workoutsApi.deleteSession(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions() })
       setPendingDeleteId(null)
     },
   })
@@ -62,6 +63,7 @@ export function HistoryPage() {
       <div className="border-border border-b px-4 pt-4 pb-3">
         <button
           className="text-muted-foreground -ml-1 mb-3 flex items-center gap-1"
+          type="button"
           onClick={() => navigate({ to: '/dashboard' })}
         >
           <ChevronLeft size={18} />
@@ -86,12 +88,12 @@ export function HistoryPage() {
               {monthSessions.map(s => (
                 <div key={s.id} className="border-border/50 flex items-center border-b">
                   <Link
-                    className="active:bg-card flex flex-1 items-center justify-between px-4 py-4 transition-colors"
+                    className="active:bg-card flex flex-1 items-center justify-between p-4 transition-colors"
                     params={{ sessionId: s.id }}
                     to="/history/$sessionId"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="bg-card border-border flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border">
+                      <div className="bg-card border-border flex size-10 flex-shrink-0 items-center justify-center rounded-xl border">
                         <Dumbbell className="text-muted-foreground" size={16} />
                       </div>
                       <div>
@@ -106,7 +108,8 @@ export function HistoryPage() {
                   </Link>
                   <button
                     aria-label="Delete workout"
-                    className="text-destructive/50 active:text-destructive flex h-16 w-16 flex-shrink-0 items-center justify-center transition-colors"
+                    className="text-destructive/50 active:text-destructive flex size-16 flex-shrink-0 items-center justify-center transition-colors"
+                    type="button"
                     onClick={() => setPendingDeleteId(s.id)}
                   >
                     <Trash2 size={22} strokeWidth={1.5} />

@@ -32,7 +32,7 @@ export function BodyPage() {
 
       {latest && (
         <div className="bg-card border-border flex items-center gap-4 rounded-xl border p-5">
-          <div className="bg-accent/10 flex h-12 w-12 items-center justify-center rounded-full">
+          <div className="bg-accent/10 flex size-12 items-center justify-center rounded-full">
             <Scale className="text-accent" size={22} />
           </div>
           <div>
@@ -69,7 +69,7 @@ export function BodyPage() {
           onChange={e => setNewWeight(e.target.value)}
         />
         <button
-          className="bg-primary text-primary-foreground flex h-12 w-12 items-center justify-center rounded-xl transition-transform active:scale-95 disabled:opacity-40"
+          className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-xl transition-transform active:scale-95 disabled:opacity-40"
           disabled={!newWeight || addWeight.isPending}
           type="submit"
         >
@@ -78,11 +78,11 @@ export function BodyPage() {
       </form>
 
       <Link
-        className="bg-card border-border active:bg-muted flex items-center justify-between rounded-xl border px-4 py-4 transition-colors"
+        className="bg-card border-border active:bg-muted flex items-center justify-between rounded-xl border p-4 transition-colors"
         to="/photos"
       >
         <div className="flex items-center gap-3">
-          <div className="bg-muted flex h-9 w-9 items-center justify-center rounded-lg">
+          <div className="bg-muted flex size-9 items-center justify-center rounded-lg">
             <Camera className="text-muted-foreground" size={18} />
           </div>
           <span className="font-medium">Progress Photos</span>

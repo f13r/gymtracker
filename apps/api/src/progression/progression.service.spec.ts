@@ -2,10 +2,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { ProgressionService } from './progression.service'
 
 const mockCoachingKnowledge = { retrieveForSituation: vi.fn().mockResolvedValue([]) }
+const mockGemini = { generateStructured: vi.fn(), embed: vi.fn() }
+const mockExerciseHistory = { buildExerciseContext: vi.fn() }
 const service = new ProgressionService(
   {} as any,
-  { getOrThrow: () => 'fake-key' } as any,
   mockCoachingKnowledge as any,
+  mockGemini as any,
+  mockExerciseHistory as any,
 )
 
 describe('ProgressionService.buildPrompt', () => {
