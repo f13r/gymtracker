@@ -79,6 +79,7 @@ export class WorkoutsService {
 
   async deleteTemplate(id: string, userId: string) {
     await this.getTemplate(id, userId)
+    await this.db.delete(schema.programPhaseTemplates).where(eq(schema.programPhaseTemplates.templateId, id))
     await this.db.delete(schema.workoutSchedules).where(eq(schema.workoutSchedules.templateId, id))
     await this.db.update(schema.workoutSessions).set({ templateId: null }).where(eq(schema.workoutSessions.templateId, id))
     await this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id))
