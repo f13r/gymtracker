@@ -1,5 +1,12 @@
 # Server Setup: gymtracker on Ubuntu Server
 
+> ⚠️ **Out of date for the database.** The app moved from SQLite to **PostgreSQL 16 + pgvector**.
+> The authoritative deploy/runbook is **[`DEPLOY.md`](../DEPLOY.md)** at the repo root — use it
+> for database provisioning, the `apps/api/.env` `DATABASE_URL`, build, migrate, and cutover.
+> The Nginx (Step 9) and GitHub Actions SSH (Steps 11–12) sections below are still accurate;
+> **ignore the SQLite `DATABASE_URL` in Step 5 and the SQLite references in Context/Step 7/
+> Maintenance** — they are what caused the failed deploy.
+
 This document is for Claude running on the Ubuntu Server. Follow every step in order.
 The goal: clone the repo, install dependencies, configure PM2 and Nginx, and wire up
 auto-deploy via the existing GitHub Actions workflow.
@@ -9,7 +16,8 @@ auto-deploy via the existing GitHub Actions workflow.
 ## Context
 
 - **App**: NestJS/Fastify API + React/Vite frontend (npm workspaces monorepo)
-- **Database**: SQLite at `/var/data/gymtracker/db.sqlite`
+- **Database**: PostgreSQL 16 + **pgvector** — see [`DEPLOY.md`](../DEPLOY.md). (Was SQLite;
+  no longer supported.)
 - **Photos**: uploaded files at `/var/data/gymtracker/photos/`
 - **Process manager**: PM2 (`ecosystem.config.js` in repo root)
 - **Repo path on server**: `/var/www/gymtracker`
@@ -74,9 +82,12 @@ git clone git@github.com:f13r/gymtracker.git /var/www/gymtracker
 
 ## Step 5 — Create the API .env file
 
+> ❌ **Do not use a SQLite path here.** `DATABASE_URL` must be a Postgres URL or the `pg` driver
+> fails with `connect ENOENT …/db.sqlite/.s.PGSQL.5432`. See [`DEPLOY.md`](../DEPLOY.md) steps 2 & 5.
+
 ```bash
 cat > /var/www/gymtracker/apps/api/.env << 'EOF'
-DATABASE_URL=/var/data/gymtracker/db.sqlite
+DATABASE_URL=postgresql://gymtracker:CHANGE_ME@127.0.0.1:5432/gymtracker
 PHOTOS_DIR=/var/data/gymtracker/photos
 PORT=3000
 NODE_ENV=production
@@ -100,10 +111,14 @@ ls apps/web/dist/index.html
 
 ## Step 7 — Run database migrations
 
+> Requires Postgres + pgvector already provisioned (DEPLOY.md steps 1–2). A black-box exit-1 here
+> means a bad `DATABASE_URL` or missing pgvector — see DEPLOY.md → Troubleshooting.
+
 ```bash
 cd /var/www/gymtracker
 npm run db:migrate
-ls /var/data/gymtracker/db.sqlite   # file must exist now
+# verify schema landed in Postgres:
+sudo -u postgres psql -d gymtracker -c "\dt"
 ```
 
 ## Step 8 — Start the API with PM2
@@ -224,4 +239,4 @@ curl http://localhost/api/health
 | Check PM2 status | `pm2 status` |
 | Reload Nginx | `sudo systemctl reload nginx` |
 | Manual deploy | `cd /var/www/gymtracker && git pull && npm ci && npm run build && npm run db:migrate && pm2 reload ecosystem.config.js --env production` |
-| Open SQLite shell | `sqlite3 /var/data/gymtracker/db.sqlite` |
+| Open DB shell | `sudo -u postgres psql -d gymtracker` |
