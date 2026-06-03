@@ -279,7 +279,7 @@ export function ProgramPage() {
           <DialogHeader>
             <DialogTitle>Prompt sent to the AI</DialogTitle>
             <DialogDescription>
-              This exact text — your profile, exercise library, and recent training — is what generates your program.
+              This exact text (your profile, exercise library, and recent training) is what generates your program.
             </DialogDescription>
           </DialogHeader>
           <div className="bg-muted/50 min-h-0 flex-1 overflow-y-auto rounded-lg p-3">

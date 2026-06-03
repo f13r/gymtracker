@@ -62,6 +62,7 @@ export function ExercisesPage() {
         <div className="relative">
           <Search className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2" size={16} />
           <input
+            aria-label="Search exercises"
             className="bg-card border-border focus:border-primary w-full rounded-xl border py-2.5 pr-4 pl-9 text-sm transition-colors outline-none"
             placeholder="Search exercises..."
             value={search}

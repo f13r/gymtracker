@@ -17,6 +17,8 @@ const GOAL = ['hypertrophy', 'strength', 'powerlifting', 'general'] as const
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
 const DURATIONS = [30, 45, 60, 75, 90]
 
+const numOrNull = (v: string) => (v === '' ? null : Number(v))
+
 export function BodyPage() {
   const queryClient = useQueryClient()
   const [newWeight, setNewWeight] = useState('')
@@ -73,6 +75,7 @@ export function BodyPage() {
         }}
       >
         <input
+          aria-label="Weight in kg"
           className="bg-card border-border focus:border-primary h-12 flex-1 rounded-xl border px-4 text-base transition-colors outline-none"
           inputMode="decimal"
           placeholder="Weight in kg"
@@ -170,8 +173,6 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
       const cur = f.trainingDays ?? []
       return { ...f, trainingDays: cur.includes(day) ? cur.filter(d => d !== day) : [...cur, day] }
     })
-
-  const numOrNull = (v: string) => (v === '' ? null : Number(v))
 
   return (
     <div className="bg-card border-border space-y-4 rounded-xl border p-5">
@@ -295,7 +296,7 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
 
       {save.isError && (
         <p className="text-destructive text-xs">
-          Couldn’t save — check your entries (age/height must be whole numbers).
+          Couldn’t save: check your entries (age/height must be whole numbers).
         </p>
       )}
 
