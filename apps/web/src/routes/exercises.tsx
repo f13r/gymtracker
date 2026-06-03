@@ -1,11 +1,16 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useState } from 'react'
 
-import type { Exercise } from '@gymtracker/shared'
+import type { Exercise, ExerciseCategory, ExerciseEquipment } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const CATEGORY_COLORS: Record<string, string> = {
   push: 'text-orange-400',
@@ -18,15 +23,20 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const EQUIPMENT_LABELS: Record<string, string> = {
   barbell: 'Barbell',
-  dumbbell: 'DB',
+  dumbbell: 'Dumbbell',
   machine: 'Machine',
-  bodyweight: 'BW',
+  bodyweight: 'Bodyweight',
   cable: 'Cable',
   other: 'Other',
 }
 
+const CATEGORIES: ExerciseCategory[] = ['push', 'pull', 'legs', 'core', 'cardio', 'other']
+const EQUIPMENT: ExerciseEquipment[] = ['barbell', 'dumbbell', 'machine', 'bodyweight', 'cable', 'other']
+
 export function ExercisesPage() {
   const [search, setSearch] = useState('')
+  const [editing, setEditing] = useState<Exercise | null>(null)
+  const queryClient = useQueryClient()
   const { data: exercises = [] } = useQuery({ queryKey: queryKeys.exercises(), queryFn: exercisesApi.getAll })
 
   const filtered = exercises.filter(e => e.name.toLowerCase().includes(search.toLowerCase()))
@@ -71,14 +81,19 @@ export function ExercisesPage() {
               </span>
             </div>
             {grouped[cat].map(ex => (
-              <div key={ex.id} className="border-border/50 flex items-center justify-between border-b px-4 py-3.5">
+              <button
+                key={ex.id}
+                className="border-border/50 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors"
+                type="button"
+                onClick={() => setEditing(ex)}
+              >
                 <span className="text-sm font-medium">{ex.name}</span>
                 {ex.equipmentType && (
                   <span className="text-muted-foreground bg-muted rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
                     {EQUIPMENT_LABELS[ex.equipmentType] ?? ex.equipmentType}
                   </span>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         ))}
@@ -88,6 +103,123 @@ export function ExercisesPage() {
           </div>
         )}
       </div>
+
+      <EditExerciseDialog
+        exercise={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.exercises() })
+          setEditing(null)
+        }}
+      />
     </div>
+  )
+}
+
+function EditExerciseDialog({
+  exercise,
+  onClose,
+  onSaved,
+}: {
+  exercise: Exercise | null
+  onClose: () => void
+  onSaved: () => void
+}) {
+  return (
+    <Dialog open={exercise !== null} onOpenChange={open => !open && onClose()}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        {exercise && <EditExerciseForm key={exercise.id} exercise={exercise} onSaved={onSaved} />}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EditExerciseForm({ exercise, onSaved }: { exercise: Exercise; onSaved: () => void }) {
+  const [name, setName] = useState(exercise.name)
+  const [category, setCategory] = useState<ExerciseCategory>((exercise.category as ExerciseCategory) ?? 'other')
+  const [equipmentType, setEquipmentType] = useState<ExerciseEquipment | ''>(
+    (exercise.equipmentType as ExerciseEquipment) ?? '',
+  )
+
+  const save = useMutation({
+    mutationFn: () =>
+      exercisesApi.update(exercise.id, {
+        name: name.trim(),
+        category,
+        ...(equipmentType ? { equipmentType } : {}),
+      }),
+    onSuccess: onSaved,
+  })
+
+  const remove = useMutation({
+    mutationFn: () => exercisesApi.remove(exercise.id),
+    onSuccess: onSaved,
+  })
+
+  const busy = save.isPending || remove.isPending
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Edit exercise</DialogTitle>
+      </DialogHeader>
+
+      <div className="space-y-4 py-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="ex-name">Name</Label>
+          <Input id="ex-name" value={name} onChange={e => setName(e.target.value)} />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Category</Label>
+          <Select value={category} onValueChange={v => setCategory(v as ExerciseCategory)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map(c => (
+                <SelectItem key={c} className="capitalize" value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Equipment</Label>
+          <Select value={equipmentType} onValueChange={v => setEquipmentType(v as ExerciseEquipment)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Not set" />
+            </SelectTrigger>
+            <SelectContent>
+              {EQUIPMENT.map(eq => (
+                <SelectItem key={eq} value={eq}>
+                  {EQUIPMENT_LABELS[eq]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {remove.isError && (
+          <p className="text-destructive text-xs">Can’t delete: this exercise has logged sets or history.</p>
+        )}
+      </div>
+
+      <DialogFooter className="flex-row gap-2 sm:gap-2">
+        <Button className="mr-auto" disabled={busy} variant="ghost" onClick={() => remove.mutate()}>
+          Delete
+        </Button>
+        <DialogClose asChild>
+          <Button disabled={busy} variant="outline">
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button disabled={busy || name.trim() === ''} onClick={() => save.mutate()}>
+          {save.isPending ? 'Saving…' : 'Save'}
+        </Button>
+      </DialogFooter>
+    </>
   )
 }
