@@ -12,10 +12,14 @@ import { AuthenticatedRequest } from '../auth/request.types'
 const UpdateProfileSchema = z.object({
   age: z.number().int().positive().nullable().optional(),
   heightCm: z.number().int().positive().nullable().optional(),
+  gender: z.enum(['male', 'female']).nullable().optional(),
   experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']).nullable().optional(),
   goal: z.enum(['hypertrophy', 'strength', 'powerlifting', 'general']).nullable().optional(),
   trainingPhase: z.enum(['accumulation', 'strength', 'peaking', 'maintenance']).nullable().optional(),
-  trainingDays: z.array(z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])).nullable().optional(),
+  trainingDays: z
+    .array(z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']))
+    .nullable()
+    .optional(),
   sessionDurationMinutes: z.number().int().positive().nullable().optional(),
 })
 
@@ -23,9 +27,7 @@ class UpdateProfileDto extends createZodDto(UpdateProfileSchema) {}
 
 @Controller('profile')
 export class ProfileController {
-  constructor(
-    @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
-  ) {}
+  constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
 
   @Get()
   async getProfile(@Req() req: AuthenticatedRequest) {
@@ -37,7 +39,7 @@ export class ProfileController {
     if (!profile) return null
     return {
       ...profile,
-      trainingDays: profile.trainingDays ? JSON.parse(profile.trainingDays) as string[] : null,
+      trainingDays: profile.trainingDays ? (JSON.parse(profile.trainingDays) as string[]) : null,
     }
   }
 
@@ -51,6 +53,7 @@ export class ProfileController {
     }
     if (dto.age !== undefined) updates.age = dto.age
     if (dto.heightCm !== undefined) updates.heightCm = dto.heightCm
+    if (dto.gender !== undefined) updates.gender = dto.gender
     if (dto.experienceLevel !== undefined) updates.experienceLevel = dto.experienceLevel
     if (dto.goal !== undefined) updates.goal = dto.goal
     if (dto.trainingPhase !== undefined) updates.trainingPhase = dto.trainingPhase
@@ -66,10 +69,7 @@ export class ProfileController {
       .limit(1)
 
     if (existing.length > 0) {
-      await this.db
-        .update(schema.userProfiles)
-        .set(updates)
-        .where(eq(schema.userProfiles.userId, userId))
+      await this.db.update(schema.userProfiles).set(updates).where(eq(schema.userProfiles.userId, userId))
     } else {
       await this.db.insert(schema.userProfiles).values({
         userId,

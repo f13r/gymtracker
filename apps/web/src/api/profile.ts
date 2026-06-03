@@ -4,6 +4,7 @@ export type UserProfile = {
   userId: string
   age: number | null
   heightCm: number | null
+  gender: 'male' | 'female' | null
   experienceLevel: 'beginner' | 'intermediate' | 'advanced' | null
   goal: 'hypertrophy' | 'strength' | 'powerlifting' | 'general' | null
   trainingPhase: 'accumulation' | 'strength' | 'peaking' | 'maintenance' | null
@@ -15,6 +16,7 @@ export type UserProfile = {
 export type UpdateProfilePayload = {
   age?: number | null
   heightCm?: number | null
+  gender?: 'male' | 'female' | null
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced' | null
   goal?: 'hypertrophy' | 'strength' | 'powerlifting' | 'general' | null
   trainingPhase?: 'accumulation' | 'strength' | 'peaking' | 'maintenance' | null

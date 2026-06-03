@@ -57,6 +57,13 @@
       "when": 1780474494628,
       "tag": "0007_add_sets_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780480156441,
+      "tag": "0008_add_profile_sex",
+      "breakpoints": true
     }
   ]
 }

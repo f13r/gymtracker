@@ -20,6 +20,7 @@ type UserProgramContext = {
   latestBodyWeightKg: number | null
   age?: number | null
   heightCm?: number | null
+  gender?: string | null
 }
 
 type AvailableExercise = {
@@ -228,6 +229,7 @@ export class ProgramService {
       'USER PROFILE:',
       `Experience level: ${user.experienceLevel}`,
       `Goal: ${user.goal}`,
+      user.gender ? `Gender: ${user.gender}` : null,
       user.age ? `Age: ${user.age}` : null,
       user.heightCm ? `Height: ${user.heightCm}cm` : null,
       `Available training days: ${user.trainingDays.join(', ')}`,
@@ -392,6 +394,7 @@ export class ProgramService {
       latestBodyWeightKg: latestWeight?.weightKg ?? null,
       age: profile.age ?? null,
       heightCm: profile.heightCm ?? null,
+      gender: profile.gender ?? null,
     }
   }
 

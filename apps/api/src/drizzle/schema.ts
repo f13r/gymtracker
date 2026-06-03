@@ -107,14 +107,18 @@ export const progressPhotos = pgTable('progress_photos', {
   notes: text('notes'),
 })
 
-export const gyms = pgTable('gyms', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id),
-  name: text('name').notNull(),
-  createdAt: integer('created_at').notNull(),
-}, (t) => ({
-  userUnique: uniqueIndex('gyms_user_id_unique').on(t.userId),
-}))
+export const gyms = pgTable(
+  'gyms',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').references(() => users.id),
+    name: text('name').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  t => ({
+    userUnique: uniqueIndex('gyms_user_id_unique').on(t.userId),
+  }),
+)
 
 export const equipment = pgTable('equipment', {
   id: text('id').primaryKey(),
@@ -128,30 +132,47 @@ export const equipment = pgTable('equipment', {
   createdAt: integer('created_at').notNull(),
 })
 
-export const equipmentExercises = pgTable('equipment_exercises', {
-  equipmentId: text('equipment_id').notNull().references(() => equipment.id, { onDelete: 'cascade' }),
-  exerciseId: text('exercise_id').notNull().references(() => exercises.id),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.equipmentId, t.exerciseId] }),
-}))
+export const equipmentExercises = pgTable(
+  'equipment_exercises',
+  {
+    equipmentId: text('equipment_id')
+      .notNull()
+      .references(() => equipment.id, { onDelete: 'cascade' }),
+    exerciseId: text('exercise_id')
+      .notNull()
+      .references(() => exercises.id),
+  },
+  t => ({
+    pk: primaryKey({ columns: [t.equipmentId, t.exerciseId] }),
+  }),
+)
 
 export const userProfiles = pgTable('user_profiles', {
-  userId: text('user_id').primaryKey().references(() => users.id),
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id),
   age: integer('age'),
   heightCm: integer('height_cm'),
+  gender: text('sex'), // 'male' | 'female' — physical column stays 'sex' (no migration needed)
   experienceLevel: text('experience_level'), // 'beginner' | 'intermediate' | 'advanced'
-  goal: text('goal'),                         // 'hypertrophy' | 'strength' | 'powerlifting' | 'general'
-  trainingPhase: text('training_phase'),       // 'accumulation' | 'strength' | 'peaking' | 'maintenance'
-  trainingDays: text('training_days'),         // JSON: string[] e.g. ["monday","wednesday","friday"]
+  goal: text('goal'), // 'hypertrophy' | 'strength' | 'powerlifting' | 'general'
+  trainingPhase: text('training_phase'), // 'accumulation' | 'strength' | 'peaking' | 'maintenance'
+  trainingDays: text('training_days'), // JSON: string[] e.g. ["monday","wednesday","friday"]
   sessionDurationMinutes: integer('session_duration_minutes'),
   updatedAt: integer('updated_at').notNull(),
 })
 
 const vector = (name: string, dimensions: number) =>
   customType<{ data: number[]; driverData: string }>({
-    dataType() { return `vector(${dimensions})` },
-    toDriver(value: number[]): string { return `[${value.join(',')}]` },
-    fromDriver(value: string): number[] { return value.slice(1, -1).split(',').map(Number) },
+    dataType() {
+      return `vector(${dimensions})`
+    },
+    toDriver(value: number[]): string {
+      return `[${value.join(',')}]`
+    },
+    fromDriver(value: string): number[] {
+      return value.slice(1, -1).split(',').map(Number)
+    },
   })(name)
 
 export const coachingKnowledge = pgTable('coaching_knowledge', {
@@ -161,23 +182,33 @@ export const coachingKnowledge = pgTable('coaching_knowledge', {
   embedding: vector('embedding', 768).notNull(),
 })
 
-export const progressionSuggestions = pgTable('progression_suggestions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id),
-  exerciseId: text('exercise_id').notNull().references(() => exercises.id),
-  suggestedSets: integer('suggested_sets').notNull(),
-  suggestedReps: integer('suggested_reps').notNull(),
-  suggestedWeightKg: real('suggested_weight_kg').notNull(),
-  reason: text('reason').notNull(),
-  evidence: text('evidence').notNull(), // JSON.stringify(string[])
-  createdAt: integer('created_at').notNull(),
-}, (t) => ({
-  userExercise: uniqueIndex('progression_suggestions_user_exercise').on(t.userId, t.exerciseId),
-}))
+export const progressionSuggestions = pgTable(
+  'progression_suggestions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id),
+    exerciseId: text('exercise_id')
+      .notNull()
+      .references(() => exercises.id),
+    suggestedSets: integer('suggested_sets').notNull(),
+    suggestedReps: integer('suggested_reps').notNull(),
+    suggestedWeightKg: real('suggested_weight_kg').notNull(),
+    reason: text('reason').notNull(),
+    evidence: text('evidence').notNull(), // JSON.stringify(string[])
+    createdAt: integer('created_at').notNull(),
+  },
+  t => ({
+    userExercise: uniqueIndex('progression_suggestions_user_exercise').on(t.userId, t.exerciseId),
+  }),
+)
 
 export const programs = pgTable('programs', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
   name: text('name').notNull(),
   goal: text('goal').notNull(),
   experienceLevel: text('experience_level').notNull(),
@@ -187,7 +218,9 @@ export const programs = pgTable('programs', {
 
 export const programPhases = pgTable('program_phases', {
   id: text('id').primaryKey(),
-  programId: text('program_id').notNull().references(() => programs.id),
+  programId: text('program_id')
+    .notNull()
+    .references(() => programs.id),
   name: text('name').notNull(),
   type: text('type').notNull(), // 'accumulation' | 'strength' | 'peaking' | 'maintenance'
   orderIndex: integer('order_index').notNull(),
@@ -200,14 +233,20 @@ export const programPhases = pgTable('program_phases', {
 
 export const programPhaseTemplates = pgTable('program_phase_templates', {
   id: text('id').primaryKey(),
-  phaseId: text('phase_id').notNull().references(() => programPhases.id),
-  templateId: text('template_id').notNull().references(() => workoutTemplates.id),
+  phaseId: text('phase_id')
+    .notNull()
+    .references(() => programPhases.id),
+  templateId: text('template_id')
+    .notNull()
+    .references(() => workoutTemplates.id),
   dayLabel: text('day_label').notNull(), // 'A', 'B', 'C'
 })
 
 export const programUpdates = pgTable('program_updates', {
   id: text('id').primaryKey(),
-  programId: text('program_id').notNull().references(() => programs.id),
+  programId: text('program_id')
+    .notNull()
+    .references(() => programs.id),
   type: text('type').notNull(), // 'phase_transition' | 'exercise_swap' | 'deload' | 'phase_extension'
   description: text('description').notNull(),
   reason: text('reason').notNull(),

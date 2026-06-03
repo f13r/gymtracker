@@ -140,6 +140,7 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
   const [form, setForm] = useState<UpdateProfilePayload>({
     age: profile?.age ?? null,
     heightCm: profile?.heightCm ?? null,
+    gender: profile?.gender ?? null,
     experienceLevel: profile?.experienceLevel ?? null,
     goal: profile?.goal ?? null,
     trainingDays: profile?.trainingDays ?? [],
@@ -154,9 +155,18 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
     },
   })
 
+  // Any edit clears the "Saved ✓" / error state so the button never falsely
+  // implies unsaved changes are already saved.
+  const update = (updater: (f: UpdateProfilePayload) => UpdateProfilePayload) => {
+    if (save.isSuccess || save.isError) {
+      save.reset()
+    }
+    setForm(updater)
+  }
+
   const days = form.trainingDays ?? []
   const toggleDay = (day: string) =>
-    setForm(f => {
+    update(f => {
       const cur = f.trainingDays ?? []
       return { ...f, trainingDays: cur.includes(day) ? cur.filter(d => d !== day) : [...cur, day] }
     })
@@ -175,7 +185,7 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
             inputMode="numeric"
             type="number"
             value={form.age ?? ''}
-            onChange={e => setForm(f => ({ ...f, age: numOrNull(e.target.value) }))}
+            onChange={e => update(f => ({ ...f, age: numOrNull(e.target.value) }))}
           />
         </div>
         <div className="space-y-1.5">
@@ -185,16 +195,32 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
             inputMode="numeric"
             type="number"
             value={form.heightCm ?? ''}
-            onChange={e => setForm(f => ({ ...f, heightCm: numOrNull(e.target.value) }))}
+            onChange={e => update(f => ({ ...f, heightCm: numOrNull(e.target.value) }))}
           />
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Gender</Label>
+        <Select
+          value={form.gender ?? undefined}
+          onValueChange={v => update(f => ({ ...f, gender: v as UpdateProfilePayload['gender'] }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select…" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="male">Male</SelectItem>
+            <SelectItem value="female">Female</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-1.5">
         <Label>Experience</Label>
         <Select
           value={form.experienceLevel ?? undefined}
-          onValueChange={v => setForm(f => ({ ...f, experienceLevel: v as UpdateProfilePayload['experienceLevel'] }))}
+          onValueChange={v => update(f => ({ ...f, experienceLevel: v as UpdateProfilePayload['experienceLevel'] }))}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select…" />
@@ -213,7 +239,7 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
         <Label>Goal</Label>
         <Select
           value={form.goal ?? undefined}
-          onValueChange={v => setForm(f => ({ ...f, goal: v as UpdateProfilePayload['goal'] }))}
+          onValueChange={v => update(f => ({ ...f, goal: v as UpdateProfilePayload['goal'] }))}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select…" />
@@ -252,7 +278,7 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
         <Label>Session duration (min)</Label>
         <Select
           value={form.sessionDurationMinutes ? String(form.sessionDurationMinutes) : undefined}
-          onValueChange={v => setForm(f => ({ ...f, sessionDurationMinutes: Number(v) }))}
+          onValueChange={v => update(f => ({ ...f, sessionDurationMinutes: Number(v) }))}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select…" />
@@ -266,6 +292,12 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
           </SelectContent>
         </Select>
       </div>
+
+      {save.isError && (
+        <p className="text-destructive text-xs">
+          Couldn’t save — check your entries (age/height must be whole numbers).
+        </p>
+      )}
 
       <Button className="w-full" disabled={save.isPending} onClick={() => save.mutate()}>
         {save.isPending ? 'Saving…' : save.isSuccess ? 'Saved ✓' : 'Save profile'}
