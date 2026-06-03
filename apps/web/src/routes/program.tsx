@@ -209,6 +209,7 @@ function ProgramView({ program }: { program: Program }) {
 export function ProgramPage() {
   const queryClient = useQueryClient()
   const [showPreview, setShowPreview] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const { data: program, isLoading } = useQuery({
     queryKey: ['program'],
@@ -289,6 +290,20 @@ export function ProgramPage() {
             <DialogClose asChild>
               <Button variant="outline">Close</Button>
             </DialogClose>
+            <Button
+              disabled={!preview}
+              variant="outline"
+              onClick={() => {
+                if (preview) {
+                  void navigator.clipboard.writeText(preview.prompt).then(() => {
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 1500)
+                  })
+                }
+              }}
+            >
+              {copied ? 'Copied ✓' : 'Copy'}
+            </Button>
             <Button disabled={generate.isPending} onClick={() => generate.mutate()}>
               {generate.isPending ? 'Generating…' : 'Generate my Program'}
             </Button>
