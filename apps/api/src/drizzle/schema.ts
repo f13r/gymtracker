@@ -58,6 +58,7 @@ export const sets = pgTable('sets', {
   rpe: real('rpe'),
   completedAt: integer('completed_at'),
   done: integer('done').default(0),
+  notes: text('notes'),
   equipmentId: text('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
 })
 

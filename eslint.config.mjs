@@ -106,6 +106,13 @@ export default defineConfig(
       },
     },
   },
+  // Standalone CLI scripts: console output is their purpose
+  {
+    files: ['apps/api/src/scripts/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
   // Shared packages
   {
     files: ['packages/**/*.ts'],
