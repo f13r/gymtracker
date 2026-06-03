@@ -17,6 +17,7 @@ export function toWorkoutSet(row: DbSet): WorkoutSet {
     rpe: row.rpe,
     completedAt: row.completedAt,
     done: row.done === 1,
+    notes: row.notes,
   }
 }
 
@@ -51,7 +52,7 @@ export function toEquipment(row: DbEquipment): Equipment {
 
 export function toEquipmentWithExercises(
   row: DbEquipment,
-  exercises: typeof schema.exercises.$inferSelect[],
+  exercises: (typeof schema.exercises.$inferSelect)[],
 ): EquipmentWithExercises {
   return { ...toEquipment(row), exercises }
 }

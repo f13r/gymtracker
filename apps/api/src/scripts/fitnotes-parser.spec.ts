@@ -149,4 +149,22 @@ describe('buildImportPlan', () => {
     const p = plan(['2025-06-04,Жим,Chest,80,kgs,5,,,,""', '2026-06-03,Жим,Chest,85,kgs,5,,,,""'])
     expect(p.report.dateRange).toEqual({ from: '2025-06-04', to: '2026-06-03' })
   })
+
+  it('filters out rows before --since and counts them', () => {
+    const p = buildImportPlan(
+      parseFitnotesCsv(
+        [
+          HEADER,
+          '2026-04-30,Жим,Chest,80,kgs,5,,,,""',
+          '2026-05-01,Жим,Chest,82,kgs,5,,,,""',
+          '2026-05-10,Присед,Legs,100,kgs,5,,,,""',
+        ].join('\n'),
+      ),
+      { since: '2026-05-01' },
+    )
+    expect(p.report.filteredBySince).toBe(1)
+    expect(p.report.keptRows).toBe(2)
+    expect(p.sessions.map(s => s.date)).toEqual(['2026-05-01', '2026-05-10'])
+    expect(p.report.dateRange).toEqual({ from: '2026-05-01', to: '2026-05-10' })
+  })
 })

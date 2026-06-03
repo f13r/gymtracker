@@ -52,6 +52,7 @@ export type WorkoutSet = {
   rpe: number | null
   completedAt: number | null
   done: boolean
+  notes: string | null
 }
 
 export type SessionWithSets = WorkoutSession & { sets: WorkoutSet[] }

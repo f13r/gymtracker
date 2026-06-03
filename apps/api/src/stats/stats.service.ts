@@ -23,7 +23,7 @@ export class StatsService {
         FROM sets s
         JOIN workout_sessions ws ON s.session_id = ws.id
         JOIN exercises e ON s.exercise_id = e.id
-        WHERE ws.user_id = ${userId} AND ${doneSetSql}
+        WHERE ws.user_id = ${userId} AND ${doneSetSql} AND s.weight_kg IS NOT NULL
         ${exerciseId ? sql`AND s.exercise_id = ${exerciseId}` : sql``}
       )
       SELECT exercise_id AS "exerciseId", name, "maxWeightKg", "repsAtMax", "achievedAt"

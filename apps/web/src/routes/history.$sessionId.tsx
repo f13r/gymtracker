@@ -128,14 +128,17 @@ export function HistoryDetailPage() {
             </div>
             <div className="divide-border/50 divide-y">
               {sets.map((s, i) => (
-                <div key={s.id} className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground w-8 text-xs font-semibold">S{i + 1}</span>
-                    <span className="text-sm font-medium">
-                      {s.weightKg} kg × {s.reps}
-                    </span>
+                <div key={s.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-muted-foreground w-8 text-xs font-semibold">S{i + 1}</span>
+                      <span className="text-sm font-medium">
+                        {s.weightKg != null ? `${s.weightKg} kg × ${s.reps}` : `${s.reps} reps`}
+                      </span>
+                    </div>
+                    <CheckCircle2 className="text-accent" size={14} />
                   </div>
-                  <CheckCircle2 className="text-accent" size={14} />
+                  {s.notes && <p className="text-muted-foreground mt-1.5 pl-11 text-xs italic">{s.notes}</p>}
                 </div>
               ))}
             </div>

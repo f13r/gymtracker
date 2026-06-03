@@ -36,6 +36,9 @@ function printReport(plan: ImportPlan): void {
   console.log(`Sessions:    ${plan.sessions.length} (one per date)`)
   console.log(`Sets:        ${plan.sets.length}`)
   console.log(`Comments:    ${r.commentsKept} kept (per-set notes)`)
+  if (r.filteredBySince) {
+    console.log(`Filtered:    ${r.filteredBySince} rows before --since`)
+  }
   if (r.dateRange) {
     console.log(`Date range:  ${r.dateRange.from} .. ${r.dateRange.to}`)
   }
@@ -147,14 +150,19 @@ async function commit(plan: ImportPlan): Promise<void> {
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const isCommit = args.includes('--commit')
+  const sinceArg = args.find(a => a.startsWith('--since='))?.split('=')[1]
   const file = args.find(a => !a.startsWith('--'))
   if (!file) {
-    console.error('Usage: import-fitnotes <file.csv> [--commit]')
+    console.error('Usage: import-fitnotes <file.csv> [--commit] [--since=YYYY-MM-DD]')
+    process.exit(1)
+  }
+  if (sinceArg && !/^\d{4}-\d{2}-\d{2}$/.test(sinceArg)) {
+    console.error(`Invalid --since value '${sinceArg}'; expected YYYY-MM-DD`)
     process.exit(1)
   }
 
   const text = readFileSync(file, 'utf8')
-  const plan = buildImportPlan(parseFitnotesCsv(text))
+  const plan = buildImportPlan(parseFitnotesCsv(text), sinceArg ? { since: sinceArg } : {})
   printReport(plan)
 
   if (!isCommit) {
