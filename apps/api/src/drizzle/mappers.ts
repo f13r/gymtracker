@@ -1,4 +1,5 @@
 import type { WorkoutSet, WorkoutSession, Equipment, EquipmentWithExercises } from '@gymtracker/shared'
+
 import * as schema from './schema'
 
 export type DbSet = typeof schema.sets.$inferSelect
