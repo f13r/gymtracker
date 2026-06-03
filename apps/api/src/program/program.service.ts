@@ -3,7 +3,7 @@ import { eq, and, desc, gte } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { randomUUID } from 'crypto'
 
-import { estimateE1rm } from '@gymtracker/shared'
+import { estimateE1rm, GeneratedProgramSchema } from '@gymtracker/shared'
 
 import { GeminiService } from '../ai/gemini.service'
 import { DATABASE } from '../drizzle/drizzle.constants'
@@ -106,7 +106,7 @@ export class ProgramService {
     const historySummary = await this.buildTrainingHistorySummary(userId)
 
     const prompt = this.buildGenerationPrompt(userCtx, exercises, coachingChunks, historySummary)
-    return { userCtx, prompt }
+    return { userCtx, exercises, prompt }
   }
 
   /** Build the exact prompt that generation would send, without calling the AI. */
@@ -116,15 +116,14 @@ export class ProgramService {
   }
 
   async generateProgram(userId: string) {
-    const { userCtx, prompt } = await this.assembleGenerationInputs(userId)
+    const { userCtx, exercises, prompt } = await this.assembleGenerationInputs(userId)
 
-    await this.db
-      .update(schema.programs)
-      .set({ status: 'abandoned' })
-      .where(and(eq(schema.programs.userId, userId), eq(schema.programs.status, 'active')))
-
+    // Call + validate BEFORE mutating anything. The previous program is only
+    // abandoned inside persistProgram's transaction, so a failed/invalid
+    // generation leaves the user's existing active program untouched.
     const raw = await this.callGemini(prompt, userId)
-    const parsed = this.parseGeminiProgram(raw, userCtx.trainingDays.length)
+    const validExerciseIds = new Set(exercises.map(e => e.id))
+    const parsed = this.parseGeminiProgram(raw, userCtx.trainingDays.length, validExerciseIds)
 
     return this.persistProgram(userId, parsed, userCtx.trainingDays)
   }
@@ -221,6 +220,12 @@ export class ProgramService {
     const historySection = historySummary
       ? `\nYOUR RECENT TRAINING (last ${HISTORY_WINDOW_DAYS} days — prefer these familiar exercises and base starting weights on these actual loads, not generic percentages):\n${historySummary}\n`
       : ''
+    // When the user has training history, weights come from those real loads;
+    // the conservative %-of-1RM estimate is only the fallback for exercises with
+    // no history (and the only rule when there's no history section at all).
+    const startingWeightsRule = historySummary
+      ? '- Starting weights: for any exercise listed under YOUR RECENT TRAINING, base the starting load on those actual numbers (a slightly conservative working weight, not the all-time best). ONLY for exercises with no listed history, estimate conservatively — roughly 30-40% of an estimated 1RM derived from body weight and experience.'
+      : '- Starting weights: conservative — roughly 30-40% of an estimated 1RM derived from body weight and experience.'
 
     return [
       'You are a certified strength and conditioning coach creating a personalised multi-phase training program.',
@@ -278,35 +283,46 @@ export class ProgramService {
       'Rules:',
       '- targetSessionCount is computed as durationWeeks × trainingDaysPerWeek (do not include in output — computed by the server).',
       '- exerciseId must exactly match one of the IDs from the AVAILABLE EXERCISES list.',
-      '- For beginners: 2 templates per full-body phase (A and B), alternating. 3-4 exercises per template max for 60-min sessions.',
+      `- For beginners: 2 templates per full-body phase (A and B), alternating. Size each template to fit the user's ${user.sessionDurationMinutes}-minute sessions (about one exercise per 15-20 minutes of training).`,
       '- For upper/lower split: 2 templates (Upper, Lower). For PPL: 3 templates (Push, Pull, Legs).',
-      '- Starting weights: conservative — roughly 30-40% of estimated 1RM based on body weight and experience.',
+      startingWeightsRule,
     ].join('\n')
   }
 
-  parseGeminiProgram(raw: unknown, daysPerWeek: number): ParsedProgram {
-    if (!raw || typeof raw !== 'object') throw new Error('Invalid AI response: not an object')
-    const obj = raw as Record<string, unknown>
-    if (!obj.name || typeof obj.name !== 'string') throw new Error('Invalid AI response: missing name')
-    if (!Array.isArray(obj.phases) || obj.phases.length === 0) throw new Error('Invalid AI response: missing phases')
+  parseGeminiProgram(raw: unknown, daysPerWeek: number, validExerciseIds: Set<string>): ParsedProgram {
+    const result = GeneratedProgramSchema.safeParse(raw)
+    if (!result.success) {
+      const issues = result.error.issues.map(i => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ')
+      throw new Error(`Invalid AI program response: ${issues}`)
+    }
+    const data = result.data
 
-    const phases: ParsedPhase[] = obj.phases.map((p: unknown, i: number) => {
-      const phase = p as Record<string, unknown>
-      if (!phase.name || !phase.type || !phase.durationWeeks || !phase.splitType || !phase.templates) {
-        throw new Error(`Invalid phase at index ${i}`)
+    // Every prescribed exerciseId must exist in the user's available library.
+    // Caught here (not at INSERT time) so we never start writing a program that
+    // would hit a foreign-key error partway through.
+    const unknownIds = new Set<string>()
+    for (const phase of data.phases) {
+      for (const tmpl of phase.templates) {
+        for (const ex of tmpl.exercises) {
+          if (!validExerciseIds.has(ex.exerciseId)) unknownIds.add(ex.exerciseId)
+        }
       }
-      return {
-        name: phase.name as string,
-        type: phase.type as string,
-        durationWeeks: Number(phase.durationWeeks),
-        splitType: phase.splitType as string,
-        rationale: (phase.rationale as string) ?? '',
-        templates: phase.templates as ParsedPhaseTemplate[],
-        targetSessionCount: Number(phase.durationWeeks) * daysPerWeek,
-      }
-    })
+    }
+    if (unknownIds.size > 0) {
+      throw new Error(`AI prescribed unknown exercise IDs not in your library: ${[...unknownIds].join(', ')}`)
+    }
 
-    return { name: obj.name as string, phases }
+    const phases: ParsedPhase[] = data.phases.map(phase => ({
+      name: phase.name,
+      type: phase.type,
+      durationWeeks: phase.durationWeeks,
+      splitType: phase.splitType,
+      rationale: phase.rationale,
+      templates: phase.templates,
+      targetSessionCount: phase.durationWeeks * daysPerWeek,
+    }))
+
+    return { name: data.name, phases }
   }
 
   buildAdaptationPrompt(
@@ -427,93 +443,103 @@ export class ProgramService {
   private async persistProgram(userId: string, parsed: ParsedProgram, trainingDays: string[]) {
     const now = Math.floor(Date.now() / 1000)
     const programId = randomUUID()
+    const DAY_MAP: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    }
 
-    await this.db.insert(schema.programs).values({
-      id: programId,
-      userId,
-      name: parsed.name,
-      goal: '',
-      experienceLevel: '',
-      status: 'active',
-      createdAt: now,
-    })
+    // Everything below — abandoning the old program, clearing its schedule, and
+    // writing the new program/phases/templates/exercises/schedules — runs in one
+    // transaction. If any insert fails, the whole thing rolls back and the user
+    // keeps their previous active program intact (no half-written state).
+    await this.db.transaction(async tx => {
+      await tx
+        .update(schema.programs)
+        .set({ status: 'abandoned' })
+        .where(and(eq(schema.programs.userId, userId), eq(schema.programs.status, 'active')))
 
-    await this.db
-      .delete(schema.workoutSchedules)
-      .where(and(eq(schema.workoutSchedules.userId, userId), eq(schema.workoutSchedules.type, 'weekly')))
+      await tx
+        .delete(schema.workoutSchedules)
+        .where(and(eq(schema.workoutSchedules.userId, userId), eq(schema.workoutSchedules.type, 'weekly')))
 
-    for (const [i, phase] of parsed.phases.entries()) {
-      const phaseId = randomUUID()
-
-      await this.db.insert(schema.programPhases).values({
-        id: phaseId,
-        programId,
-        name: phase.name,
-        type: phase.type,
-        orderIndex: i,
-        targetSessionCount: phase.targetSessionCount,
-        completedSessionCount: 0,
-        splitType: phase.splitType,
-        rationale: phase.rationale,
-        status: i === 0 ? 'active' : 'pending',
+      await tx.insert(schema.programs).values({
+        id: programId,
+        userId,
+        name: parsed.name,
+        goal: '',
+        experienceLevel: '',
+        status: 'active',
+        createdAt: now,
       })
 
-      for (const tmpl of phase.templates) {
-        const templateId = randomUUID()
-        await this.db.insert(schema.workoutTemplates).values({
-          id: templateId,
-          userId,
-          name: tmpl.name,
-          notes: null,
-          createdAt: now,
+      for (const [i, phase] of parsed.phases.entries()) {
+        const phaseId = randomUUID()
+
+        await tx.insert(schema.programPhases).values({
+          id: phaseId,
+          programId,
+          name: phase.name,
+          type: phase.type,
+          orderIndex: i,
+          targetSessionCount: phase.targetSessionCount,
+          completedSessionCount: 0,
+          splitType: phase.splitType,
+          rationale: phase.rationale,
+          status: i === 0 ? 'active' : 'pending',
         })
 
-        for (const ex of tmpl.exercises) {
-          await this.db.insert(schema.templateExercises).values({
-            id: randomUUID(),
-            templateId,
-            exerciseId: ex.exerciseId,
-            orderIndex: ex.orderIndex,
-            defaultSets: ex.defaultSets,
-            defaultReps: ex.defaultReps,
-            defaultWeightKg: ex.defaultWeightKg,
-            equipmentId: null,
+        for (const [templateIndex, tmpl] of phase.templates.entries()) {
+          const templateId = randomUUID()
+          await tx.insert(schema.workoutTemplates).values({
+            id: templateId,
+            userId,
+            name: tmpl.name,
+            notes: null,
+            createdAt: now,
           })
-        }
 
-        await this.db.insert(schema.programPhaseTemplates).values({
-          id: randomUUID(),
-          phaseId,
-          templateId,
-          dayLabel: tmpl.dayLabel,
-        })
-
-        if (i === 0) {
-          const templateIndex = phase.templates.indexOf(tmpl)
-          const assignedDays = trainingDays.filter((_, idx) => idx % phase.templates.length === templateIndex)
-          const DAY_MAP: Record<string, number> = {
-            sunday: 0,
-            monday: 1,
-            tuesday: 2,
-            wednesday: 3,
-            thursday: 4,
-            friday: 5,
-            saturday: 6,
-          }
-          for (const day of assignedDays) {
-            await this.db.insert(schema.workoutSchedules).values({
+          for (const ex of tmpl.exercises) {
+            await tx.insert(schema.templateExercises).values({
               id: randomUUID(),
-              userId,
               templateId,
-              type: 'weekly',
-              scheduledDate: null,
-              dayOfWeek: DAY_MAP[day] ?? 1,
-              createdAt: now,
+              exerciseId: ex.exerciseId,
+              orderIndex: ex.orderIndex,
+              defaultSets: ex.defaultSets,
+              defaultReps: ex.defaultReps,
+              defaultWeightKg: ex.defaultWeightKg,
+              equipmentId: null,
             })
+          }
+
+          await tx.insert(schema.programPhaseTemplates).values({
+            id: randomUUID(),
+            phaseId,
+            templateId,
+            dayLabel: tmpl.dayLabel,
+          })
+
+          if (i === 0) {
+            const assignedDays = trainingDays.filter((_, idx) => idx % phase.templates.length === templateIndex)
+            for (const day of assignedDays) {
+              await tx.insert(schema.workoutSchedules).values({
+                id: randomUUID(),
+                userId,
+                templateId,
+                type: 'weekly',
+                scheduledDate: null,
+                dayOfWeek: DAY_MAP[day] ?? 1,
+                createdAt: now,
+              })
+            }
           }
         }
       }
-    }
+    })
 
     return this.getActiveProgram(userId)
   }

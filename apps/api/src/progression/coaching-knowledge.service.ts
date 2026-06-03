@@ -18,25 +18,33 @@ export class CoachingKnowledgeService implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      await this.seedIfEmpty()
+      await this.syncChunks()
     } catch (err) {
-      this.logger.warn('Failed to seed coaching knowledge — suggestions will have no coaching context', err)
+      this.logger.warn('Failed to sync coaching knowledge — suggestions will have no coaching context', err)
     }
   }
 
-  private async seedIfEmpty() {
-    const rows = await this.db
-      .select({ id: schema.coachingKnowledge.id })
+  /**
+   * Reconciles the coaching_knowledge table with COACHING_CHUNKS. Only chunks
+   * that are new or whose content has changed are re-embedded and upserted — so
+   * editing the source text actually propagates to existing databases (the old
+   * "seed only if empty" approach silently kept stale rows forever), while
+   * unchanged chunks cost no Gemini embedding calls on boot.
+   */
+  private async syncChunks() {
+    const existing = await this.db
+      .select({ id: schema.coachingKnowledge.id, content: schema.coachingKnowledge.content })
       .from(schema.coachingKnowledge)
-      .limit(1)
+    const existingContentById = new Map(existing.map(r => [r.id, r.content]))
 
-    if (rows.length > 0) {
-      this.logger.log(`Coaching knowledge already seeded (${rows.length}+ rows), skipping`)
+    const stale = COACHING_CHUNKS.filter(chunk => existingContentById.get(chunk.id) !== chunk.content)
+    if (stale.length === 0) {
+      this.logger.log(`Coaching knowledge up to date (${existing.length} rows), skipping`)
       return
     }
 
-    this.logger.log(`Seeding ${COACHING_CHUNKS.length} coaching knowledge chunks...`)
-    for (const chunk of COACHING_CHUNKS) {
+    this.logger.log(`Syncing ${stale.length} new/changed coaching knowledge chunk(s)...`)
+    for (const chunk of stale) {
       const embedding = await this.gemini.embed(chunk.content)
       await this.db
         .insert(schema.coachingKnowledge)
@@ -46,7 +54,7 @@ export class CoachingKnowledgeService implements OnModuleInit {
           set: { content: chunk.content, embedding },
         })
     }
-    this.logger.log('Coaching knowledge seeded successfully')
+    this.logger.log('Coaching knowledge synced successfully')
   }
 
   async retrieveForSituation(situationSummary: string, userId: string): Promise<string[]> {

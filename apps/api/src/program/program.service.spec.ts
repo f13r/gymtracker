@@ -117,7 +117,7 @@ describe('ProgramService.parseGeminiProgram', () => {
         },
       ],
     }
-    const result = svc.parseGeminiProgram(raw, 3)
+    const result = svc.parseGeminiProgram(raw, 3, new Set(['squat-id']))
     expect(result.name).toBe('My 16-Week Journey')
     expect(result.phases).toHaveLength(1)
     expect(result.phases[0]?.targetSessionCount).toBe(24) // 3 days/week × 8 weeks
@@ -126,7 +126,55 @@ describe('ProgramService.parseGeminiProgram', () => {
 
   it('throws on missing required fields', () => {
     const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
-    expect(() => svc.parseGeminiProgram({ phases: [] }, 3)).toThrow()
+    expect(() => svc.parseGeminiProgram({ phases: [] }, 3, new Set())).toThrow()
+  })
+
+  it('throws on an off-vocabulary phase type', () => {
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
+    const raw = {
+      name: 'Bad Program',
+      phases: [
+        {
+          name: 'Phase',
+          type: 'hypertrophy', // not in PhaseTypeSchema enum
+          durationWeeks: 8,
+          splitType: 'full_body',
+          rationale: '',
+          templates: [
+            {
+              name: 'A',
+              dayLabel: 'A',
+              exercises: [{ exerciseId: 'squat-id', orderIndex: 0, defaultSets: 3, defaultReps: 8, defaultWeightKg: 40 }],
+            },
+          ],
+        },
+      ],
+    }
+    expect(() => svc.parseGeminiProgram(raw, 3, new Set(['squat-id']))).toThrow()
+  })
+
+  it('throws when an exerciseId is not in the available library', () => {
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
+    const raw = {
+      name: 'Hallucinated Program',
+      phases: [
+        {
+          name: 'Phase',
+          type: 'accumulation',
+          durationWeeks: 8,
+          splitType: 'full_body',
+          rationale: '',
+          templates: [
+            {
+              name: 'A',
+              dayLabel: 'A',
+              exercises: [{ exerciseId: 'made-up-id', orderIndex: 0, defaultSets: 3, defaultReps: 8, defaultWeightKg: 40 }],
+            },
+          ],
+        },
+      ],
+    }
+    expect(() => svc.parseGeminiProgram(raw, 3, new Set(['squat-id']))).toThrow(/unknown exercise/i)
   })
 })
 

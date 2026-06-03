@@ -59,6 +59,42 @@ export type ProgramUpdate = {
   createdAt: number
 }
 
+/**
+ * Shape the AI generation endpoint must return. Validated before any DB write so
+ * a malformed or off-vocabulary response is rejected wholesale (never persisted
+ * half-written). Numbers are coerced because models occasionally emit them as
+ * strings; exerciseId existence is checked separately against the user's library.
+ */
+export const GeneratedTemplateExerciseSchema = z.object({
+  exerciseId: z.string().min(1),
+  orderIndex: z.coerce.number().int().min(0),
+  defaultSets: z.coerce.number().int().positive(),
+  defaultReps: z.coerce.number().int().positive(),
+  defaultWeightKg: z.coerce.number().min(0),
+})
+
+export const GeneratedTemplateSchema = z.object({
+  name: z.string().min(1),
+  dayLabel: z.string().min(1),
+  exercises: z.array(GeneratedTemplateExerciseSchema).min(1),
+})
+
+export const GeneratedPhaseSchema = z.object({
+  name: z.string().min(1),
+  type: PhaseTypeSchema,
+  durationWeeks: z.coerce.number().int().positive(),
+  splitType: SplitTypeSchema,
+  rationale: z.string().default(''),
+  templates: z.array(GeneratedTemplateSchema).min(1),
+})
+
+export const GeneratedProgramSchema = z.object({
+  name: z.string().min(1),
+  phases: z.array(GeneratedPhaseSchema).min(1),
+})
+
+export type GeneratedProgram = z.infer<typeof GeneratedProgramSchema>
+
 export const CreateProgramSchema = z.object({}) // all inputs come from User Profile
 
 export const AcknowledgeProgramUpdateSchema = z.object({
