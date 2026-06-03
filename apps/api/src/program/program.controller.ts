@@ -20,6 +20,11 @@ export class ProgramController {
     return this.svc.generateProgram(req.user.id)
   }
 
+  @Get('generate/preview')
+  previewGenerationPrompt(@Req() req: AuthenticatedRequest) {
+    return this.svc.previewGenerationPrompt(req.user.id)
+  }
+
   @Delete()
   @HttpCode(204)
   abandonProgram(@Req() req: AuthenticatedRequest) {
@@ -32,11 +37,7 @@ export class ProgramController {
   }
 
   @Post('updates/:id/acknowledge')
-  acknowledgeUpdate(
-    @Param('id') id: string,
-    @Body() dto: AcknowledgeDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  acknowledgeUpdate(@Param('id') id: string, @Body() dto: AcknowledgeDto, @Req() req: AuthenticatedRequest) {
     return this.svc.acknowledgeProgramUpdate(id, req.user.id, dto.action)
   }
 }

@@ -1,12 +1,16 @@
 import { Injectable, Inject, Logger, BadRequestException } from '@nestjs/common'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, gte } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { randomUUID } from 'crypto'
+
+import { estimateE1rm } from '@gymtracker/shared'
 
 import { GeminiService } from '../ai/gemini.service'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { CoachingKnowledgeService } from '../progression/coaching-knowledge.service'
+
+const HISTORY_WINDOW_DAYS = 90
 
 type UserProgramContext = {
   experienceLevel: string
@@ -14,6 +18,8 @@ type UserProgramContext = {
   trainingDays: string[]
   sessionDurationMinutes: number
   latestBodyWeightKg: number | null
+  age?: number | null
+  heightCm?: number | null
 }
 
 type AvailableExercise = {
@@ -25,7 +31,13 @@ type AvailableExercise = {
 type ParsedPhaseTemplate = {
   name: string
   dayLabel: string
-  exercises: { exerciseId: string; orderIndex: number; defaultSets: number; defaultReps: number; defaultWeightKg: number }[]
+  exercises: {
+    exerciseId: string
+    orderIndex: number
+    defaultSets: number
+    defaultReps: number
+    defaultWeightKg: number
+  }[]
 }
 
 type ParsedPhase = {
@@ -67,20 +79,20 @@ export class ProgramService {
     private readonly coachingKnowledge: CoachingKnowledgeService,
   ) {}
 
-  async generateProgram(userId: string) {
+  /**
+   * Gathers everything the generation prompt needs (profile, exercise library,
+   * coaching chunks, recent training history) and builds the prompt — without
+   * calling the AI or mutating anything. Shared by generate + preview.
+   */
+  private async assembleGenerationInputs(userId: string) {
     const userCtx = await this.getUserProgramContext(userId)
 
     const exercises = await this.getAvailableExercises(userId)
     if (exercises.length === 0) {
       throw new BadRequestException(
-        'No exercises found. Add equipment to your gym first so the AI knows what to prescribe.',
+        'No exercises found. Add some exercises to your library first so the AI knows what to prescribe.',
       )
     }
-
-    await this.db
-      .update(schema.programs)
-      .set({ status: 'abandoned' })
-      .where(and(eq(schema.programs.userId, userId), eq(schema.programs.status, 'active')))
 
     const situationSummary = `${userCtx.experienceLevel} lifter, goal: ${userCtx.goal}, ${userCtx.trainingDays.length} days/week, ${userCtx.sessionDurationMinutes} min sessions, creating new program from scratch`
     let coachingChunks: string[] = []
@@ -90,17 +102,123 @@ export class ProgramService {
       this.logger.warn('Coaching RAG failed during program generation — proceeding without chunks')
     }
 
-    const prompt = this.buildGenerationPrompt(userCtx, exercises, coachingChunks)
+    const historySummary = await this.buildTrainingHistorySummary(userId)
+
+    const prompt = this.buildGenerationPrompt(userCtx, exercises, coachingChunks, historySummary)
+    return { userCtx, prompt }
+  }
+
+  /** Build the exact prompt that generation would send, without calling the AI. */
+  async previewGenerationPrompt(userId: string): Promise<{ prompt: string }> {
+    const { prompt } = await this.assembleGenerationInputs(userId)
+    return { prompt }
+  }
+
+  async generateProgram(userId: string) {
+    const { userCtx, prompt } = await this.assembleGenerationInputs(userId)
+
+    await this.db
+      .update(schema.programs)
+      .set({ status: 'abandoned' })
+      .where(and(eq(schema.programs.userId, userId), eq(schema.programs.status, 'active')))
+
     const raw = await this.callGemini(prompt, userId)
     const parsed = this.parseGeminiProgram(raw, userCtx.trainingDays.length)
 
     return this.persistProgram(userId, parsed, userCtx.trainingDays)
   }
 
-  buildGenerationPrompt(user: UserProgramContext, exercises: AvailableExercise[], coachingChunks: string[]): string {
+  /**
+   * Per-exercise summary of the user's done sets in the last 90 days: how many
+   * sessions, best set + estimated 1RM, most recent set, and any notes. Lets the
+   * AI prescribe familiar exercises with realistic starting loads. '' if no history.
+   */
+  async buildTrainingHistorySummary(userId: string): Promise<string> {
+    const cutoff = Math.floor(Date.now() / 1000) - HISTORY_WINDOW_DAYS * 86400
+    const rows = await this.db
+      .select({
+        name: schema.exercises.name,
+        category: schema.exercises.category,
+        weightKg: schema.sets.weightKg,
+        reps: schema.sets.reps,
+        completedAt: schema.sets.completedAt,
+        notes: schema.sets.notes,
+      })
+      .from(schema.sets)
+      .innerJoin(schema.workoutSessions, eq(schema.workoutSessions.id, schema.sets.sessionId))
+      .innerJoin(schema.exercises, eq(schema.exercises.id, schema.sets.exerciseId))
+      .where(
+        and(eq(schema.workoutSessions.userId, userId), eq(schema.sets.done, 1), gte(schema.sets.completedAt, cutoff)),
+      )
+
+    if (rows.length === 0) return ''
+
+    type Agg = {
+      category: string | null
+      sets: { weightKg: number | null; reps: number | null }[]
+      days: Set<number>
+      latest: { at: number; weightKg: number | null; reps: number | null }
+      notes: Set<string>
+    }
+    const byExercise = new Map<string, Agg>()
+    for (const r of rows) {
+      const agg = byExercise.get(r.name) ?? {
+        category: r.category,
+        sets: [],
+        days: new Set<number>(),
+        latest: { at: -1, weightKg: null, reps: null },
+        notes: new Set<string>(),
+      }
+      agg.sets.push({ weightKg: r.weightKg, reps: r.reps })
+      if (r.completedAt != null) {
+        agg.days.add(Math.floor(r.completedAt / 86400))
+        if (r.completedAt > agg.latest.at) agg.latest = { at: r.completedAt, weightKg: r.weightKg, reps: r.reps }
+      }
+      if (r.notes) agg.notes.add(r.notes)
+      byExercise.set(r.name, agg)
+    }
+
+    const lines = [...byExercise.entries()]
+      .sort((a, b) => b[1].days.size - a[1].days.size)
+      .map(([name, a]) => {
+        const best = a.sets.filter(s => s.weightKg != null).sort((x, y) => (y.weightKg ?? 0) - (x.weightKg ?? 0))[0]
+        const e1rm = estimateE1rm(
+          a.sets.filter(s => s.weightKg != null && s.reps != null) as { weightKg: number; reps: number }[],
+        )
+        const latest = a.latest
+        const fmt = (w: number | null, reps: number | null) =>
+          w != null ? `${w}kg×${reps ?? '?'}` : `${reps ?? '?'} reps (bodyweight)`
+        const parts = [
+          `- ${name} (${a.category ?? 'other'}): ${a.days.size} session${a.days.size === 1 ? '' : 's'}`,
+          best ? `best ${fmt(best.weightKg, best.reps)}` : null,
+          e1rm ? `~${e1rm}kg e1RM` : null,
+          `latest ${fmt(latest.weightKg, latest.reps)}`,
+          a.notes.size
+            ? `notes: ${[...a.notes]
+                .slice(0, 4)
+                .map(n => `"${n}"`)
+                .join(', ')}`
+            : null,
+        ].filter(Boolean)
+        return parts.join(', ')
+      })
+
+    return lines.join('\n')
+  }
+
+  buildGenerationPrompt(
+    user: UserProgramContext,
+    exercises: AvailableExercise[],
+    coachingChunks: string[],
+    historySummary = '',
+  ): string {
     const exerciseList = exercises.map(e => `- ${e.name} [id: ${e.id}] (${e.category ?? 'other'})`).join('\n')
-    const coachingSection = coachingChunks.length > 0
-      ? `COACHING PRINCIPLES (apply these when designing the program):\n${coachingChunks.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n\n`
+    const coachingSection =
+      coachingChunks.length > 0
+        ? `COACHING PRINCIPLES (apply these when designing the program):\n${coachingChunks.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n\n`
+        : ''
+    const historySection = historySummary
+      ? `\nYOUR RECENT TRAINING (last ${HISTORY_WINDOW_DAYS} days — prefer these familiar exercises and base starting weights on these actual loads, not generic percentages):\n${historySummary}\n`
       : ''
 
     return [
@@ -110,10 +228,12 @@ export class ProgramService {
       'USER PROFILE:',
       `Experience level: ${user.experienceLevel}`,
       `Goal: ${user.goal}`,
+      user.age ? `Age: ${user.age}` : null,
+      user.heightCm ? `Height: ${user.heightCm}cm` : null,
       `Available training days: ${user.trainingDays.join(', ')}`,
       `Session duration: ${user.sessionDurationMinutes} minutes`,
       user.latestBodyWeightKg ? `Body weight: ${user.latestBodyWeightKg}kg` : 'Body weight: unknown',
-      '',
+      historySection,
       'AVAILABLE EXERCISES (only prescribe exercises from this list, use exact IDs):',
       exerciseList,
       '',
@@ -121,33 +241,37 @@ export class ProgramService {
       'Design a complete multi-phase training program. For a beginner: start with full-body 3x/week for 8 weeks (accumulation), then progress to an appropriate split for another 8 weeks. For intermediate/advanced: adjust phases accordingly.',
       '',
       'Return ONLY valid JSON in exactly this structure (no markdown, no explanation):',
-      JSON.stringify({
-        name: 'Program name (inspiring, concise)',
-        phases: [
-          {
-            name: 'Phase user-facing name',
-            type: 'accumulation | strength | peaking | maintenance',
-            durationWeeks: 8,
-            splitType: 'full_body | upper_lower | push_pull_legs',
-            rationale: 'Why this phase structure for this user (2-3 sentences shown to user)',
-            templates: [
-              {
-                name: 'Template name e.g. Full Body A',
-                dayLabel: 'A',
-                exercises: [
-                  {
-                    exerciseId: 'exact-exercise-id-from-list',
-                    orderIndex: 0,
-                    defaultSets: 3,
-                    defaultReps: 8,
-                    defaultWeightKg: 40,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      }, null, 2),
+      JSON.stringify(
+        {
+          name: 'Program name (inspiring, concise)',
+          phases: [
+            {
+              name: 'Phase user-facing name',
+              type: 'accumulation | strength | peaking | maintenance',
+              durationWeeks: 8,
+              splitType: 'full_body | upper_lower | push_pull_legs',
+              rationale: 'Why this phase structure for this user (2-3 sentences shown to user)',
+              templates: [
+                {
+                  name: 'Template name e.g. Full Body A',
+                  dayLabel: 'A',
+                  exercises: [
+                    {
+                      exerciseId: 'exact-exercise-id-from-list',
+                      orderIndex: 0,
+                      defaultSets: 3,
+                      defaultReps: 8,
+                      defaultWeightKg: 40,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        null,
+        2,
+      ),
       '',
       'Rules:',
       '- targetSessionCount is computed as durationWeeks × trainingDaysPerWeek (do not include in output — computed by the server).',
@@ -185,12 +309,18 @@ export class ProgramService {
 
   buildAdaptationPrompt(
     phase: PhaseWithTemplates,
-    signals: { volumePlateau: boolean; averageRpe: number; consecutiveWeeksSinceProgress: number; isLastPhase: boolean },
+    signals: {
+      volumePlateau: boolean
+      averageRpe: number
+      consecutiveWeeksSinceProgress: number
+      isLastPhase: boolean
+    },
     coachingChunks: string[],
   ): string {
-    const coachingSection = coachingChunks.length > 0
-      ? `COACHING PRINCIPLES:\n${coachingChunks.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n\n`
-      : ''
+    const coachingSection =
+      coachingChunks.length > 0
+        ? `COACHING PRINCIPLES:\n${coachingChunks.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n\n`
+        : ''
 
     return [
       "You are a certified strength coach evaluating whether a user's training program phase needs adjustment.",
@@ -214,13 +344,17 @@ export class ProgramService {
       '- "none": no change needed',
       '',
       'Return ONLY valid JSON:',
-      JSON.stringify({
-        action: 'phase_transition | exercise_swap | deload | phase_extension | none',
-        description: '1-sentence user-facing summary of what is changing',
-        reason: 'Coaching rationale (2-3 sentences)',
-        evidence: ['specific signal 1', 'specific signal 2'],
-        proposedChanges: { note: 'action-specific payload' },
-      }, null, 2),
+      JSON.stringify(
+        {
+          action: 'phase_transition | exercise_swap | deload | phase_extension | none',
+          description: '1-sentence user-facing summary of what is changing',
+          reason: 'Coaching rationale (2-3 sentences)',
+          evidence: ['specific signal 1', 'specific signal 2'],
+          proposedChanges: { note: 'action-specific payload' },
+        },
+        null,
+        2,
+      ),
     ].join('\n')
   }
 
@@ -256,6 +390,8 @@ export class ProgramService {
       trainingDays: JSON.parse(profile.trainingDays) as string[],
       sessionDurationMinutes: profile.sessionDurationMinutes ?? 60,
       latestBodyWeightKg: latestWeight?.weightKg ?? null,
+      age: profile.age ?? null,
+      heightCm: profile.heightCm ?? null,
     }
   }
 
@@ -277,10 +413,12 @@ export class ProgramService {
       if (equipmentExercises.length > 0) return equipmentExercises
     }
 
+    // No gym/equipment configured: offer the user's whole library (their imported
+    // and custom exercises plus the seeded defaults), not just the defaults.
     return this.db
       .select({ id: schema.exercises.id, name: schema.exercises.name, category: schema.exercises.category })
       .from(schema.exercises)
-      .where(eq(schema.exercises.isDefault, 1))
+      .where(eq(schema.exercises.userId, userId))
   }
 
   private async persistProgram(userId: string, parsed: ParsedProgram, trainingDays: string[]) {
@@ -351,8 +489,13 @@ export class ProgramService {
           const templateIndex = phase.templates.indexOf(tmpl)
           const assignedDays = trainingDays.filter((_, idx) => idx % phase.templates.length === templateIndex)
           const DAY_MAP: Record<string, number> = {
-            sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-            thursday: 4, friday: 5, saturday: 6,
+            sunday: 0,
+            monday: 1,
+            tuesday: 2,
+            wednesday: 3,
+            thursday: 4,
+            friday: 5,
+            saturday: 6,
           }
           for (const day of assignedDays) {
             await this.db.insert(schema.workoutSchedules).values({
@@ -469,9 +612,7 @@ export class ProgramService {
     const phaseComplete = activePhase.completedSessionCount >= activePhase.targetSessionCount
 
     const needsUpdate =
-      phaseComplete ||
-      signals.volumePlateau ||
-      (signals.averageRpe >= 9 && signals.consecutiveWeeksSinceProgress >= 2)
+      phaseComplete || signals.volumePlateau || (signals.averageRpe >= 9 && signals.consecutiveWeeksSinceProgress >= 2)
 
     if (!needsUpdate) return
 
@@ -479,7 +620,9 @@ export class ProgramService {
     let coachingChunks: string[] = []
     try {
       coachingChunks = await this.coachingKnowledge.retrieveForSituation(situationSummary, userId)
-    } catch { /* proceed without */ }
+    } catch {
+      /* proceed without */
+    }
 
     const prompt = this.buildAdaptationPrompt(activePhase, { ...signals, isLastPhase }, coachingChunks)
     const raw = await this.callGemini(prompt, userId)
@@ -500,9 +643,7 @@ export class ProgramService {
       )
 
     const rpeSets = recentSets.filter(s => s.rpe !== null)
-    const averageRpe = rpeSets.length > 0
-      ? rpeSets.reduce((sum, s) => sum + (s.rpe ?? 0), 0) / rpeSets.length
-      : 0
+    const averageRpe = rpeSets.length > 0 ? rpeSets.reduce((sum, s) => sum + (s.rpe ?? 0), 0) / rpeSets.length : 0
 
     return {
       volumePlateau: false, // TODO: implement full plateau detection
@@ -601,8 +742,13 @@ export class ProgramService {
         if (profile?.trainingDays) {
           const days = JSON.parse(profile.trainingDays) as string[]
           const DAY_MAP: Record<string, number> = {
-            sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-            thursday: 4, friday: 5, saturday: 6,
+            sunday: 0,
+            monday: 1,
+            tuesday: 2,
+            wednesday: 3,
+            thursday: 4,
+            friday: 5,
+            saturday: 6,
           }
           const now = Math.floor(Date.now() / 1000)
           for (const [i, day] of days.entries()) {
@@ -621,10 +767,7 @@ export class ProgramService {
           }
         }
       } else {
-        await this.db
-          .update(schema.programs)
-          .set({ status: 'completed' })
-          .where(eq(schema.programs.id, program.id))
+        await this.db.update(schema.programs).set({ status: 'completed' }).where(eq(schema.programs.id, program.id))
       }
     }
 

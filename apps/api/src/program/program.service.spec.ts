@@ -13,8 +13,17 @@ describe('ProgramService.buildGenerationPrompt', () => {
   it('includes experience level, goal, training days, and session duration', () => {
     const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
     const prompt = svc.buildGenerationPrompt(
-      { experienceLevel: 'beginner', goal: 'hypertrophy', trainingDays: ['monday', 'wednesday', 'friday'], sessionDurationMinutes: 60, latestBodyWeightKg: 75 },
-      [{ id: 'squat-id', name: 'Squat', category: 'legs' }, { id: 'bench-id', name: 'Bench Press', category: 'push' }],
+      {
+        experienceLevel: 'beginner',
+        goal: 'hypertrophy',
+        trainingDays: ['monday', 'wednesday', 'friday'],
+        sessionDurationMinutes: 60,
+        latestBodyWeightKg: 75,
+      },
+      [
+        { id: 'squat-id', name: 'Squat', category: 'legs' },
+        { id: 'bench-id', name: 'Bench Press', category: 'push' },
+      ],
       ['Novice lifters adapt session-to-session.'],
     )
     expect(prompt).toContain('beginner')
@@ -26,10 +35,55 @@ describe('ProgramService.buildGenerationPrompt', () => {
     expect(prompt).toContain('Novice lifters adapt session-to-session.')
   })
 
+  it('includes age, height, and a recent-training section when provided', () => {
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
+    const prompt = svc.buildGenerationPrompt(
+      {
+        experienceLevel: 'intermediate',
+        goal: 'strength',
+        trainingDays: ['monday', 'thursday'],
+        sessionDurationMinutes: 75,
+        latestBodyWeightKg: 82,
+        age: 30,
+        heightCm: 180,
+      },
+      [{ id: 'x', name: 'Жим лежаче, штанга', category: 'push' }],
+      [],
+      '- Жим лежаче, штанга (push): 12 sessions, best 80kg×5, ~90kg e1RM, latest 75kg×8',
+    )
+    expect(prompt).toContain('Age: 30')
+    expect(prompt).toContain('Height: 180cm')
+    expect(prompt).toContain('YOUR RECENT TRAINING')
+    expect(prompt).toContain('Жим лежаче, штанга (push): 12 sessions')
+  })
+
+  it('omits the recent-training section when there is no history', () => {
+    const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
+    const prompt = svc.buildGenerationPrompt(
+      {
+        experienceLevel: 'beginner',
+        goal: 'hypertrophy',
+        trainingDays: ['monday'],
+        sessionDurationMinutes: 60,
+        latestBodyWeightKg: null,
+      },
+      [],
+      [],
+      '',
+    )
+    expect(prompt).not.toContain('YOUR RECENT TRAINING')
+  })
+
   it('includes JSON output format instructions', () => {
     const svc = new ProgramService(mockDb as any, mockGemini as any, mockCoaching as any)
     const prompt = svc.buildGenerationPrompt(
-      { experienceLevel: 'beginner', goal: 'strength', trainingDays: ['tuesday', 'thursday'], sessionDurationMinutes: 45, latestBodyWeightKg: null },
+      {
+        experienceLevel: 'beginner',
+        goal: 'strength',
+        trainingDays: ['tuesday', 'thursday'],
+        sessionDurationMinutes: 45,
+        latestBodyWeightKg: null,
+      },
       [],
       [],
     )

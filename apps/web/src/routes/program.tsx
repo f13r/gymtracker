@@ -41,10 +41,7 @@ function PhaseProgressBar({ phase }: { phase: ProgramPhase }) {
         </span>
       </div>
       <div className="bg-muted h-2 overflow-hidden rounded-full">
-        <div
-          className="bg-primary h-full rounded-full transition-all"
-          style={{ width: `${pct}%` }}
-        />
+        <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -120,7 +117,7 @@ function ProgramView({ program }: { program: Program }) {
         <div className="border-primary/30 bg-primary/5 overflow-hidden rounded-xl border-2">
           <div className="border-primary/20 border-b px-4 py-3">
             <div className="flex items-center gap-2">
-              <Zap size={16} className="text-primary" />
+              <Zap className="text-primary" size={16} />
               <span className="text-primary text-xs font-semibold tracking-widest uppercase">
                 {UPDATE_TYPE_LABELS[program.pendingUpdate.type] ?? program.pendingUpdate.type}
               </span>
@@ -141,18 +138,18 @@ function ProgramView({ program }: { program: Program }) {
             )}
             <div className="flex gap-2 pt-1">
               <button
+                className="bg-primary text-primary-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
+                disabled={acknowledge.isPending}
                 type="button"
                 onClick={() => acknowledge.mutate({ action: 'accept' })}
-                disabled={acknowledge.isPending}
-                className="bg-primary text-primary-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
               >
                 Accept
               </button>
               <button
+                className="bg-muted text-muted-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
+                disabled={acknowledge.isPending}
                 type="button"
                 onClick={() => acknowledge.mutate({ action: 'dismiss' })}
-                disabled={acknowledge.isPending}
-                className="bg-muted text-muted-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
               >
                 Not yet
               </button>
@@ -162,10 +159,10 @@ function ProgramView({ program }: { program: Program }) {
       )}
 
       <button
+        className="border-border text-muted-foreground hover:text-foreground w-full rounded-xl border py-3 text-sm transition-colors disabled:opacity-50"
+        disabled={evaluate.isPending}
         type="button"
         onClick={() => evaluate.mutate()}
-        disabled={evaluate.isPending}
-        className="border-border text-muted-foreground hover:text-foreground w-full rounded-xl border py-3 text-sm transition-colors disabled:opacity-50"
       >
         {evaluate.isPending ? 'Evaluating…' : 'Re-evaluate my program'}
       </button>
@@ -184,8 +181,8 @@ function ProgramView({ program }: { program: Program }) {
           <DialogHeader>
             <DialogTitle>Remove program?</DialogTitle>
             <DialogDescription>
-              {program.name} and its weekly schedule will be removed so you can start again. Your past workout history is
-              kept.
+              {program.name} and its weekly schedule will be removed so you can start again. Your past workout history
+              is kept.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
@@ -194,7 +191,12 @@ function ProgramView({ program }: { program: Program }) {
                 Cancel
               </Button>
             </DialogClose>
-            <Button className="flex-1" disabled={remove.isPending} variant="destructive" onClick={() => remove.mutate()}>
+            <Button
+              className="flex-1"
+              disabled={remove.isPending}
+              variant="destructive"
+              onClick={() => remove.mutate()}
+            >
               {remove.isPending ? 'Removing…' : 'Remove'}
             </Button>
           </DialogFooter>
@@ -206,15 +208,26 @@ function ProgramView({ program }: { program: Program }) {
 
 export function ProgramPage() {
   const queryClient = useQueryClient()
+  const [showPreview, setShowPreview] = useState(false)
 
   const { data: program, isLoading } = useQuery({
     queryKey: ['program'],
     queryFn: programApi.getActive,
   })
 
+  const { data: preview, isFetching: previewLoading } = useQuery({
+    queryKey: ['program', 'preview'],
+    queryFn: programApi.previewPrompt,
+    enabled: showPreview,
+    staleTime: 0,
+  })
+
   const generate = useMutation({
     mutationFn: programApi.generate,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['program'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['program'] })
+      setShowPreview(false)
+    },
   })
 
   return (
@@ -226,9 +239,7 @@ export function ProgramPage() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-lg space-y-4 p-4">
-          {isLoading && (
-            <div className="text-muted-foreground p-8 text-center text-sm">Loading…</div>
-          )}
+          {isLoading && <div className="text-muted-foreground p-8 text-center text-sm">Loading…</div>}
 
           {!isLoading && !program && (
             <div className="flex flex-col items-center gap-6 py-16 text-center">
@@ -238,20 +249,52 @@ export function ProgramPage() {
                   Let the AI create a personalised multi-phase program based on your profile and available exercises.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => generate.mutate()}
-                disabled={generate.isPending}
-                className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-8 py-3 tracking-wide transition-all active:scale-95 disabled:opacity-50"
-              >
-                {generate.isPending ? 'Generating…' : 'Generate my Program'}
-              </button>
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-8 py-3 tracking-wide transition-all active:scale-95 disabled:opacity-50"
+                  disabled={generate.isPending}
+                  type="button"
+                  onClick={() => generate.mutate()}
+                >
+                  {generate.isPending ? 'Generating…' : 'Generate my Program'}
+                </button>
+                <button
+                  className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
+                  type="button"
+                  onClick={() => setShowPreview(true)}
+                >
+                  Preview the AI prompt first
+                </button>
+              </div>
             </div>
           )}
 
           {!isLoading && program && <ProgramView program={program} />}
         </div>
       </div>
+
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Prompt sent to the AI</DialogTitle>
+            <DialogDescription>
+              This exact text — your profile, exercise library, and recent training — is what generates your program.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-muted/50 min-h-0 flex-1 overflow-y-auto rounded-lg p-3">
+            {previewLoading && <p className="text-muted-foreground text-sm">Building prompt…</p>}
+            {preview && <pre className="text-xs leading-relaxed whitespace-pre-wrap">{preview.prompt}</pre>}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+            <Button disabled={generate.isPending} onClick={() => generate.mutate()}>
+              {generate.isPending ? 'Generating…' : 'Generate my Program'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
