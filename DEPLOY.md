@@ -42,31 +42,92 @@ SQLite→Postgres migration).
 
 **The production server is currently running on SQLite** (`/var/data/gymtracker/db.sqlite`) from
 an older build. The codebase no longer supports SQLite — it now requires **PostgreSQL 16 +
-pgvector**. This deploy is a one-way cutover. Do it in this order:
+pgvector**. This deploy is a one-way cutover, and it does **not** start from an empty database:
+it **restores a snapshot of the current local data** so the production DB ends up with *exactly
+the same information* — the default user, all 54 exercises (incl. `wger_id`s), the 3 workout
+templates, June 2026 schedules, body data, and the 20 pre-computed `coaching_knowledge`
+embeddings. The snapshot is committed at **`apps/api/db/prod-snapshot.sql`**.
+
+Do the cutover in this order:
 
 1. **Provision Postgres** — do the "One-time provisioning" steps 1 & 2 below (install
    `postgresql-16` + `postgresql-16-pgvector`, create the `gymtracker` role/db, and
    `CREATE EXTENSION vector`).
-2. **Repoint `apps/api/.env`** — replace the old `DATABASE_URL=/var/data/gymtracker/db.sqlite`
-   line with the `postgresql://…` URL (step 5 below). This is the line that has been breaking
-   the deploy.
-3. **Rebuild & migrate** — run the **Deploy / start** block. `npm run db:migrate` creates the
-   full schema *fresh* in Postgres.
-4. **Restart** — `pm2 reload …`. On first boot the API **re-seeds the default user and default
-   exercises** automatically (`SeedService`), so the app comes up usable immediately.
+2. **Create `apps/api/.env`** — step 5 below. `DATABASE_URL` must be the `postgresql://…` URL
+   (never the old SQLite file path), and **`GEMINI_API_KEY` must be set** or the API throws on
+   boot (`gemini.service.ts` does `getOrThrow`).
+3. **Get the code** — clone (step 4) or, on an existing checkout, `git fetch origin main &&
+   git reset --hard origin/main && npm ci && build` (the **Deploy / start** block). The snapshot
+   file ships with the repo.
+4. **Restore the snapshot — this REPLACES `db:migrate` for the initial cutover.** See
+   **"Restore the production data snapshot"** below. The snapshot already contains the full
+   schema *and* the Drizzle migration journal, so you do **not** run `npm run db:migrate` on the
+   very first boot — the dump builds the schema. (`db:migrate` on later releases is a harmless
+   no-op until a genuinely new migration lands.)
+5. **Start** — `pm2 start ecosystem.config.js --env production`. On boot `SeedService` and
+   `CoachingKnowledgeService` see the rows already present and no-op, so nothing is duplicated or
+   re-embedded.
 
-### What happens to existing data
-- The Drizzle migrations build a **fresh, empty Postgres schema** — they do **not** copy rows
-  out of the old SQLite file. User-created data (logged Sessions/Sets, custom Exercises, body
-  measurements, Programs) in `db.sqlite` will **not** appear in the new database.
-- **Uploaded photo files** on disk (`/var/data/gymtracker/photos`) are untouched; only their DB
-  rows are gone after cutover.
-- This is acceptable for the current single-user prototype. **If you must preserve the SQLite
-  data**, migrate it before going live (e.g. `pgloader sqlite:///var/data/gymtracker/db.sqlite
-  postgresql://gymtracker:…@127.0.0.1/gymtracker`, then reconcile types) — ask before assuming
-  a clean wipe is fine.
+### What happens to the old SQLite data
+- The restore loads the **committed Postgres snapshot**, not the old SQLite file. Any data that
+  exists *only* in `db.sqlite` and not in the snapshot is **not** carried over. The snapshot is
+  the source of truth for production's starting state.
+- **Uploaded photo files** on disk (`/var/data/gymtracker/photos`) are untouched. (The current
+  snapshot has zero `progress_photos` rows, so there are no photo references to reconcile.)
 - Keep the old `db.sqlite` file as a backup until you've confirmed the Postgres app is healthy;
   don't delete it as part of cutover.
+
+---
+
+## Restore the production data snapshot (ONE-TIME, initial cutover only)
+
+> ⚠️ **Run this exactly once, during the initial Postgres cutover.** It is **not** part of the
+> recurring release flow and is **not** in `.github/workflows/deploy.yml`. Re-running it against
+> a live database **drops and recreates the database**, destroying any data logged on the server
+> since cutover. Do not wire it into the deploy pipeline.
+
+The snapshot is `apps/api/db/prod-snapshot.sql` — a plain-SQL `pg_dump` (`--no-owner
+--no-privileges`) containing the full schema, the `drizzle` migration journal, and all rows
+including the `vector(768)` coaching-knowledge embeddings. It is restored **as the `postgres`
+superuser** (so the pgvector extension can be created) but with `SET ROLE gymtracker` so every
+restored object ends up **owned by the `gymtracker` app role**.
+
+```bash
+cd /var/www/gymtracker
+# (Re)create an empty DB owned by the app role. DESTRUCTIVE — only at cutover.
+sudo -u postgres psql -v ON_ERROR_STOP=1 <<'SQL'
+DROP DATABASE IF EXISTS gymtracker;
+CREATE DATABASE gymtracker OWNER gymtracker;
+SQL
+# pgvector must be created by a superuser, before the data loads.
+sudo -u postgres psql -d gymtracker -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS vector;"
+# Restore as superuser, but SET ROLE so tables are owned by gymtracker. ON_ERROR_STOP catches problems.
+( echo "SET ROLE gymtracker;"; cat apps/api/db/prod-snapshot.sql ) \
+  | sudo -u postgres psql -d gymtracker -v ON_ERROR_STOP=1
+```
+
+This recipe was validated end-to-end against a scratch DB: it restores with **zero errors**, and
+every table (exercises, templates, schedules, `coaching_knowledge`, the Drizzle journal) ends up
+owned by `gymtracker`. After it completes, skip `db:migrate` and go straight to `pm2 start`.
+
+**Verify the restore:**
+```bash
+sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS exercises FROM exercises;"            # expect 54
+sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS coaching FROM coaching_knowledge;"    # expect 20
+sudo -u postgres psql -d gymtracker -c "SELECT count(*) FROM drizzle.__drizzle_migrations;"      # expect 10 — boot migrate will no-op
+```
+
+### Regenerating the snapshot (from the dev machine, when local data changes)
+The snapshot is a point-in-time capture. To refresh it, dump the local DB and **drop the single
+`COMMENT ON EXTENSION` line** (it requires extension ownership and would break the `SET ROLE`
+restore), then commit:
+```bash
+pg_dump "$LOCAL_DATABASE_URL" --no-owner --no-privileges \
+  | grep -v "^COMMENT ON EXTENSION vector" > apps/api/db/prod-snapshot.sql
+git add apps/api/db/prod-snapshot.sql && git commit -m "chore: refresh prod data snapshot"
+```
+Because a refreshed snapshot carries a new schema + journal, only restore it onto a server you
+intend to reset to that state — the same one-time, destructive caveat applies.
 
 ---
 
@@ -115,9 +176,13 @@ DATABASE_URL=postgresql://gymtracker:CHANGE_ME@127.0.0.1:5432/gymtracker
 PHOTOS_DIR=/var/data/gymtracker/photos
 PORT=3000
 NODE_ENV=production
+GEMINI_API_KEY=CHANGE_ME
 EOF
 ```
 > `DATABASE_URL` MUST start with `postgresql://`. Use the password from step 2.
+> **`GEMINI_API_KEY` is mandatory** — `gemini.service.ts` reads it with `getOrThrow`, so a missing
+> or empty value makes the API **crash on boot**. Obtain the key out-of-band (it is intentionally
+> not committed to the repo) and paste the real value here.
 
 ### 6. Nginx + GitHub Actions auto-deploy
 Follow `docs/server-setup.md` **Step 9** (Nginx site) and **Steps 11–12** (SSH key + secrets).
@@ -148,6 +213,16 @@ This mirrors `.github/workflows/deploy.yml`; the workflow does it automatically 
 
 ---
 
+## Personal workout data
+
+Personal data (custom exercises, templates, schedules, body data) is **no longer seeded by a
+script** — it is carried by the committed snapshot and loaded by the one-time restore above
+(**"Restore the production data snapshot"**). The old `npm run db:setup-workout` script still
+exists in the repo but is **stale** (its hard-coded exercise list has diverged from the live data)
+— do **not** run it as part of deploy; the snapshot is the source of truth.
+
+---
+
 ## Verify
 ```bash
 ls apps/api/dist/main.js apps/web/dist/index.html      # build artifacts exist
@@ -169,6 +244,8 @@ curl -s http://localhost/ | grep -o '<title>.*</title>'# SPA served
 | `extension "vector" is not available … vector.control: No such file` | pgvector not installed on the Postgres host | `sudo apt-get install -y postgresql-16-pgvector`, then step 2's `CREATE EXTENSION` |
 | `permission denied to create extension "vector"` | Migrating role isn't superuser | Run the `CREATE EXTENSION` once as the `postgres` superuser (step 2); the app role then just uses it |
 | API boots then crashes on DB calls | Runtime read the wrong `DATABASE_URL` | Confirm PM2 `cwd: apps/api` and that no `DATABASE_URL` is set in `ecosystem.config.js` (it must come from `.env`) |
+| API exits immediately on boot, log mentions `GEMINI_API_KEY` / `getOrThrow` | `GEMINI_API_KEY` missing/empty in `apps/api/.env` | Set a real `GEMINI_API_KEY` in `.env` (step 5), then `pm2 reload …` |
+| Restore aborts on `must be owner of extension vector` | Snapshot still has the `COMMENT ON EXTENSION` line | Regenerate the snapshot with the `grep -v "^COMMENT ON EXTENSION vector"` filter (see "Regenerating the snapshot") |
 
 **See the real migrate error** (drizzle-kit hides it). Test the connection directly — this prints
 the `pg` error that `db:migrate` swallows:
