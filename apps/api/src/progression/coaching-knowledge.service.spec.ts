@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+
 import { CoachingKnowledgeService } from './coaching-knowledge.service'
 
 const mockDb = {

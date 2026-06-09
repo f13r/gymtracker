@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { isDoneSet, getDoneSets } from './set.utils.js'
+
 import type { WorkoutSet } from './models.js'
+import { isDoneSet, getDoneSets } from './set.utils.js'
 
 describe('set.utils', () => {
   describe('isDoneSet', () => {

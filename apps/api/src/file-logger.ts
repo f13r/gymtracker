@@ -1,4 +1,5 @@
-import { ConsoleLogger, LogLevel } from '@nestjs/common'
+import { ConsoleLogger } from '@nestjs/common'
+
 import { appendFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 
@@ -8,7 +9,9 @@ function write(line: string) {
   try {
     mkdirSync(dirname(LOG_FILE), { recursive: true })
     appendFileSync(LOG_FILE, line + '\n')
-  } catch {}
+  } catch {
+    // ignore — log dir may not be writable in restricted environments
+  }
 }
 
 function fmt(level: string, message: unknown, context?: string): string {
@@ -26,7 +29,7 @@ export class FileLogger extends ConsoleLogger {
   error(message: unknown, stack?: string, context?: string) {
     super.error(message, stack, context)
     write(fmt('error', message, context))
-    if (stack) write(stack)
+    if (stack) {write(stack)}
   }
 
   warn(message: unknown, context?: string) {

@@ -1,13 +1,12 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Home, Dumbbell, BarChart2, Activity, Settings, Building2, Trophy } from 'lucide-react'
+import { Home, Dumbbell, Library, BarChart2, Activity, Settings } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
 const NAV = [
   { to: '/dashboard', label: 'Home', Icon: Home },
   { to: '/workout/start', label: 'Workouts', Icon: Dumbbell },
-  { to: '/program', label: 'Program', Icon: Trophy },
-  { to: '/gym', label: 'Gym', Icon: Building2 },
+  { to: '/exercises', label: 'Exercises', Icon: Library },
   { to: '/stats', label: 'Stats', Icon: BarChart2 },
   { to: '/body', label: 'Body', Icon: Activity },
   { to: '/settings', label: 'Settings', Icon: Settings },
@@ -18,7 +17,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background flex h-svh flex-col">
       <main className="flex-1 overflow-y-auto">{children}</main>
-      <nav className="border-border bg-card pb-safe grid grid-cols-7 border-t">
+      <nav className="border-border bg-card pb-safe grid grid-cols-6 border-t">
         {NAV.map(({ to, label, Icon }) => {
           const active = location.pathname.startsWith(to)
           return (

@@ -8,6 +8,7 @@ export type Exercise = {
   equipmentType: string | null
   notes: string | null
   isDefault: number | null
+  wgerId: number | null
   createdAt: number
 }
 
@@ -27,6 +28,7 @@ export type TemplateExercise = {
   defaultSets: number | null
   defaultReps: number | null
   defaultWeightKg: number | null
+  equipmentId: string | null
 }
 
 export type WorkoutTemplateWithExercises = WorkoutTemplate & { exercises: TemplateExercise[] }

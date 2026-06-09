@@ -7,8 +7,8 @@ import {
   lazyRouteComponent,
 } from '@tanstack/react-router'
 
-import { AppLayout } from './components/layout/AppLayout'
 import { profileApi } from './api/profile'
+import { AppLayout } from './components/layout/AppLayout'
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> })
 
@@ -16,7 +16,7 @@ const layoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'layout',
   beforeLoad: async ({ location }) => {
-    if (location.pathname === '/onboarding') return
+    if (location.pathname === '/onboarding') {return}
     const profile = await profileApi.get().catch(() => null)
     if (!profile?.trainingDays) {
       throw redirect({ to: '/onboarding' })
@@ -101,6 +101,14 @@ const workoutTemplateNewRoute = createRoute({
   ),
 })
 
+const workoutTemplateEditRoute = createRoute({
+  getParentRoute: () => layoutRoute,
+  path: '/workout/template/$templateId',
+  component: lazyRouteComponent(() =>
+    import('./routes/workout.template.$templateId').then(m => ({ default: m.EditTemplatePage })),
+  ),
+})
+
 const gymRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/gym',
@@ -155,6 +163,7 @@ const routeTree = rootRoute.addChildren([
     historyDetailRoute,
     workoutStartRoute,
     workoutTemplateNewRoute,
+    workoutTemplateEditRoute,
     gymRoute,
     programRoute,
     calendarRoute,

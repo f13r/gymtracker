@@ -74,7 +74,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file) {return}
     setS1(prev => ({
       ...prev,
       file,
@@ -244,10 +244,10 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
 
   const toggleExercise = (index: number) => {
     setS2(prev => {
-      if (!prev) return prev
+      if (!prev) {return prev}
       const next = new Set(prev.selectedExercises)
-      if (next.has(index)) next.delete(index)
-      else next.add(index)
+      if (next.has(index)) {next.delete(index)}
+      else {next.add(index)}
       return { ...prev, selectedExercises: next }
     })
   }
@@ -351,7 +351,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                     value={s2.exerciseNames[i]}
                     onChange={e =>
                       setS2(prev => {
-                        if (!prev) return prev
+                        if (!prev) {return prev}
                         const names = [...prev.exerciseNames]
                         names[i] = e.target.value
                         return { ...prev, exerciseNames: names }

@@ -44,15 +44,15 @@ export function OnboardingPage() {
   }
 
   const canNext = () => {
-    if (step === 0) return experienceLevel !== null
-    if (step === 1) return goal !== null
-    if (step === 2) return trainingDays.length >= 2 && trainingDays.length <= 6
+    if (step === 0) {return experienceLevel !== null}
+    if (step === 1) {return goal !== null}
+    if (step === 2) {return trainingDays.length >= 2 && trainingDays.length <= 6}
     return true
   }
 
   const next = () => {
-    if (step < 3) setStep((step + 1) as Step)
-    else save.mutate()
+    if (step < 3) {setStep((step + 1) as Step)}
+    else {save.mutate()}
   }
 
   return (
@@ -84,14 +84,14 @@ export function OnboardingPage() {
                 {(['beginner', 'intermediate', 'advanced'] as const).map(lvl => (
                   <button
                     key={lvl}
-                    type="button"
-                    onClick={() => setExperienceLevel(lvl)}
                     className={cn(
                       'w-full rounded-xl border p-4 text-left transition-all',
                       experienceLevel === lvl
                         ? 'border-primary bg-primary/5'
                         : 'border-border bg-card',
                     )}
+                    type="button"
+                    onClick={() => setExperienceLevel(lvl)}
                   >
                     <p className="font-display font-600 capitalize tracking-wide">{lvl}</p>
                     <p className="text-muted-foreground text-sm">
@@ -115,14 +115,14 @@ export function OnboardingPage() {
                 {(['hypertrophy', 'strength', 'powerlifting', 'general'] as const).map(g => (
                   <button
                     key={g}
-                    type="button"
-                    onClick={() => setGoal(g)}
                     className={cn(
                       'w-full rounded-xl border p-4 text-left transition-all',
                       goal === g
                         ? 'border-primary bg-primary/5'
                         : 'border-border bg-card',
                     )}
+                    type="button"
+                    onClick={() => setGoal(g)}
                   >
                     <p className="font-display font-600 capitalize tracking-wide">{g}</p>
                     <p className="text-muted-foreground text-sm">
@@ -147,14 +147,14 @@ export function OnboardingPage() {
                 {DAYS.map(day => (
                   <button
                     key={day}
-                    type="button"
-                    onClick={() => toggleDay(day)}
                     className={cn(
                       'flex h-12 flex-col items-center justify-center rounded-lg text-xs font-semibold transition-all',
                       trainingDays.includes(day)
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground',
                     )}
+                    type="button"
+                    onClick={() => toggleDay(day)}
                   >
                     {DAY_LABELS[day]}
                   </button>
@@ -178,14 +178,14 @@ export function OnboardingPage() {
                 {DURATION_OPTIONS.map(min => (
                   <button
                     key={min}
-                    type="button"
-                    onClick={() => setSessionDuration(min)}
                     className={cn(
                       'font-display font-600 h-14 rounded-xl text-sm tracking-wide transition-all',
                       sessionDuration === min
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground',
                     )}
+                    type="button"
+                    onClick={() => setSessionDuration(min)}
                   >
                     {min}m
                   </button>
@@ -199,18 +199,18 @@ export function OnboardingPage() {
       <div className="px-4 pb-safe-bottom pt-4">
         <div className="mx-auto max-w-md">
           <button
+            className="bg-primary text-primary-foreground disabled:opacity-40 font-display font-600 h-12 w-full rounded-xl tracking-wide transition-all active:scale-95"
+            disabled={!canNext() || save.isPending}
             type="button"
             onClick={next}
-            disabled={!canNext() || save.isPending}
-            className="bg-primary text-primary-foreground disabled:opacity-40 font-display font-600 h-12 w-full rounded-xl tracking-wide transition-all active:scale-95"
           >
             {save.isPending ? 'Saving…' : step < 3 ? 'Continue' : "Let's go"}
           </button>
           {step > 0 && (
             <button
+              className="text-muted-foreground mt-3 w-full text-sm"
               type="button"
               onClick={() => setStep((step - 1) as Step)}
-              className="text-muted-foreground mt-3 w-full text-sm"
             >
               Back
             </button>

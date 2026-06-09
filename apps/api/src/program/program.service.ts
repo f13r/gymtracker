@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger, BadRequestException } from '@nestjs/common'
 import { eq, and, desc, gte } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
-import { randomUUID } from 'crypto'
+
 
 import { estimateE1rm, GeneratedProgramSchema } from '@gymtracker/shared'
 
@@ -9,6 +9,7 @@ import { GeminiService } from '../ai/gemini.service'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { CoachingKnowledgeService } from '../progression/coaching-knowledge.service'
+import { randomUUID } from 'crypto'
 
 const HISTORY_WINDOW_DAYS = 90
 
@@ -151,7 +152,7 @@ export class ProgramService {
         and(eq(schema.workoutSessions.userId, userId), eq(schema.sets.done, 1), gte(schema.sets.completedAt, cutoff)),
       )
 
-    if (rows.length === 0) return ''
+    if (rows.length === 0) {return ''}
 
     type Agg = {
       category: string | null
@@ -172,9 +173,9 @@ export class ProgramService {
       agg.sets.push({ weightKg: r.weightKg, reps: r.reps })
       if (r.completedAt != null) {
         agg.days.add(Math.floor(r.completedAt / 86400))
-        if (r.completedAt > agg.latest.at) agg.latest = { at: r.completedAt, weightKg: r.weightKg, reps: r.reps }
+        if (r.completedAt > agg.latest.at) {agg.latest = { at: r.completedAt, weightKg: r.weightKg, reps: r.reps }}
       }
-      if (r.notes) agg.notes.add(r.notes)
+      if (r.notes) {agg.notes.add(r.notes)}
       byExercise.set(r.name, agg)
     }
 
@@ -304,7 +305,7 @@ export class ProgramService {
     for (const phase of data.phases) {
       for (const tmpl of phase.templates) {
         for (const ex of tmpl.exercises) {
-          if (!validExerciseIds.has(ex.exerciseId)) unknownIds.add(ex.exerciseId)
+          if (!validExerciseIds.has(ex.exerciseId)) {unknownIds.add(ex.exerciseId)}
         }
       }
     }
@@ -376,7 +377,7 @@ export class ProgramService {
     ].join('\n')
   }
 
-  private async callGemini(prompt: string, userId: string): Promise<unknown> {
+  private callGemini(prompt: string, userId: string): Promise<unknown> {
     // No responseSchema — program JSON shape is enforced by the prompt itself.
     // Logged automatically by GeminiService under the 'program' feature tag.
     return this.gemini.generateStructured<unknown>({ feature: 'program', prompt, userId })
@@ -429,7 +430,7 @@ export class ProgramService {
         .innerJoin(schema.equipment, eq(schema.equipment.id, schema.equipmentExercises.equipmentId))
         .where(eq(schema.equipment.gymId, gym.id))
 
-      if (equipmentExercises.length > 0) return equipmentExercises
+      if (equipmentExercises.length > 0) {return equipmentExercises}
     }
 
     // No gym/equipment configured: offer the user's whole library (their imported
@@ -565,7 +566,7 @@ export class ProgramService {
       .where(and(eq(schema.programs.userId, userId), eq(schema.programs.status, 'active')))
       .limit(1)
 
-    if (!program) return null
+    if (!program) {return null}
 
     const phases = await this.db
       .select()
@@ -607,18 +608,18 @@ export class ProgramService {
     }
   }
 
-  async evaluateNow(userId: string) {
+  evaluateNow(userId: string) {
     return this.runAdaptationEvaluation(userId, null)
   }
 
   private async runAdaptationEvaluation(userId: string, sessionId: string | null) {
     const program = await this.getActiveProgram(userId)
-    if (!program) return
+    if (!program) {return}
 
-    if (program.pendingUpdate) return
+    if (program.pendingUpdate) {return}
 
     const activePhase = program.phases.find(p => p.status === 'active')
-    if (!activePhase) return
+    if (!activePhase) {return}
 
     if (sessionId) {
       const [session] = await this.db
@@ -643,7 +644,7 @@ export class ProgramService {
     const needsUpdate =
       phaseComplete || signals.volumePlateau || (signals.averageRpe >= 9 && signals.consecutiveWeeksSinceProgress >= 2)
 
-    if (!needsUpdate) return
+    if (!needsUpdate) {return}
 
     const situationSummary = `${activePhase.type} phase, ${activePhase.completedSessionCount}/${activePhase.targetSessionCount} sessions done, RPE avg ${signals.averageRpe}, plateau: ${signals.volumePlateau}`
     let coachingChunks: string[] = []
@@ -683,7 +684,7 @@ export class ProgramService {
 
   private async persistProgramUpdate(programId: string, raw: unknown) {
     const obj = raw as Record<string, unknown>
-    if (!obj || obj.action === 'none') return
+    if (!obj || obj.action === 'none') {return}
 
     await this.db.insert(schema.programUpdates).values({
       id: randomUUID(),
@@ -712,7 +713,7 @@ export class ProgramService {
       )
       .limit(1)
 
-    if (!update) throw new BadRequestException('Update not found or already acknowledged')
+    if (!update) {throw new BadRequestException('Update not found or already acknowledged')}
 
     await this.db
       .update(schema.programUpdates)

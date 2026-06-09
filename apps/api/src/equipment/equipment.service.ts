@@ -158,7 +158,9 @@ export class EquipmentService {
       for (const abs of [join(this.photosDir, relOrig), join(this.photosDir, relThumb)]) {
         try {
           unlinkSync(abs)
-        } catch {}
+        } catch {
+          // ignore — file may not exist if upload was partial
+        }
       }
       throw err
     }

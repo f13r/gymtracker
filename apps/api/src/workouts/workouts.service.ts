@@ -2,14 +2,14 @@ import { Injectable, Inject, NotFoundException, BadRequestException, Logger } fr
 import { eq, and, desc } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-import { CreateTemplateDto, FinishSessionDto, StartSessionDto } from '@gymtracker/shared'
+import { CreateTemplateDto, FinishSessionDto, StartSessionDto, UpdateTemplateDto } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
-import * as schema from '../drizzle/schema'
 import { toWorkoutSession, toWorkoutSet } from '../drizzle/mappers'
-import { SessionRepository } from '../sessions/session.repository'
-import { ProgressionService } from '../progression/progression.service'
+import * as schema from '../drizzle/schema'
 import { ProgramService } from '../program/program.service'
+import { ProgressionService } from '../progression/progression.service'
+import { SessionRepository } from '../sessions/session.repository'
 import { randomUUID } from 'crypto'
 
 @Injectable()
@@ -72,6 +72,32 @@ export class WorkoutsService {
           defaultWeightKg: ex.defaultWeightKg ?? null,
           defaultSets: ex.defaultSets ?? null,
           defaultReps: ex.defaultReps ?? null,
+        })
+    }
+    return this.getTemplate(id, userId)
+  }
+
+  // Mutates the Template in place — same id, full-replace of its exercises — so every Schedule and
+  // Session that references it by templateId stays intact. See docs/adr/0007.
+  async updateTemplate(id: string, userId: string, dto: UpdateTemplateDto) {
+    await this.getTemplate(id, userId)
+    await this.db
+      .update(schema.workoutTemplates)
+      .set({ name: dto.name, notes: dto.notes ?? null })
+      .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
+    await this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id))
+    for (const ex of dto.exercises) {
+      await this.db
+        .insert(schema.templateExercises)
+        .values({
+          id: randomUUID(),
+          templateId: id,
+          exerciseId: ex.exerciseId,
+          orderIndex: ex.orderIndex,
+          defaultSets: ex.defaultSets ?? null,
+          defaultReps: ex.defaultReps ?? null,
+          defaultWeightKg: ex.defaultWeightKg ?? null,
+          equipmentId: ex.equipmentId ?? null,
         })
     }
     return this.getTemplate(id, userId)

@@ -74,26 +74,26 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
           {/* Type toggle */}
           <div className="grid grid-cols-2 gap-2">
             <button
-              type="button"
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors',
                 type === 'once'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'border-border text-muted-foreground',
               )}
+              type="button"
               onClick={() => setType('once')}
             >
               <Calendar size={15} />
               One time
             </button>
             <button
-              type="button"
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors',
                 type === 'weekly'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'border-border text-muted-foreground',
               )}
+              type="button"
               onClick={() => setType('weekly')}
             >
               <Repeat size={15} />
@@ -115,11 +115,11 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
               {DAYS.map((label, i) => (
                 <button
                   key={label}
-                  type="button"
                   className={cn(
                     'flex flex-col items-center rounded-lg py-2 text-xs font-semibold transition-colors',
                     selectedDays.includes(i) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
                   )}
+                  type="button"
                   onClick={() => toggleDay(i)}
                 >
                   {label}
@@ -131,12 +131,12 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
 
         <DrawerFooter>
           <button
-            type="button"
             className={cn(
               'font-display font-700 h-13 w-full rounded-xl text-base tracking-widest transition-all active:scale-[0.97]',
               canSave ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground cursor-not-allowed',
             )}
             disabled={!canSave || create.isPending}
+            type="button"
             onClick={() => create.mutate()}
           >
             {create.isPending ? 'Saving…' : 'Save Schedule'}
@@ -161,9 +161,9 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
                     </span>
                   </div>
                   <button
-                    type="button"
                     className="text-destructive/60 active:text-destructive flex size-8 items-center justify-center transition-colors"
                     disabled={remove.isPending}
+                    type="button"
                     onClick={() => remove.mutate(s.id)}
                   >
                     <Trash2 size={15} />

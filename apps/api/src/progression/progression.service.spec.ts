@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ProgressionService } from './progression.service'
+
 import type { ExerciseContext } from './exercise-history.service'
+import { ProgressionService } from './progression.service'
 
 const mockCoachingKnowledge = { retrieveForSituation: vi.fn().mockResolvedValue([]) }
 const mockGemini = { generateStructured: vi.fn(), embed: vi.fn() }

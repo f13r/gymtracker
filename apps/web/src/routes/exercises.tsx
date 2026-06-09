@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 
-import type { Exercise, ExerciseCategory, ExerciseEquipment } from '@gymtracker/shared'
+import type { Exercise } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { EditExerciseDialog } from '@/components/workout/EditExerciseDialog'
 
 const CATEGORY_COLORS: Record<string, string> = {
   push: 'text-orange-400',
@@ -30,12 +30,10 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
-const CATEGORIES: ExerciseCategory[] = ['push', 'pull', 'legs', 'core', 'cardio', 'other']
-const EQUIPMENT: ExerciseEquipment[] = ['barbell', 'dumbbell', 'machine', 'bodyweight', 'cable', 'other']
-
 export function ExercisesPage() {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Exercise | null>(null)
+  const [creating, setCreating] = useState(false)
   const queryClient = useQueryClient()
   const { data: exercises = [] } = useQuery({ queryKey: queryKeys.exercises(), queryFn: exercisesApi.getAll })
 
@@ -55,9 +53,19 @@ export function ExercisesPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-border space-y-3 border-b px-4 pt-4 pb-3">
-        <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Library</p>
-          <h1 className="font-display font-700 text-3xl tracking-wide">EXERCISES</h1>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Library</p>
+            <h1 className="font-display font-700 text-3xl tracking-wide">EXERCISES</h1>
+          </div>
+          <button
+            aria-label="Add exercise from wger"
+            className="bg-card border-border active:bg-muted flex size-10 items-center justify-center rounded-xl border transition-colors"
+            type="button"
+            onClick={() => setCreating(true)}
+          >
+            <Plus size={18} />
+          </button>
         </div>
         <div className="relative">
           <Search className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2" size={16} />
@@ -113,112 +121,85 @@ export function ExercisesPage() {
           setEditing(null)
         }}
       />
+
+      <CreateExerciseDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.exercises() })
+          setCreating(false)
+        }}
+      />
     </div>
   )
 }
 
-function EditExerciseDialog({
-  exercise,
+function CreateExerciseDialog({
+  open,
   onClose,
   onSaved,
 }: {
-  exercise: Exercise | null
+  open: boolean
   onClose: () => void
   onSaved: () => void
 }) {
   return (
-    <Dialog open={exercise !== null} onOpenChange={open => !open && onClose()}>
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-w-sm rounded-2xl">
-        {exercise && <EditExerciseForm key={exercise.id} exercise={exercise} onSaved={onSaved} />}
+        {/* Only mounted while open, so the field resets between opens. */}
+        {open && <CreateExerciseForm onSaved={onSaved} />}
       </DialogContent>
     </Dialog>
   )
 }
 
-function EditExerciseForm({ exercise, onSaved }: { exercise: Exercise; onSaved: () => void }) {
-  const [name, setName] = useState(exercise.name)
-  const [category, setCategory] = useState<ExerciseCategory>((exercise.category as ExerciseCategory) ?? 'other')
-  const [equipmentType, setEquipmentType] = useState<ExerciseEquipment | ''>(
-    (exercise.equipmentType as ExerciseEquipment) ?? '',
-  )
+function CreateExerciseForm({ onSaved }: { onSaved: () => void }) {
+  const [wgerId, setWgerId] = useState('')
 
-  const save = useMutation({
-    mutationFn: () =>
-      exercisesApi.update(exercise.id, {
-        name: name.trim(),
-        category,
-        ...(equipmentType ? { equipmentType } : {}),
-      }),
+  const id = Number(wgerId)
+  const valid = wgerId.trim() !== '' && Number.isInteger(id) && id > 0
+
+  const create = useMutation({
+    // Only the wger id is sent — the server fetches the name/category/equipment from wger.
+    mutationFn: () => exercisesApi.create({ wgerId: id }),
     onSuccess: onSaved,
   })
-
-  const remove = useMutation({
-    mutationFn: () => exercisesApi.remove(exercise.id),
-    onSuccess: onSaved,
-  })
-
-  const busy = save.isPending || remove.isPending
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Edit exercise</DialogTitle>
+        <DialogTitle>Add exercise from wger</DialogTitle>
       </DialogHeader>
 
       <div className="space-y-4 py-2">
         <div className="space-y-1.5">
-          <Label htmlFor="ex-name">Name</Label>
-          <Input id="ex-name" value={name} onChange={e => setName(e.target.value)} />
+          <Label htmlFor="new-wger-id">wger exercise ID</Label>
+          <Input
+            id="new-wger-id"
+            inputMode="numeric"
+            placeholder="e.g. 73"
+            value={wgerId}
+            autoFocus
+            onChange={e => setWgerId(e.target.value.replace(/[^0-9]/g, ''))}
+          />
+          <p className="text-muted-foreground text-xs">
+            We’ll pull the name, category, equipment and demonstration from wger.de.
+          </p>
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Category</Label>
-          <Select value={category} onValueChange={v => setCategory(v as ExerciseCategory)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map(c => (
-                <SelectItem key={c} className="capitalize" value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Equipment</Label>
-          <Select value={equipmentType} onValueChange={v => setEquipmentType(v as ExerciseEquipment)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Not set" />
-            </SelectTrigger>
-            <SelectContent>
-              {EQUIPMENT.map(eq => (
-                <SelectItem key={eq} value={eq}>
-                  {EQUIPMENT_LABELS[eq]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {remove.isError && (
-          <p className="text-destructive text-xs">Can’t delete: this exercise has logged sets or history.</p>
+        {create.isError && (
+          <p className="text-destructive text-xs">{(create.error as Error).message}</p>
         )}
       </div>
 
-      <DialogFooter className="flex-row gap-2 sm:gap-2">
-        <Button className="mr-auto" disabled={busy} variant="ghost" onClick={() => remove.mutate()}>
-          Delete
-        </Button>
+      <DialogFooter className="flex-row justify-end gap-2 sm:gap-2">
         <DialogClose asChild>
-          <Button disabled={busy} variant="outline">
+          <Button disabled={create.isPending} variant="outline">
             Cancel
           </Button>
         </DialogClose>
-        <Button disabled={busy || name.trim() === ''} onClick={() => save.mutate()}>
-          {save.isPending ? 'Saving…' : 'Save'}
+        <Button disabled={!valid || create.isPending} onClick={() => create.mutate()}>
+          {create.isPending ? 'Fetching…' : 'Add'}
         </Button>
       </DialogFooter>
     </>

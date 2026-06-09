@@ -56,15 +56,15 @@ export class EquipmentController {
     let tags: string[] = []
     let exercises: Array<{ existingId?: string; name: string; category: string; equipmentType: string }> = []
     try {
-      tags = fields.tags?.value ? (JSON.parse(fields.tags.value) as string[]) : []
-      exercises = fields.exercises?.value
-        ? (JSON.parse(fields.exercises.value) as Array<{
-            existingId?: string
-            name: string
-            category: string
-            equipmentType: string
-          }>)
-        : []
+      if (fields.tags?.value) { tags = JSON.parse(fields.tags.value) as string[] }
+      if (fields.exercises?.value) {
+        exercises = JSON.parse(fields.exercises.value) as Array<{
+          existingId?: string
+          name: string
+          category: string
+          equipmentType: string
+        }>
+      }
     } catch {
       return res.code(400).send({ message: 'Invalid tags or exercises payload' })
     }

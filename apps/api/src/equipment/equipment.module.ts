@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common'
 
 import { EquipmentController } from './equipment.controller'
 import { EquipmentService } from './equipment.service'
-import { GymModule } from '../gym/gym.module'
 import { GeminiModule } from '../ai/gemini.module'
+import { GymModule } from '../gym/gym.module'
 
 @Module({
   imports: [GymModule, GeminiModule],

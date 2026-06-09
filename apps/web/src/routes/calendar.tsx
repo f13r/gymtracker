@@ -46,9 +46,9 @@ export function CalendarPage() {
   const seen = new Set<string>()
   const legend: { label: string; name: string }[] = []
   for (const date of grid) {
-    if (date.getMonth() !== view.month) continue
+    if (date.getMonth() !== view.month) {continue}
     for (const { templateId } of workoutsForDate(date, schedules)) {
-      if (seen.has(templateId)) continue
+      if (seen.has(templateId)) {continue}
       seen.add(templateId)
       legend.push({ label: labels.get(templateId) ?? '•', name: nameById.get(templateId) ?? 'Workout' })
     }
@@ -62,8 +62,8 @@ export function CalendarPage() {
           <h1 className="font-display font-700 text-3xl tracking-wide">CALENDAR</h1>
         </div>
         <button
-          type="button"
           className="border-border text-muted-foreground rounded-lg border px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-colors active:scale-95"
+          type="button"
           onClick={goToday}
         >
           Today
@@ -74,18 +74,18 @@ export function CalendarPage() {
         {/* Month navigation */}
         <div className="mb-3 flex items-center justify-between">
           <button
-            type="button"
             aria-label="Previous month"
             className="text-muted-foreground active:text-foreground flex size-9 items-center justify-center transition-colors"
+            type="button"
             onClick={() => step(-1)}
           >
             <ChevronLeft size={20} />
           </button>
           <h2 className="font-display font-600 text-lg tracking-wide">{monthLabel(view.year, view.month)}</h2>
           <button
-            type="button"
             aria-label="Next month"
             className="text-muted-foreground active:text-foreground flex size-9 items-center justify-center transition-colors"
+            type="button"
             onClick={() => step(1)}
           >
             <ChevronRight size={20} />
@@ -122,7 +122,6 @@ export function CalendarPage() {
             return (
               <button
                 key={date.toISOString()}
-                type="button"
                 aria-label={ariaLabel}
                 className={cn(
                   'flex aspect-square flex-col items-center justify-start gap-1 rounded-lg p-1.5 transition-colors',
@@ -130,6 +129,7 @@ export function CalendarPage() {
                   isToday ? 'ring-primary ring-2 ring-inset' : 'border-border/40 border',
                   !inMonth && 'opacity-40',
                 )}
+                type="button"
                 onClick={() => setSelected(date)}
               >
                 <span

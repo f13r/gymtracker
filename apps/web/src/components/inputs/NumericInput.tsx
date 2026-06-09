@@ -40,8 +40,8 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
       <div className={`bg-card border-border flex items-center overflow-hidden rounded-xl border ${lg ? 'h-16' : 'h-14'}`}>
         {!readOnly && (
           <button
-            type="button"
             className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-14' : 'w-12'}`}
+            type="button"
             {...decPress}
           >
             <Minus size={lg ? 20 : 16} strokeWidth={2.5} />
@@ -64,9 +64,9 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
             />
           ) : (
             <button
-              type="button"
               className="flex h-full w-full items-center justify-center"
               disabled={readOnly}
+              type="button"
               onClick={() => !readOnly && setEditing(true)}
             >
               <span className={`font-display font-700 tracking-wide tabular-nums ${lg ? 'text-3xl' : 'text-2xl'}`}>
@@ -78,8 +78,8 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
 
         {!readOnly && (
           <button
-            type="button"
             className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-14' : 'w-12'}`}
+            type="button"
             {...incPress}
           >
             <Plus size={lg ? 20 : 16} strokeWidth={2.5} />

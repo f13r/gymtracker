@@ -8,7 +8,6 @@ import type { WorkoutSession } from '@gymtracker/shared'
 import { queryKeys } from '@/api/queryKeys'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
-import { formatSessionDuration } from '@/lib/utils'
 import {
   Dialog,
   DialogClose,
@@ -18,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { formatSessionDuration } from '@/lib/utils'
 
 
 function formatDate(ts: number) {

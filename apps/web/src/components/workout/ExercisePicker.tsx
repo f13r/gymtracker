@@ -1,19 +1,24 @@
-import { useQuery } from '@tanstack/react-query'
-import { X, Search } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Pencil, X, Search } from 'lucide-react'
 import { useState } from 'react'
 
 import type { Exercise } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
+import { EditExerciseDialog } from '@/components/workout/EditExerciseDialog'
 
 interface ExercisePickerProps {
+  /** The exercise currently chosen for this slot, highlighted in the list. */
+  selectedId?: string
   onClose: () => void
   onSelect: (id: string, name: string) => void
 }
 
-export function ExercisePicker({ onClose, onSelect }: ExercisePickerProps) {
+export function ExercisePicker({ selectedId, onClose, onSelect }: ExercisePickerProps) {
   const [search, setSearch] = useState('')
+  const [editing, setEditing] = useState<Exercise | null>(null)
+  const queryClient = useQueryClient()
   const { data: exercises = [] } = useQuery({ queryKey: queryKeys.exercises(), queryFn: exercisesApi.getAll })
 
   const filtered = exercises.filter((e: Exercise) => e.name.toLowerCase().includes(search.toLowerCase()))
@@ -30,7 +35,7 @@ export function ExercisePicker({ onClose, onSelect }: ExercisePickerProps) {
   return (
     <div className="bg-background fixed inset-0 z-50 flex flex-col">
       <div className="border-border flex items-center gap-3 border-b px-4 pt-4 pb-3">
-        <button type="button" className="text-muted-foreground p-1" onClick={onClose}>
+        <button className="text-muted-foreground p-1" type="button" onClick={onClose}>
           <X size={22} />
         </button>
         <span className="font-display font-600 text-lg tracking-wide uppercase">Select Exercise</span>
@@ -62,23 +67,48 @@ export function ExercisePicker({ onClose, onSelect }: ExercisePickerProps) {
               <span className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{cat}</span>
             </div>
             {exs.map(ex => (
-              <button
+              <div
                 key={ex.id}
-                type="button"
-                className="border-border/50 active:bg-card flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors"
-                onClick={() => onSelect(ex.id, ex.name)}
+                className={`border-border/50 flex items-center border-b transition-colors ${
+                  ex.id === selectedId ? 'bg-orange-400/15' : 'active:bg-card'
+                }`}
               >
-                <span className="font-medium">{ex.name}</span>
-                {ex.equipmentType && (
-                  <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-xs">
-                    {ex.equipmentType}
+                <button
+                  className="flex flex-1 items-center justify-between gap-2 py-3.5 pr-2 pl-4 text-left"
+                  type="button"
+                  onClick={() => onSelect(ex.id, ex.name)}
+                >
+                  <span className={ex.id === selectedId ? 'font-semibold text-orange-400' : 'font-medium'}>
+                    {ex.name}
                   </span>
-                )}
-              </button>
+                  {ex.equipmentType && (
+                    <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-xs">
+                      {ex.equipmentType}
+                    </span>
+                  )}
+                </button>
+                <button
+                  aria-label={`Edit ${ex.name}`}
+                  className="text-muted-foreground/60 active:text-primary flex size-10 shrink-0 items-center justify-center pr-2 transition-colors"
+                  type="button"
+                  onClick={() => setEditing(ex)}
+                >
+                  <Pencil size={16} strokeWidth={1.5} />
+                </button>
+              </div>
             ))}
           </div>
         ))}
       </div>
+
+      <EditExerciseDialog
+        exercise={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.exercises() })
+          setEditing(null)
+        }}
+      />
     </div>
   )
 }

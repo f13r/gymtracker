@@ -20,8 +20,8 @@ function LogEntry({ entry }: { entry: AiLogEntry }) {
   return (
     <div className="border-border border-b last:border-0">
       <button
-        type="button"
         className="hover:bg-muted/30 flex w-full items-start gap-3 px-4 py-3 text-left transition-colors"
+        type="button"
         onClick={() => setExpanded(v => !v)}
       >
         <div className="text-muted-foreground mt-0.5 flex-shrink-0">

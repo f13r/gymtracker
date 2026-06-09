@@ -45,7 +45,7 @@ const sharedRules = {
 }
 
 export default defineConfig(
-  { ignores: ['**/dist', '**/coverage', '**/.github', 'node_modules', '**/drizzle.config.ts'] },
+  { ignores: ['**/dist', '**/coverage', '**/.github', 'node_modules', '**/drizzle.config.ts', '**/vitest.config.ts'] },
   {
     extends: [
       js.configs.recommended,
@@ -120,9 +120,17 @@ export default defineConfig(
       ecmaVersion: 2020,
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
-        project: ['./tsconfig.json'],
+        project: ['./tsconfig.eslint.json'],
         tsconfigRootDir: path.join(__dirname, 'packages/shared'),
       },
+    },
+  },
+  // Test / spec files — mocks legitimately use `any` and async-without-await
+  {
+    files: ['**/*.spec.ts', '**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'require-await': 'off',
     },
   },
 )

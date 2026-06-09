@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+
 import { e1rmOf, estimateE1rm, bestE1rmPerWeek } from './e1rm.js'
 import type { WorkoutSet } from './models.js'
 

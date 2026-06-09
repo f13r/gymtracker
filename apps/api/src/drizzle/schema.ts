@@ -14,6 +14,8 @@ export const exercises = pgTable('exercises', {
   equipmentType: text('equipment_type'),
   notes: text('notes'),
   isDefault: integer('is_default').default(0),
+  // wger.de exercise (base) id for demonstration media; null for custom exercises with no wger match.
+  wgerId: integer('wger_id'),
   createdAt: integer('created_at').notNull(),
 })
 

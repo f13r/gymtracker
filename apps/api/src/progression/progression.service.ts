@@ -68,10 +68,10 @@ export class ProgressionService {
     user: { experienceLevel: string | null; latestBodyWeightKg: number | null; goal: string | null; trainingPhase: string | null },
   ): string {
     const parts: string[] = []
-    if (user.experienceLevel) parts.push(`Experience level: ${user.experienceLevel}`)
-    if (user.goal) parts.push(`Goal: ${user.goal}`)
-    if (user.trainingPhase) parts.push(`Training phase: ${user.trainingPhase}`)
-    if (user.latestBodyWeightKg) parts.push(`Body weight: ${user.latestBodyWeightKg}kg`)
+    if (user.experienceLevel) {parts.push(`Experience level: ${user.experienceLevel}`)}
+    if (user.goal) {parts.push(`Goal: ${user.goal}`)}
+    if (user.trainingPhase) {parts.push(`Training phase: ${user.trainingPhase}`)}
+    if (user.latestBodyWeightKg) {parts.push(`Body weight: ${user.latestBodyWeightKg}kg`)}
 
     for (const ex of exercises.slice(0, 3)) {
       const f = formatExerciseFacts(ex)
@@ -198,7 +198,7 @@ export class ProgressionService {
       .from(schema.sets)
       .where(and(eq(schema.sets.sessionId, sessionId), doneSetFilter, isNotNull(schema.sets.exerciseId)))
 
-    if (doneRows.length === 0) return
+    if (doneRows.length === 0) {return}
 
     const [userCtx, ...exerciseContexts] = await Promise.all([
       this.getUserContext(userId),
@@ -206,7 +206,7 @@ export class ProgressionService {
     ])
 
     const validContexts = exerciseContexts.filter((c): c is ExerciseContext => c !== null)
-    if (validContexts.length === 0) return
+    if (validContexts.length === 0) {return}
 
     const situationSummary = this.buildSituationSummary(validContexts, userCtx)
     let coachingChunks: string[] = []
@@ -228,7 +228,7 @@ export class ProgressionService {
 
     const now = Math.floor(Date.now() / 1000)
     for (const s of suggestions) {
-      if (!isPersistableSuggestion(s)) continue
+      if (!isPersistableSuggestion(s)) {continue}
       await this.db
         .insert(schema.progressionSuggestions)
         .values({
@@ -270,7 +270,7 @@ export class ProgressionService {
       )
       .limit(1)
 
-    if (!row) return null
+    if (!row) {return null}
 
     return {
       id: row.id,

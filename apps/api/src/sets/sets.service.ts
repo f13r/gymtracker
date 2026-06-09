@@ -5,8 +5,8 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { CreateSetDto, UpdateSetDto } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
-import * as schema from '../drizzle/schema'
 import { toWorkoutSet } from '../drizzle/mappers'
+import * as schema from '../drizzle/schema'
 import { SessionRepository } from '../sessions/session.repository'
 import { randomUUID } from 'crypto'
 

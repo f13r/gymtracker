@@ -1,13 +1,12 @@
-import { Controller, Get, Patch, Body, Req } from '@nestjs/common'
-import { Inject } from '@nestjs/common'
+import { Controller, Get, Patch, Body, Req, Inject  } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
-import { z } from 'zod'
 import { createZodDto } from 'nestjs-zod'
+import { z } from 'zod'
 
+import { AuthenticatedRequest } from '../auth/request.types'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
-import { AuthenticatedRequest } from '../auth/request.types'
 
 const UpdateProfileSchema = z.object({
   age: z.number().int().positive().nullable().optional(),
@@ -36,7 +35,7 @@ export class ProfileController {
       .from(schema.userProfiles)
       .where(eq(schema.userProfiles.userId, req.user.id))
       .limit(1)
-    if (!profile) return null
+    if (!profile) {return null}
     return {
       ...profile,
       trainingDays: profile.trainingDays ? (JSON.parse(profile.trainingDays) as string[]) : null,
@@ -51,13 +50,13 @@ export class ProfileController {
     const updates: Partial<typeof schema.userProfiles.$inferInsert> = {
       updatedAt: now,
     }
-    if (dto.age !== undefined) updates.age = dto.age
-    if (dto.heightCm !== undefined) updates.heightCm = dto.heightCm
-    if (dto.gender !== undefined) updates.gender = dto.gender
-    if (dto.experienceLevel !== undefined) updates.experienceLevel = dto.experienceLevel
-    if (dto.goal !== undefined) updates.goal = dto.goal
-    if (dto.trainingPhase !== undefined) updates.trainingPhase = dto.trainingPhase
-    if (dto.sessionDurationMinutes !== undefined) updates.sessionDurationMinutes = dto.sessionDurationMinutes
+    if (dto.age !== undefined) {updates.age = dto.age}
+    if (dto.heightCm !== undefined) {updates.heightCm = dto.heightCm}
+    if (dto.gender !== undefined) {updates.gender = dto.gender}
+    if (dto.experienceLevel !== undefined) {updates.experienceLevel = dto.experienceLevel}
+    if (dto.goal !== undefined) {updates.goal = dto.goal}
+    if (dto.trainingPhase !== undefined) {updates.trainingPhase = dto.trainingPhase}
+    if (dto.sessionDurationMinutes !== undefined) {updates.sessionDurationMinutes = dto.sessionDurationMinutes}
     if (dto.trainingDays !== undefined) {
       updates.trainingDays = dto.trainingDays ? JSON.stringify(dto.trainingDays) : null
     }

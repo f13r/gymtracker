@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronUp, ChevronDown, Plus, CheckCircle2, Square } from 'lucide-react'
+import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon } from 'lucide-react'
 import { useState, useEffect, useMemo, useRef } from 'react'
 
 import type { Exercise, WorkoutSet } from '@gymtracker/shared'
@@ -12,6 +12,7 @@ import { setsApi } from '@/api/sets'
 import { workoutsApi } from '@/api/workouts'
 import { NumericInput } from '@/components/inputs/NumericInput'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
+import { ExerciseMediaDrawer } from '@/components/workout/ExerciseMediaDrawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
 import { usePrepopulatedSet } from '@/components/workout/usePrepopulatedSet'
 import { cn, formatElapsed } from '@/lib/utils'
@@ -45,6 +46,7 @@ function InlineSetRow({
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressDidFireRef = useRef(false)
 
+  // eslint-disable-next-line react-hooks/refs
   if (!isDirtyRef.current && (set.weightKg !== prevSet.weightKg || set.reps !== prevSet.reps)) {
     setPrevSet(set)
     setWeight(set.weightKg ?? 0)
@@ -378,42 +380,6 @@ function ExerciseSummaryBar({
 
 // ─── Adjacent exercise strip ───────────────────────────────────────────────────
 
-function ExerciseStrip({
-  direction,
-  name,
-  loggedCount,
-  totalCount,
-  onClick,
-}: {
-  direction: 'prev' | 'next'
-  name: string
-  loggedCount: number
-  totalCount: number
-  onClick: () => void
-}) {
-  const done = totalCount > 0 && loggedCount >= totalCount
-  return (
-    <button
-      className="border-border/60 active:bg-muted/50 flex w-full items-center justify-between px-4 py-2.5 transition-colors"
-      type="button"
-      onClick={onClick}
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        {direction === 'prev' ? (
-          <ChevronUp className="text-muted-foreground shrink-0" size={16} />
-        ) : (
-          <ChevronDown className="text-muted-foreground shrink-0" size={16} />
-        )}
-        <span className="text-muted-foreground truncate text-sm font-medium">{name}</span>
-      </div>
-      <span className={cn('ml-2 shrink-0 text-xs font-semibold', done ? 'text-accent' : 'text-muted-foreground')}>
-        {loggedCount}/{totalCount}
-        {done ? ' ✓' : ''}
-      </span>
-    </button>
-  )
-}
-
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
@@ -430,6 +396,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const [selectedExerciseName, setSelectedExerciseName] = useState<string | null>(null)
 
   const [allDoneOpen, setAllDoneOpen] = useState(false)
+  const [mediaOpen, setMediaOpen] = useState(false)
 
   const [workoutSeconds, setWorkoutSeconds] = useState(0)
 
@@ -452,6 +419,12 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const exerciseNameMap = useMemo(() => {
     const map: Record<string, string> = {}
     allExercises.forEach((e: Exercise) => { map[e.id] = e.name })
+    return map
+  }, [allExercises])
+
+  const wgerIdMap = useMemo(() => {
+    const map: Record<string, number | null> = {}
+    allExercises.forEach((e: Exercise) => { map[e.id] = e.wgerId })
     return map
   }, [allExercises])
 
@@ -482,7 +455,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   }, [template, session, exerciseNameMap])
 
   const currentExercise = exercises[activeExerciseIndex]
-  const prevExerciseData = activeExerciseIndex > 0 ? exercises[activeExerciseIndex - 1] : null
   const nextExerciseData = activeExerciseIndex < exercises.length - 1 ? exercises[activeExerciseIndex + 1] : null
   const loggedCount = currentExercise?.loggedSets.length ?? 0
   const doneCount = currentExercise?.loggedSets.filter((s: WorkoutSet) => s.done).length ?? 0
@@ -493,6 +465,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     usePrepopulatedSet(currentExercise)
 
   // Initial population.
+  // eslint-disable-next-line react-hooks/refs
   if (currentExercise && !newSetInitialized.current) {
     newSetInitialized.current = true
     setNewSetWeight(prepopulated.weightKg)
@@ -502,8 +475,10 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   // A progression suggestion arriving (async) overrides the pending set.
   useEffect(() => {
     if (progressionSuggestion) {
+      /* eslint-disable react-hooks/set-state-in-effect */
       setNewSetWeight(progressionSuggestion.suggestedWeightKg)
       setNewSetReps(progressionSuggestion.suggestedReps)
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [progressionSuggestion])
 
@@ -513,13 +488,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     setNewSetWeight(prepopulated.weightKg)
     setNewSetReps(prepopulated.reps)
   }
-
-  const allDone =
-    !!template &&
-    !!currentExercise &&
-    currentExercise.defaultSets > 0 &&
-    currentExercise.loggedSets.length >= currentExercise.defaultSets &&
-    currentExercise.loggedSets.every((s: WorkoutSet) => s.done)
 
   useEffect(() => {
     const startedAt = session?.startedAt
@@ -654,19 +622,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         </div>
       </div>
 
-      {/* Prev exercise strip */}
-      {isTemplateBased && prevExerciseData && (
-        <div className="border-border/60 shrink-0 border-b">
-          <ExerciseStrip
-            direction="prev"
-            loggedCount={prevExerciseData.loggedSets.length}
-            name={prevExerciseData.name}
-            totalCount={prevExerciseData.defaultSets}
-            onClick={prevExercise}
-          />
-        </div>
-      )}
-
       {/* Exercise header */}
       {isTemplateBased && currentExercise ? (
         <div className="border-border shrink-0 border-b px-4 py-3">
@@ -675,9 +630,19 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
             {' · '}
             {doneCount}/{loggedCount} sets
           </p>
-          <p className="font-display font-700 text-3xl leading-tight tracking-wide">
-            {currentExercise.name.toUpperCase()}
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-display font-700 text-3xl leading-tight tracking-wide">
+              {currentExercise.name.toUpperCase()}
+            </p>
+            <button
+              aria-label="Show exercise demonstration"
+              className="text-muted-foreground mt-1 shrink-0 active:opacity-60"
+              type="button"
+              onClick={() => setMediaOpen(true)}
+            >
+              <ImageIcon size={20} />
+            </button>
+          </div>
         </div>
       ) : !isTemplateBased ? (
         <div className="border-border shrink-0 border-b px-4 py-3">
@@ -809,17 +774,14 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         </div>
       )}
 
-      {/* Next exercise strip */}
-      {isTemplateBased && nextExerciseData && allDone && (
-        <div className="border-border/60 shrink-0 border-t">
-          <ExerciseStrip
-            direction="next"
-            loggedCount={nextExerciseData.loggedSets.length}
-            name={nextExerciseData.name}
-            totalCount={nextExerciseData.defaultSets}
-            onClick={nextExercise}
-          />
-        </div>
+      {/* Exercise media drawer */}
+      {isTemplateBased && currentExercise && (
+        <ExerciseMediaDrawer
+          exerciseName={currentExercise.name}
+          open={mediaOpen}
+          wgerId={wgerIdMap[currentExercise.id] ?? null}
+          onOpenChange={setMediaOpen}
+        />
       )}
 
       {/* All-done bottom sheet */}

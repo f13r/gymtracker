@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Delete, HttpCode, Param, Body, Req } from '@nestjs/common'
 import { createZodDto } from 'nestjs-zod'
+
 import { AcknowledgeProgramUpdateSchema } from '@gymtracker/shared'
+
 import { ProgramService } from './program.service'
 import { AuthenticatedRequest } from '../auth/request.types'
 

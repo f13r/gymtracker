@@ -110,10 +110,10 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
 
                 {isToday && (
                   <button
-                    type="button"
                     aria-label={`Start ${name}`}
                     className="bg-primary text-primary-foreground flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-transform active:scale-95 disabled:opacity-60"
                     disabled={start.isPending}
+                    type="button"
                     onClick={() => start.mutate({ templateId, name })}
                   >
                     <Play fill="currentColor" size={13} strokeWidth={0} />
@@ -123,10 +123,10 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
 
                 {schedule.type === 'once' && (
                   <button
-                    type="button"
                     aria-label={`Remove ${name} from this day`}
                     className="text-destructive/60 active:text-destructive flex size-9 shrink-0 items-center justify-center transition-colors"
                     disabled={remove.isPending}
+                    type="button"
                     onClick={() => remove.mutate(schedule.id)}
                   >
                     <Trash2 size={15} />
@@ -148,9 +148,9 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
                 templates.map((t: WorkoutTemplateWithExercises) => (
                   <button
                     key={t.id}
-                    type="button"
                     className="border-border active:border-primary flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors disabled:opacity-60"
                     disabled={addOnce.isPending}
+                    type="button"
                     onClick={() => addOnce.mutate(t.id)}
                   >
                     <span className="truncate">{t.name}</span>
@@ -161,11 +161,11 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
             </div>
           ) : (
             <button
-              type="button"
               className={cn(
                 'border-border text-muted-foreground mt-1 flex w-full items-center justify-center gap-2',
                 'rounded-xl border border-dashed py-3 text-sm font-semibold transition-colors active:scale-[0.99]',
               )}
+              type="button"
               onClick={() => setAdding(true)}
             >
               <Plus size={16} />

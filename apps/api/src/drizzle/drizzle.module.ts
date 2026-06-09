@@ -1,12 +1,12 @@
 import { Global, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { Pool } from 'pg'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
-import { join } from 'path'
+import { Pool } from 'pg'
 
 import { DATABASE } from './drizzle.constants'
 import * as schema from './schema'
+import { join } from 'path'
 
 @Global()
 @Module({

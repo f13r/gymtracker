@@ -30,7 +30,7 @@ export function ThisWeekCard() {
   const today = useMemo(() => new Date(), [])
   const week = useMemo(() => currentWeekDates(today), [today])
 
-  if (schedules.length === 0) return null
+  if (schedules.length === 0) {return null}
 
   const labels = dayLabelByTemplate(program)
   const nameById = new Map(templates.map(t => [t.id, t.name]))
@@ -40,17 +40,17 @@ export function ThisWeekCard() {
   const legend: { label: string; name: string }[] = []
   for (const date of week) {
     for (const { templateId } of workoutsForDate(date, schedules)) {
-      if (seen.has(templateId)) continue
+      if (seen.has(templateId)) {continue}
       seen.add(templateId)
       legend.push({ label: labels.get(templateId) ?? '•', name: nameById.get(templateId) ?? 'Workout' })
     }
   }
 
-  if (legend.length === 0) return null
+  if (legend.length === 0) {return null}
 
   return (
-    <section className="space-y-2" aria-label="This week's training schedule">
-      <Link to="/calendar" className="text-muted-foreground flex items-center gap-1">
+    <section aria-label="This week's training schedule" className="space-y-2">
+      <Link className="text-muted-foreground flex items-center gap-1" to="/calendar">
         <h2 className="font-display font-600 text-lg tracking-wide uppercase">This Week</h2>
         <ChevronRight size={16} />
       </Link>
@@ -68,7 +68,7 @@ export function ThisWeekCard() {
             }${isToday ? ' (today)' : ''}`
 
             return (
-              <li key={date.toISOString()} className="flex flex-col items-center gap-1.5" aria-label={ariaLabel}>
+              <li key={date.toISOString()} aria-label={ariaLabel} className="flex flex-col items-center gap-1.5">
                 <span
                   className={cn(
                     'text-[10px] font-semibold tracking-wide uppercase',
@@ -88,7 +88,7 @@ export function ThisWeekCard() {
                 >
                   {label ?? '–'}
                 </div>
-                {isToday && <span className="bg-primary h-1 w-1 rounded-full" aria-hidden="true" />}
+                {isToday && <span aria-hidden="true" className="bg-primary h-1 w-1 rounded-full" />}
               </li>
             )
           })}

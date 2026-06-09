@@ -2,10 +2,10 @@ import { Injectable, Inject, Logger, OnModuleInit } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
+import { COACHING_CHUNKS } from './coaching-knowledge'
 import { GeminiService } from '../ai/gemini.service'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
-import { COACHING_CHUNKS } from './coaching-knowledge'
 
 @Injectable()
 export class CoachingKnowledgeService implements OnModuleInit {

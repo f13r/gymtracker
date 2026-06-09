@@ -47,8 +47,8 @@ export function GymPage() {
           <h1 className="font-display font-700 text-3xl tracking-wide">GYM</h1>
         </div>
         <button
-          type="button"
           className="bg-primary text-primary-foreground mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-transform active:scale-95"
+          type="button"
           onClick={() => setShowWizard(true)}
         >
           <Plus size={16} />
@@ -68,8 +68,8 @@ export function GymPage() {
               Photograph a piece of gym equipment to get started
             </p>
             <button
-              type="button"
               className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-5 py-2.5 text-sm tracking-wide uppercase transition-transform active:scale-95"
+              type="button"
               onClick={() => setShowWizard(true)}
             >
               Add Equipment
@@ -108,9 +108,9 @@ export function GymPage() {
               )}
             </div>
             <button
-              type="button"
               aria-label="Delete equipment"
               className="flex size-10 flex-shrink-0 items-center justify-center rounded-full transition-colors"
+              type="button"
               onClick={() => setPendingDeleteId(item.id)}
             >
               <Trash2 className="text-muted-foreground" size={16} strokeWidth={1.5} />

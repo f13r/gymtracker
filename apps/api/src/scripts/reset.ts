@@ -1,4 +1,5 @@
 import { Pool } from 'pg'
+
 import { randomUUID } from 'crypto'
 
 const DEFAULT_EXERCISES = [

@@ -1,12 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common'
 import { eq, and, gte, lte, sql, isNotNull, count, desc } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
+
 import { calculateStreak } from '@gymtracker/shared'
+import type { VolumePoint, FrequencyPoint, PersonalRecord, WorkoutStreak } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { doneSetFilter, doneSetSql, volumeSumExpr } from '../drizzle/set-queries'
-import type { VolumePoint, FrequencyPoint, PersonalRecord, WorkoutStreak } from '@gymtracker/shared'
 
 @Injectable()
 export class StatsService {
@@ -35,16 +36,16 @@ export class StatsService {
     return result.rows as PersonalRecord[]
   }
 
-  async getVolume(userId: string, exerciseId?: string, from?: number, to?: number): Promise<VolumePoint[]> {
+  getVolume(userId: string, exerciseId?: string, from?: number, to?: number): Promise<VolumePoint[]> {
     const conditions = [
       eq(schema.workoutSessions.userId, userId),
       doneSetFilter,
       isNotNull(schema.sets.reps),
       isNotNull(schema.sets.weightKg),
     ]
-    if (exerciseId) conditions.push(eq(schema.sets.exerciseId, exerciseId))
-    if (from) conditions.push(gte(schema.sets.completedAt, from))
-    if (to) conditions.push(lte(schema.sets.completedAt, to))
+    if (exerciseId) {conditions.push(eq(schema.sets.exerciseId, exerciseId))}
+    if (from) {conditions.push(gte(schema.sets.completedAt, from))}
+    if (to) {conditions.push(lte(schema.sets.completedAt, to))}
 
     return this.db
       .select({
@@ -69,8 +70,8 @@ export class StatsService {
 
   getBodyWeight(userId: string, from?: number, to?: number) {
     const conditions = [eq(schema.bodyWeights.userId, userId)]
-    if (from) conditions.push(gte(schema.bodyWeights.recordedAt, from))
-    if (to) conditions.push(lte(schema.bodyWeights.recordedAt, to))
+    if (from) {conditions.push(gte(schema.bodyWeights.recordedAt, from))}
+    if (to) {conditions.push(lte(schema.bodyWeights.recordedAt, to))}
     return this.db
       .select()
       .from(schema.bodyWeights)
@@ -80,8 +81,8 @@ export class StatsService {
 
   getMeasurements(userId: string, from?: number, to?: number) {
     const conditions = [eq(schema.bodyMeasurements.userId, userId)]
-    if (from) conditions.push(gte(schema.bodyMeasurements.recordedAt, from))
-    if (to) conditions.push(lte(schema.bodyMeasurements.recordedAt, to))
+    if (from) {conditions.push(gte(schema.bodyMeasurements.recordedAt, from))}
+    if (to) {conditions.push(lte(schema.bodyMeasurements.recordedAt, to))}
     return this.db
       .select()
       .from(schema.bodyMeasurements)
@@ -89,10 +90,10 @@ export class StatsService {
       .orderBy(schema.bodyMeasurements.recordedAt)
   }
 
-  async getFrequency(userId: string, from?: number, to?: number): Promise<FrequencyPoint[]> {
+  getFrequency(userId: string, from?: number, to?: number): Promise<FrequencyPoint[]> {
     const conditions = [eq(schema.workoutSessions.userId, userId), isNotNull(schema.workoutSessions.finishedAt)]
-    if (from) conditions.push(gte(schema.workoutSessions.startedAt, from))
-    if (to) conditions.push(lte(schema.workoutSessions.startedAt, to))
+    if (from) {conditions.push(gte(schema.workoutSessions.startedAt, from))}
+    if (to) {conditions.push(lte(schema.workoutSessions.startedAt, to))}
 
     return this.db
       .select({

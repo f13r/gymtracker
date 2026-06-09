@@ -1,19 +1,23 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
 import { eq, and, or } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { CreateExerciseDto, UpdateExerciseDto, WorkoutSet } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
-import * as schema from '../drizzle/schema'
-import { lastFinishedSessionSetsSql } from '../drizzle/set-queries'
-import { randomUUID } from 'crypto'
 import type { DbSet } from '../drizzle/mappers'
 import { toWorkoutSet } from '../drizzle/mappers'
+import * as schema from '../drizzle/schema'
+import { lastFinishedSessionSetsSql } from '../drizzle/set-queries'
+import { WgerService } from '../wger/wger.service'
+import { randomUUID } from 'crypto'
 
 @Injectable()
 export class ExercisesService {
-  constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
+  constructor(
+    @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
+    private readonly wger: WgerService,
+  ) {}
 
   findAll(userId: string) {
     return this.db
@@ -35,16 +39,30 @@ export class ExercisesService {
   }
 
   async create(userId: string, dto: CreateExerciseDto) {
+    // When a wger id is supplied, pull the canonical name/category/equipment from wger and
+    // use it to fill any field the caller didn't provide (a wger-only create relies on this).
+    let { name, category, equipmentType } = dto
+    if (dto.wgerId != null) {
+      const meta = await this.wger.fetchExerciseMetadata(dto.wgerId)
+      name = name ?? meta.name
+      category = category ?? meta.category
+      equipmentType = equipmentType ?? meta.equipmentType
+    }
+    if (!name?.trim()) {
+      throw new BadRequestException('Exercise name is required')
+    }
+
     const [row] = await this.db
       .insert(schema.exercises)
       .values({
         id: randomUUID(),
         userId,
-        name: dto.name,
-        category: dto.category ?? null,
-        equipmentType: dto.equipmentType ?? null,
+        name: name.trim(),
+        category: category ?? null,
+        equipmentType: equipmentType ?? null,
         notes: dto.notes ?? null,
         isDefault: 0,
+        wgerId: dto.wgerId ?? null,
         createdAt: Math.floor(Date.now() / 1000),
       })
       .returning()
@@ -52,8 +70,24 @@ export class ExercisesService {
   }
 
   async update(id: string, userId: string, dto: UpdateExerciseDto) {
-    await this.findOne(id, userId)
-    const patch = Object.fromEntries(Object.entries(dto).map(([k, v]) => [k, v ?? null]))
+    const existing = await this.findOne(id, userId)
+    const patch: Record<string, unknown> = Object.fromEntries(
+      Object.entries(dto).map(([k, v]) => [k, v ?? null]),
+    )
+
+    // Newly linking (or changing) the wger id re-syncs the metadata from wger — the act of
+    // setting a wger id means "this is that exercise", so wger wins over the submitted fields.
+    if (dto.wgerId != null && dto.wgerId !== existing.wgerId) {
+      const meta = await this.wger.fetchExerciseMetadata(dto.wgerId)
+      patch.name = meta.name
+      if (meta.category) {
+        patch.category = meta.category
+      }
+      if (meta.equipmentType) {
+        patch.equipmentType = meta.equipmentType
+      }
+    }
+
     const [row] = await this.db
       .update(schema.exercises)
       .set(patch)

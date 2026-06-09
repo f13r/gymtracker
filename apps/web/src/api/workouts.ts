@@ -2,6 +2,7 @@ import type {
   CreateTemplateDto,
   SessionWithSets,
   StartSessionDto,
+  UpdateTemplateDto,
   WorkoutSession,
   WorkoutTemplateWithExercises,
 } from '@gymtracker/shared'
@@ -12,6 +13,8 @@ export const workoutsApi = {
   getTemplates: () => api.get<WorkoutTemplateWithExercises[]>('/templates'),
   getTemplate: (id: string) => api.get<WorkoutTemplateWithExercises>(`/templates/${id}`),
   createTemplate: (data: CreateTemplateDto) => api.post<WorkoutTemplateWithExercises>('/templates', data),
+  updateTemplate: (id: string, data: UpdateTemplateDto) =>
+    api.patch<WorkoutTemplateWithExercises>(`/templates/${id}`, data),
   deleteTemplate: (id: string) => api.delete(`/templates/${id}`),
   getSessions: () => api.get<WorkoutSession[]>('/sessions'),
   startSession: (data: StartSessionDto) => api.post<SessionWithSets>('/sessions', data),

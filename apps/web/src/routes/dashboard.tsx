@@ -12,8 +12,8 @@ import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
 import { ThisWeekCard } from '@/components/workout/ThisWeekCard'
-import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
 import { useSessionVolume } from '@/hooks/useSessionVolume'
+import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
 import { useWorkoutStore } from '@/stores/workout.store'
 
 function getGreeting() {
@@ -202,7 +202,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   }, [template, session, exerciseNameMap])
 
   const sessionSets = session?.sets ?? []
-  const prevSessionDataSets = prevSessionData?.sets ?? []
+  const prevSessionDataSets = useMemo(() => prevSessionData?.sets ?? [], [prevSessionData?.sets])
   const { current: currentVolume, prev: sessionPrevVolume } = useSessionVolume(sessionSets, prevSessionDataSets)
 
   const summaryStats = useMemo(() => {
@@ -294,11 +294,11 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
             return (
               <button
                 key={ex.id}
-                type="button"
                 className={cn(
                   'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors last:border-b-0',
                   isCurrent && !isComplete && 'bg-primary/5',
                 )}
+                type="button"
                 onClick={() => {
                   setActiveExerciseIndex(i)
                   navigate({ to: '/workout/$sessionId', params: { sessionId } })
@@ -349,9 +349,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
 
       {/* Finish button */}
       <button
-        type="button"
         className="border-destructive/30 text-destructive active:bg-destructive/5 h-12 w-full rounded-xl border text-sm font-semibold transition-colors disabled:opacity-40"
         disabled={finishWorkout.isPending}
+        type="button"
         onClick={() => finishWorkout.mutate()}
       >
         {finishWorkout.isPending ? 'Finishing…' : 'Finish Workout'}
@@ -422,14 +422,14 @@ export function DashboardPage() {
           {todaySchedule!.exerciseCount} exercise{todaySchedule!.exerciseCount !== 1 ? 's' : ''} planned
         </p>
         <button
-          type="button"
           className="bg-primary text-primary-foreground font-display font-700 shadow-primary/30 mb-3 h-16 w-full max-w-sm rounded-2xl text-2xl tracking-widest shadow-lg transition-all active:scale-[0.97] disabled:opacity-60"
           disabled={startFromSchedule.isPending}
+          type="button"
           onClick={() => startFromSchedule.mutate()}
         >
           {startFromSchedule.isPending ? '…' : "LET'S GO"}
         </button>
-        <button type="button" className="text-muted-foreground text-sm font-medium" onClick={dismissPrompt}>
+        <button className="text-muted-foreground text-sm font-medium" type="button" onClick={dismissPrompt}>
           Skip today
         </button>
       </div>

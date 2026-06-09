@@ -1,12 +1,13 @@
-import { Controller, Get, Post, Delete, Param, Body, Req } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Body, Req } from '@nestjs/common'
 import { createZodDto } from 'nestjs-zod'
 
-import { CreateTemplateSchema, StartSessionSchema, FinishSessionSchema } from '@gymtracker/shared'
+import { CreateTemplateSchema, UpdateTemplateSchema, StartSessionSchema, FinishSessionSchema } from '@gymtracker/shared'
 
 import { WorkoutsService } from './workouts.service'
 import { AuthenticatedRequest } from '../auth/request.types'
 
 class CreateTemplateDto extends createZodDto(CreateTemplateSchema) {}
+class UpdateTemplateDto extends createZodDto(UpdateTemplateSchema) {}
 class StartSessionDto extends createZodDto(StartSessionSchema) {}
 class FinishSessionDto extends createZodDto(FinishSessionSchema) {}
 
@@ -22,6 +23,13 @@ export class WorkoutsController {
   }
   @Post('templates') createTemplate(@Body() dto: CreateTemplateDto, @Req() req: AuthenticatedRequest) {
     return this.svc.createTemplate(req.user.id, dto)
+  }
+  @Patch('templates/:id') updateTemplate(
+    @Param('id') id: string,
+    @Body() dto: UpdateTemplateDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.svc.updateTemplate(id, req.user.id, dto)
   }
   @Delete('templates/:id') deleteTemplate(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.deleteTemplate(id, req.user.id)
