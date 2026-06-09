@@ -11,6 +11,7 @@ import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
+import { ThisWeekCard } from '@/components/workout/ThisWeekCard'
 import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
 import { useSessionVolume } from '@/hooks/useSessionVolume'
 import { useWorkoutStore } from '@/stores/workout.store'
@@ -453,6 +454,8 @@ export function DashboardPage() {
           START WORKOUT
         </Link>
       </Button>
+
+      <ThisWeekCard />
 
       {recent.length > 0 && (
         <div className="space-y-2">
