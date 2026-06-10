@@ -54,10 +54,24 @@ export type WorkoutSet = {
   rpe: number | null
   completedAt: number | null
   done: boolean
+  // Soft-removal timestamp; non-null = Removed (dropped from the Session, kept for stats).
+  removedAt: number | null
   notes: string | null
 }
 
-export type SessionWithSets = WorkoutSession & { sets: WorkoutSet[] }
+// The Session Snapshot's ordered exercise list (structure copied from the Template at Start).
+export type SessionExercise = {
+  id: string
+  sessionId: string
+  exerciseId: string
+  orderIndex: number
+  equipmentId: string | null
+}
+
+export type SessionWithSets = WorkoutSession & {
+  sets: WorkoutSet[]
+  exercises: SessionExercise[]
+}
 
 export type BodyWeight = {
   id: string

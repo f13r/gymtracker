@@ -67,6 +67,10 @@ export class SetsService {
     return toWorkoutSet(updated!)
   }
 
+  /**
+   * Soft-remove a Set: stamp `removedAt` rather than hard-deleting, so the
+   * Removed Set is hidden from the logger but retained for statistics (ADR-0008).
+   */
   async deleteSet(sessionId: string, setId: string, userId: string) {
     await this.sessions.assertActive(sessionId, userId)
     const [set] = await this.db
@@ -77,6 +81,9 @@ export class SetsService {
     if (!set) {
       throw new NotFoundException('Set not found')
     }
-    await this.db.delete(schema.sets).where(eq(schema.sets.id, setId))
+    await this.db
+      .update(schema.sets)
+      .set({ removedAt: Math.floor(Date.now() / 1000) })
+      .where(eq(schema.sets.id, setId))
   }
 }

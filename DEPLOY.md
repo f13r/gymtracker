@@ -114,7 +114,7 @@ owned by `gymtracker`. After it completes, skip `db:migrate` and go straight to 
 ```bash
 sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS exercises FROM exercises;"            # expect 54
 sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS coaching FROM coaching_knowledge;"    # expect 20
-sudo -u postgres psql -d gymtracker -c "SELECT count(*) FROM drizzle.__drizzle_migrations;"      # expect 10 — boot migrate will no-op
+sudo -u postgres psql -d gymtracker -c "SELECT count(*) FROM drizzle.__drizzle_migrations;"      # 10 in this snapshot; the next release's db:migrate applies newer migrations (0010+) on top
 ```
 
 ### Regenerating the snapshot (from the dev machine, when local data changes)
@@ -210,6 +210,21 @@ pm2 startup   # then run the sudo command it prints
 ```
 
 This mirrors `.github/workflows/deploy.yml`; the workflow does it automatically on push to `main`.
+
+### Schema migrations in releases
+
+`npm run db:migrate` (and the API's on-boot migrate) applies any pending Drizzle migrations
+automatically — adding a migration to the repo needs no extra deploy step. Newest migration:
+
+- **`0010_quick_slayback`** — Session Snapshot model (ADR-0008). Adds the `session_exercises`
+  table and the nullable `sets.removed_at` column. **Additive and safe on the live DB**: existing
+  `sets` backfill to `removed_at = NULL`; no history backfill; stats unaffected.
+  - ⚠️ **Finish any in-progress Session before deploying this release.** A Session started under
+    the pre-0010 build has no `session_exercises` rows and will render degraded in the logger.
+    New sessions snapshot correctly. (Check: `SELECT id FROM workout_sessions WHERE finished_at
+    IS NULL;` — finish or delete any row before/after migrating.)
+  - Verify after deploy: `SELECT count(*) FROM drizzle.__drizzle_migrations;` is now **11**, and
+    `\d session_exercises` / `\d sets` show the new table and column.
 
 ---
 

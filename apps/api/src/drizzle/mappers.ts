@@ -1,9 +1,10 @@
-import type { WorkoutSet, WorkoutSession, Equipment, EquipmentWithExercises } from '@gymtracker/shared'
+import type { WorkoutSet, WorkoutSession, SessionExercise, Equipment, EquipmentWithExercises } from '@gymtracker/shared'
 
 import * as schema from './schema'
 
 export type DbSet = typeof schema.sets.$inferSelect
 export type DbSession = typeof schema.workoutSessions.$inferSelect
+export type DbSessionExercise = typeof schema.sessionExercises.$inferSelect
 
 export function toWorkoutSet(row: DbSet): WorkoutSet {
   return {
@@ -18,7 +19,18 @@ export function toWorkoutSet(row: DbSet): WorkoutSet {
     rpe: row.rpe,
     completedAt: row.completedAt,
     done: row.done === 1,
+    removedAt: row.removedAt,
     notes: row.notes,
+  }
+}
+
+export function toSessionExercise(row: DbSessionExercise): SessionExercise {
+  return {
+    id: row.id,
+    sessionId: row.sessionId!,
+    exerciseId: row.exerciseId!,
+    orderIndex: row.orderIndex,
+    equipmentId: row.equipmentId,
   }
 }
 

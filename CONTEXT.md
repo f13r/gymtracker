@@ -35,7 +35,7 @@ An AI-generated load prescription for an upcoming Session: a specific Exercise, 
 _Avoid_: recommendation, auto-progression, coaching tip
 
 **Set Pre-population Hierarchy**:
-When the user is about to log a Set for an Exercise, the weight and reps fields are pre-populated in this priority order: (1) the active Progression Suggestion for that Exercise, if one exists; (2) the Done Sets from the last finished Session for that Exercise; (3) the Template default, if the Session was started from a Template. The Progression Suggestion values go directly into the input fields; the last-done values are shown below in small text so the user can see what the AI changed and why. The AI's reason and evidence are accessible via an expandable control on the same screen.
+The priority order used to fill the reps/weight of a Session's Sets, evaluated **once at Start** when the Session Snapshot is materialised (not per-Set at log time, as it previously was). Note this governs **numbers only** — set count and the exercise list always come from the Template. Current model, per Exercise: (1) the **last-done** value for that Exercise — the reps/weight of its Sets the last time it was done in any finished Session; (2) the **Template** default, used the first time an Exercise is ever done. A **Progression Suggestion** is the intended top tier (overriding reps/weight where present) but is **temporarily turned off** while statistics accumulate — to be reintroduced above last-done later.
 _Avoid_: default sets, seed weight
 
 **Suggested Exercise**:
@@ -59,19 +59,23 @@ A named block within a Program with a planned session count (e.g. 3 days/week ×
 _Avoid_: block, stage, period
 
 **Session Repeat**:
-A Session start mode where the user picks a previously finished Session from a calendar view (days with Sessions are marked) and starts a new one with the same ordered Exercise list. Weight and reps are not copied from the source Session — they follow the standard Set Pre-population Hierarchy (Progression Suggestion → last-done → Template default). Only the Exercise list is carried over. Requires a new calendar UI surface; the current History page is a flat list grouped by month, not a calendar.
+A Session start mode where the user picks a previously finished Session from a calendar view (days with Sessions are marked) and starts a new one. The chosen Session stands in for a Template as the **structure** source — its exercise list and set count are copied into the new Session Snapshot — while reps/weight follow the Set Pre-population Hierarchy (last-done per Exercise) exactly as a Template-started Session would. Requires a new calendar UI surface; the current History page is a flat list grouped by month, not a calendar.
 _Avoid_: copy workout, duplicate session, repeat workout
 
 **Session**:
-A single workout instance with a start time and optional finish time. May be started from a Template or created freeform. During a Session the user may add, remove, or reorder exercises freely regardless of the source Template.
+A single workout instance with a start time and optional finish time. May be started from a Template or created freeform. When started, the Session takes a **Session Snapshot** — materialising its plan into session-owned rows — and from then on reads only its own data, never the Template live. During a Session the user may add, remove, or reorder exercises and Sets freely; these edits live on the Session's own data and affect only this Session's record (see Removed Set), never the source Template and never a future Session.
 _Avoid_: workout, log, training
+
+**Session Snapshot**:
+The session-owned rows materialised when a Session starts. **Structure comes from the Workout Template, every time**: the exercise list, their order, and the set count are copied from the Template (re-read at every Start, so Template / Coach edits — including changing the set count — propagate to all future Sessions). **Numbers come from history**: each Set's reps/weight is seeded per-Exercise from the last-done value for that Exercise (the Template default the first time an Exercise is ever done) — see Set Pre-population Hierarchy. The snapshot is the immutable record of what was planned versus done for that Session; because structure is always re-read from the Template, in-session edits never reshape a future Session.
+_Avoid_: copy, materialised plan, instance
 
 **Active Session**:
 A Session whose `finishedAt` is null. Only one Session can be active at a time per user.
 _Avoid_: open session, in-progress workout
 
 **Set**:
-A single recorded effort within a Session for a given Exercise: reps, weight, RPE, or duration. A Set is either **done** (`done = 1`) or **planned** (`done = 0`).
+A single recorded effort within a Session for a given Exercise: reps, weight, RPE, or duration. A Set is in one of **three** states: **Done** (`done = 1`), **Planned** (`done = 0`, not removed), or **Removed** (soft-removed via a non-null `removedAt`). Removed Sets are hidden from the logger but retained in the database so statistics can tell a deliberately-dropped set apart from a missed one. There is no hard delete of a snapshotted Set.
 _Avoid_: rep, effort, entry
 
 **Done Set**:
@@ -83,8 +87,12 @@ The state an Exercise reaches within a Session when all of its Sets are marked d
 _Avoid_: exercise completed, exercise finished
 
 **Planned Set**:
-A Set that was pre-populated (from a Template) or added by the user but not yet marked done. Excluded from performance stats but preserved for retrospective analysis (to show what was intended vs. what was completed).
+A Set that was materialised into the Session Snapshot (set count from the Template, reps/weight from last-done) or added by the user, but not yet marked done and not Removed. Excluded from performance stats. A Planned Set that is still un-done when the Session finishes is a **Missed** Set — intended but not completed. Preserved for retrospective analysis (intended vs. completed) for this Session only; it does not shape the next Session, whose structure returns to the Template.
 _Avoid_: undone set, pending set, skipped set
+
+**Removed Set**:
+A Set the user explicitly dropped from the Session by swiping it away. Soft-removed (a non-null `removedAt`; never hard-deleted) and hidden from the logger, but retained for statistics. Distinct from a **Missed** Planned Set (intended but not completed): a Removed Set records "I deliberately did not do this one today." Like all in-session edits, removal affects only this Session's record — it never changes a future Session, whose set count always returns to the Template. (A future statistic of "this set is consistently removed" could inform the Coach to amend the Template, but that is deferred Program/progression work, not an automatic plan change.)
+_Avoid_: deleted set, skipped set, dropped rep
 
 **RPE** (Rate of Perceived Exertion):
 An optional 1–10 effort score logged per Set. Indicates subjective difficulty.
@@ -157,10 +165,12 @@ _Avoid_: sessions per week, training frequency
 ## Relationships
 
 - A **Template** contains an ordered list of **Exercises** with default Sets; each TemplateExercise may optionally reference a specific **Equipment** (coach-prescribed machine)
-- A **Session** may be started from a **Template** or freeform; once started, its exercises are fully editable
+- A **Session** may be started from a **Template** or freeform; at Start it takes a **Session Snapshot** and is fully editable thereafter on its own data
+- A **Session Snapshot** owns the Session's ordered exercise list (its structure copied from the Template at Start) and its **Sets**; structure (exercise list + set count) comes from the Template every Start, reps/weight from per-Exercise last-done (see **Set Pre-population Hierarchy**)
 - A **Session** contains zero or more **Sets**, each belonging to one **Exercise**; a Set may optionally reference the **Equipment** used
-- A **Set** is either **Done** or **Planned**; only Done Sets count toward **PRs**, **Volume**, and **Streak**
-- A **Planned Set** is preserved after Session finish for retrospective comparison against the **Schedule**
+- A **Set** is **Done**, **Planned**, or **Removed**; only Done Sets count toward **PRs**, **Volume**, and **Streak**; Removed Sets are soft-deleted (`removedAt`) and retained for statistics
+- In-session edits (remove/add Sets or exercises, change weight) affect only that Session's record; they never reshape a future Session, whose structure returns to the **Template**
+- A **Planned Set** is preserved after Session finish for retrospective comparison against the **Schedule** (intended vs. completed)
 - A **Schedule** optionally references a **Template**, a past **Session** (Session Repeat source), or neither (freeform); it resolves to a **Today's Schedule** if its date/day matches today and no Session has been started
 - A **Program** belongs to one **User**; one active Program per user; contains an ordered list of **Phases**; generates ordinary **Templates** and weekly **Schedules** on the user's configured training days; evaluated for adaptation on every Session finish and on manual re-trigger
 - A **Phase** belongs to one **Program**; references one or more **Templates** (one per split day); tracks completion by counting finished **Sessions** tagged with its ID; complete when finished session count reaches its target

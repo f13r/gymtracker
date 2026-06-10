@@ -1,12 +1,13 @@
 import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, asc, desc, sql } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { CreateTemplateDto, FinishSessionDto, StartSessionDto, UpdateTemplateDto } from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
-import { toWorkoutSession, toWorkoutSet } from '../drizzle/mappers'
+import { toWorkoutSession, toWorkoutSet, toSessionExercise } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
+import { lastFinishedSessionSetsSql } from '../drizzle/set-queries'
 import { ProgramService } from '../program/program.service'
 import { ProgressionService } from '../progression/progression.service'
 import { SessionRepository } from '../sessions/session.repository'
@@ -130,8 +131,21 @@ export class WorkoutsService {
     if (!s) {
       throw new NotFoundException('Session not found')
     }
-    const sessionSets = await this.db.select().from(schema.sets).where(eq(schema.sets.sessionId, id))
-    return { ...toWorkoutSession(s), sets: sessionSets.map(toWorkoutSet) }
+    const sessionSets = await this.db
+      .select()
+      .from(schema.sets)
+      .where(eq(schema.sets.sessionId, id))
+      .orderBy(asc(schema.sets.setNumber), asc(schema.sets.id))
+    const exercises = await this.db
+      .select()
+      .from(schema.sessionExercises)
+      .where(eq(schema.sessionExercises.sessionId, id))
+      .orderBy(asc(schema.sessionExercises.orderIndex))
+    return {
+      ...toWorkoutSession(s),
+      sets: sessionSets.map(toWorkoutSet),
+      exercises: exercises.map(toSessionExercise),
+    }
   }
 
   async getActiveSession(userId: string) {
@@ -169,9 +183,61 @@ export class WorkoutsService {
           .set({ programPhaseId: phaseTemplate.phaseId })
           .where(eq(schema.workoutSessions.id, id))
       }
+
+      await this.snapshotPlan(id, userId, dto.templateId)
     }
 
     return this.getSession(id, userId)
+  }
+
+  /**
+   * Take the Session Snapshot: copy the Template's ordered exercise list (and set
+   * count) into session-owned rows, seeding each Set's reps/weight from the
+   * Exercise's last-done values (Template default the first time). Per ADR-0008.
+   */
+  private async snapshotPlan(sessionId: string, userId: string, templateId: string) {
+    const templateExercises = await this.db
+      .select()
+      .from(schema.templateExercises)
+      .where(eq(schema.templateExercises.templateId, templateId))
+      .orderBy(asc(schema.templateExercises.orderIndex))
+
+    for (const te of templateExercises) {
+      if (!te.exerciseId) { continue }
+
+      await this.db.insert(schema.sessionExercises).values({
+        id: randomUUID(),
+        sessionId,
+        exerciseId: te.exerciseId,
+        orderIndex: te.orderIndex,
+        equipmentId: te.equipmentId ?? null,
+      })
+
+      const setCount = te.defaultSets ?? 3
+      // Last-done Done Sets for this Exercise, by set position, for number seeding.
+      const res = await this.db.execute(lastFinishedSessionSetsSql(te.exerciseId, userId))
+      const lastDone = (res.rows as Array<{ reps: number | null; weightKg: number | null; done: number }>)
+        .filter(r => r.done === 1)
+
+      for (let i = 0; i < setCount; i++) {
+        // Match by position; carry the last known set forward for positions
+        // last-done didn't reach; fall back to the Template default.
+        const seed = lastDone[i] ?? lastDone[lastDone.length - 1]
+        const reps = seed?.reps ?? te.defaultReps ?? null
+        const weightKg = seed?.weightKg ?? te.defaultWeightKg ?? null
+        await this.db.insert(schema.sets).values({
+          id: randomUUID(),
+          sessionId,
+          exerciseId: te.exerciseId,
+          setNumber: i + 1,
+          reps,
+          weightKg,
+          done: 0,
+          removedAt: null,
+          equipmentId: te.equipmentId ?? null,
+        })
+      }
+    }
   }
 
   async finishSession(id: string, userId: string, dto: FinishSessionDto) {
@@ -195,6 +261,7 @@ export class WorkoutsService {
   async deleteSession(id: string, userId: string) {
     await this.getSession(id, userId)
     await this.db.delete(schema.sets).where(eq(schema.sets.sessionId, id))
+    await this.db.delete(schema.sessionExercises).where(eq(schema.sessionExercises.sessionId, id))
     await this.db
       .delete(schema.workoutSessions)
       .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId)))

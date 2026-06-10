@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon } from 'lucide-react'
+import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon, Trash2 } from 'lucide-react'
 import { useState, useEffect, useMemo, useRef } from 'react'
 
 import type { Exercise, WorkoutSet } from '@gymtracker/shared'
@@ -15,6 +15,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '
 import { ExerciseMediaDrawer } from '@/components/workout/ExerciseMediaDrawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
 import { usePrepopulatedSet } from '@/components/workout/usePrepopulatedSet'
+import { useSwipeReveal } from '@/components/workout/useSwipeReveal'
 import { cn, formatElapsed } from '@/lib/utils'
 import { useWorkoutStore } from '@/stores/workout.store'
 
@@ -22,7 +23,21 @@ interface WorkoutLoggerProps {
   sessionId: string
 }
 
+// px of the swipe affordance revealed when a row is snapped open
+const SWIPE_OPEN = 96
+
+// Volume/delta number formatters — pure, hoisted so they aren't rebuilt per render.
+const fmtVol = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`)
+const fmtDelta = (v: number) => {
+  const abs = Math.abs(v)
+  return abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : Math.round(abs).toString()
+}
+
 // ─── Inline editable set row ──────────────────────────────────────────────────
+//
+// Every visible row is now backed by a real Set (the Session Snapshot
+// materialises Planned Sets at Start — see ADR-0008). Tapping toggles done;
+// swiping left soft-removes the Set.
 
 function InlineSetRow({
   set,
@@ -40,11 +55,9 @@ function InlineSetRow({
   const [weight, setWeight] = useState(set.weightKg ?? 0)
   const [reps, setReps] = useState(set.reps ?? 8)
   const [prevSet, setPrevSet] = useState(set)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDirtyRef = useRef(false)
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressDidFireRef = useRef(false)
+  const { dragX, dragging, revealed, close, consumeDrag, swipeHandlers } = useSwipeReveal(SWIPE_OPEN)
 
   // eslint-disable-next-line react-hooks/refs
   if (!isDirtyRef.current && (set.weightKg !== prevSet.weightKg || set.reps !== prevSet.reps)) {
@@ -56,7 +69,6 @@ function InlineSetRow({
   useEffect(() => {
     return () => {
       if (debounceRef.current) { clearTimeout(debounceRef.current) }
-      if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current) }
     }
   }, [])
 
@@ -79,65 +91,41 @@ function InlineSetRow({
     scheduleUpdate(weight, v)
   }
 
-  const handlePressStart = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('button')) { return }
-    longPressTimerRef.current = setTimeout(() => {
-      longPressDidFireRef.current = true
-      setShowDeleteConfirm(true)
-      longPressTimerRef.current = null
-    }, 500)
-  }
-
-  const handlePressEnd = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
-  }
-
   const handleRowClick = (e: React.MouseEvent) => {
-    if (showDeleteConfirm) { return }
-    if ((e.target as HTMLElement).closest('button')) { return }
-    if (longPressDidFireRef.current) {
-      longPressDidFireRef.current = false
-      return
-    }
+    if ((e.target as HTMLElement).closest('button, input')) { return }
+    if (consumeDrag()) { return }
+    if (revealed) { close(); return }
     onToggleDone()
   }
 
   const isDone = set.done
 
   return (
-    <div
-      className={cn('border-border/40 border-b px-4 pt-4 pb-5 transition-colors', isDone && 'bg-primary')}
-      style={{ touchAction: 'pan-y' }}
-      onClick={handleRowClick}
-      onPointerDown={handlePressStart}
-      onPointerLeave={handlePressEnd}
-      onPointerUp={handlePressEnd}
-    >
-      {showDeleteConfirm ? (
-        <div className="flex h-16 items-center justify-between gap-3">
-          <span className="text-sm font-semibold">Remove this set?</span>
-          <div className="flex gap-2">
-            <button
-              className="border-border h-10 rounded-xl border px-4 text-sm font-semibold"
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false) }}
-            >
-              Cancel
-            </button>
-            <button
-              className="bg-destructive text-destructive-foreground h-10 rounded-xl px-4 text-sm font-semibold disabled:opacity-40"
-              disabled={isDeletePending}
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onDelete() }}
-            >
-              {isDeletePending ? '…' : 'Delete'}
-            </button>
-          </div>
-        </div>
-      ) : (
+    <div className="border-border/40 relative overflow-hidden border-b">
+      {/* Remove affordance revealed by swiping left (soft-removes the Set) */}
+      <div className="bg-destructive text-destructive-foreground absolute inset-y-0 right-0 flex items-center">
+        <button
+          className="flex h-full items-center justify-center gap-1.5 text-sm font-semibold disabled:opacity-50"
+          disabled={isDeletePending}
+          style={{ width: SWIPE_OPEN }}
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete() }}
+        >
+          {isDeletePending ? '…' : <><Trash2 size={18} />Remove</>}
+        </button>
+      </div>
+
+      {/* Swipeable foreground */}
+      <div
+        className={cn(
+          'px-4 pt-4 pb-5',
+          isDone ? 'bg-primary' : 'bg-background',
+          !dragging && 'transition-transform',
+        )}
+        style={{ touchAction: 'pan-y', transform: `translateX(${dragX}px)` }}
+        onClick={handleRowClick}
+        {...swipeHandlers}
+      >
         <div className="grid grid-cols-2 gap-3">
           <NumericInput
             bigStep={5}
@@ -166,125 +154,7 @@ function InlineSetRow({
             onChange={handleRepsChange}
           />
         </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Pending (not-yet-logged) set row ─────────────────────────────────────────
-
-function PendingSetRow({
-  index,
-  defaultWeight,
-  defaultReps,
-  progressionSuggestion,
-  lastDoneWeightKg,
-  lastDoneReps,
-  onLog,
-}: {
-  index: number
-  defaultWeight: number
-  defaultReps: number
-  progressionSuggestion?: { suggestedWeightKg: number; suggestedReps: number; reason: string; evidence: string[] } | null
-  lastDoneWeightKg?: number | null
-  lastDoneReps?: number | null
-  onLog: (weightKg: number, reps: number) => void
-}) {
-  const [weight, setWeight] = useState(defaultWeight)
-  const [reps, setReps] = useState(defaultReps)
-  const [showReason, setShowReason] = useState(false)
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressDidFireRef = useRef(false)
-
-  const handlePressStart = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('button')) { return }
-    longPressTimerRef.current = setTimeout(() => {
-      longPressDidFireRef.current = true
-      longPressTimerRef.current = null
-    }, 500)
-  }
-
-  const handlePressEnd = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
-  }
-
-  const handleRowClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) { return }
-    if (longPressDidFireRef.current) {
-      longPressDidFireRef.current = false
-      return
-    }
-    onLog(weight, reps)
-  }
-
-  const hasPs = !!progressionSuggestion
-  const hasLastDone = lastDoneWeightKg != null || lastDoneReps != null
-
-  return (
-    <div
-      className="border-border/40 border-b px-4 pt-4 pb-5 transition-colors"
-      style={{ touchAction: 'pan-y' }}
-      onClick={handleRowClick}
-      onPointerDown={handlePressStart}
-      onPointerLeave={handlePressEnd}
-      onPointerUp={handlePressEnd}
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <NumericInput
-          bigStep={5}
-          fieldKey={`pending-weight-${index}`}
-          highlighted={hasPs}
-          label="WEIGHT"
-          max={300}
-          min={0}
-          size="lg"
-          step={2.5}
-          value={weight}
-          onChange={setWeight}
-        />
-        <NumericInput
-          bigStep={5}
-          fieldKey={`pending-reps-${index}`}
-          highlighted={hasPs}
-          label="REPS"
-          max={50}
-          min={1}
-          size="lg"
-          step={1}
-          value={reps}
-          onChange={setReps}
-        />
       </div>
-
-      {hasPs && (
-        <div className="mt-2 space-y-1">
-          {hasLastDone && (
-            <p className="text-muted-foreground text-[11px]">
-              Previous: {lastDoneWeightKg ?? 0}kg × {lastDoneReps ?? 0} reps
-            </p>
-          )}
-          <button
-            className="text-primary text-[11px] underline-offset-2 hover:underline"
-            type="button"
-            onClick={e => { e.stopPropagation(); setShowReason(v => !v) }}
-          >
-            {showReason ? 'Hide reason' : 'Why this weight?'}
-          </button>
-          {showReason && (
-            <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
-              <p className="text-[12px] leading-snug">{progressionSuggestion!.reason}</p>
-              <ul className="list-disc list-inside space-y-0.5">
-                {progressionSuggestion!.evidence.map(e => (
-                  <li key={e} className="text-muted-foreground text-[11px]">{e}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -320,12 +190,6 @@ function ExerciseSummaryBar({
     : hasTemplate && defaultWeightKg > 0 ? defaultSets * defaultReps * defaultWeightKg : null
 
   const compLabel = hasPrev ? 'last time' : hasTemplate ? 'template' : null
-
-  const fmtVol = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`)
-  const fmtDelta = (v: number) => {
-    const abs = Math.abs(v)
-    return abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : Math.round(abs).toString()
-  }
 
   const deltaReps = wasReps !== null ? nowReps - wasReps : null
   const deltaVol = wasVol !== null ? nowVol - wasVol : null
@@ -378,18 +242,12 @@ function ExerciseSummaryBar({
   )
 }
 
-// ─── Adjacent exercise strip ───────────────────────────────────────────────────
-
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { activeExerciseIndex, nextExercise, prevExercise } = useWorkoutStore()
-  const [newSetWeight, setNewSetWeight] = useState(0)
-  const [newSetReps, setNewSetReps] = useState(8)
-  const newSetInitialized = useRef(false)
-  const [prevActiveExerciseIndex, setPrevActiveExerciseIndex] = useState(activeExerciseIndex)
 
   const [showPicker, setShowPicker] = useState(false)
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null)
@@ -405,6 +263,8 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     queryFn: () => workoutsApi.getSession(sessionId),
   })
 
+  // The Template is still fetched only for its per-Exercise defaults (used by the
+  // "vs template" summary fallback). Structure now comes from the Session Snapshot.
   const { data: template } = useQuery({
     queryKey: queryKeys.template(session?.templateId),
     queryFn: () => workoutsApi.getTemplate(session!.templateId!),
@@ -428,66 +288,62 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     return map
   }, [allExercises])
 
-  const exercises = useMemo(() => {
-    if (template) {
-      return template.exercises
-        .slice()
-        .sort((a, b) => a.orderIndex - b.orderIndex)
-        .map(te => ({
-          id: te.exerciseId!,
-          name: exerciseNameMap[te.exerciseId!] ?? 'Exercise',
-          defaultSets: te.defaultSets ?? 3,
+  const templateDefaults = useMemo(() => {
+    const map: Record<string, { defaultSets: number; defaultReps: number; defaultWeightKg: number }> = {}
+    template?.exercises.forEach(te => {
+      if (te.exerciseId) {
+        map[te.exerciseId] = {
+          defaultSets: te.defaultSets ?? 0,
           defaultReps: te.defaultReps ?? 8,
           defaultWeightKg: te.defaultWeightKg ?? 0,
-          loggedSets: (session?.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId),
+        }
+      }
+    })
+    return map
+  }, [template])
+
+  // Exercise list = the Session Snapshot (session.exercises), ordered. Freeform
+  // sessions have no snapshot, so derive the list from their Sets. Removed Sets
+  // (removedAt != null) are hidden from the logger.
+  const exercises = useMemo(() => {
+    const liveSets = (exId: string) =>
+      (session?.sets ?? [])
+        .filter((s: WorkoutSet) => s.exerciseId === exId && s.removedAt == null)
+        .sort((a, b) => a.setNumber - b.setNumber || a.id.localeCompare(b.id))
+
+    const snapshot = session?.exercises ?? []
+    if (snapshot.length > 0) {
+      return snapshot
+        .slice()
+        .sort((a, b) => a.orderIndex - b.orderIndex)
+        .map(se => ({
+          id: se.exerciseId,
+          name: exerciseNameMap[se.exerciseId] ?? 'Exercise',
+          defaultSets: templateDefaults[se.exerciseId]?.defaultSets ?? 0,
+          defaultReps: templateDefaults[se.exerciseId]?.defaultReps ?? 8,
+          defaultWeightKg: templateDefaults[se.exerciseId]?.defaultWeightKg ?? 0,
+          loggedSets: liveSets(se.exerciseId),
         }))
     }
     if (!session?.sets) { return [] }
-    const ids = [...new Set(session.sets.map((s: WorkoutSet) => s.exerciseId))]
+    const ids = [...new Set(session.sets.filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId))]
     return ids.map(id => ({
       id,
       name: exerciseNameMap[id] ?? 'Exercise',
       defaultSets: 0,
       defaultReps: 8,
       defaultWeightKg: 0,
-      loggedSets: session.sets.filter((s: WorkoutSet) => s.exerciseId === id),
+      loggedSets: liveSets(id),
     }))
-  }, [template, session, exerciseNameMap])
+  }, [session, templateDefaults, exerciseNameMap])
 
   const currentExercise = exercises[activeExerciseIndex]
   const nextExerciseData = activeExerciseIndex < exercises.length - 1 ? exercises[activeExerciseIndex + 1] : null
   const loggedCount = currentExercise?.loggedSets.length ?? 0
   const doneCount = currentExercise?.loggedSets.filter((s: WorkoutSet) => s.done).length ?? 0
 
-  // Single seam for the Set Pre-population Hierarchy
-  // (Progression Suggestion → last-done Set → Template default → fallback).
-  const { prepopulated, prevSets, lastDoneSet, progressionSuggestion } =
-    usePrepopulatedSet(currentExercise)
-
-  // Initial population.
-  // eslint-disable-next-line react-hooks/refs
-  if (currentExercise && !newSetInitialized.current) {
-    newSetInitialized.current = true
-    setNewSetWeight(prepopulated.weightKg)
-    setNewSetReps(prepopulated.reps)
-  }
-
-  // A progression suggestion arriving (async) overrides the pending set.
-  useEffect(() => {
-    if (progressionSuggestion) {
-      /* eslint-disable react-hooks/set-state-in-effect */
-      setNewSetWeight(progressionSuggestion.suggestedWeightKg)
-      setNewSetReps(progressionSuggestion.suggestedReps)
-      /* eslint-enable react-hooks/set-state-in-effect */
-    }
-  }, [progressionSuggestion])
-
-  // Re-sync when navigating to a different exercise.
-  if (currentExercise && prevActiveExerciseIndex !== activeExerciseIndex) {
-    setPrevActiveExerciseIndex(activeExerciseIndex)
-    setNewSetWeight(prepopulated.weightKg)
-    setNewSetReps(prepopulated.reps)
-  }
+  // Last finished Session's Sets for this Exercise — drives the "vs last time" summary.
+  const { prevSets } = usePrepopulatedSet(currentExercise)
 
   useEffect(() => {
     const startedAt = session?.startedAt
@@ -503,10 +359,11 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       setsApi.updateSet(sessionId, setId, { done }),
     onSuccess: (_, { setId, done }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
-      if (done && template && currentExercise && currentExercise.defaultSets > 0) {
-        const allLogged = currentExercise.loggedSets.length >= currentExercise.defaultSets
-        const allOtherDone = currentExercise.loggedSets.every(s => s.id === setId || s.done)
-        if (allLogged && allOtherDone) { setAllDoneOpen(true) }
+      if (done && isTemplateBased && currentExercise) {
+        const allDone =
+          currentExercise.loggedSets.length > 0 &&
+          currentExercise.loggedSets.every(s => s.id === setId || s.done)
+        if (allDone) { setAllDoneOpen(true) }
       }
     },
   })
@@ -518,15 +375,17 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     },
   })
 
-  const freeLogSet = useMutation({
+  // Add a Set to the current Exercise, carrying the last Set's numbers forward.
+  const addSet = useMutation({
     mutationFn: () => {
-      const id = selectedExerciseId ?? currentExercise?.id
-      if (!id) { throw new Error('No exercise selected') }
+      const exId = currentExercise?.id ?? selectedExerciseId
+      if (!exId) { throw new Error('No exercise selected') }
+      const last = currentExercise?.loggedSets.at(-1)
       return setsApi.logSet(sessionId, {
-        exerciseId: id,
+        exerciseId: exId,
         setNumber: (currentExercise?.loggedSets.length ?? 0) + 1,
-        reps: newSetReps,
-        weightKg: newSetWeight,
+        reps: last?.reps ?? 8,
+        weightKg: last?.weightKg ?? 0,
         done: false,
       })
     },
@@ -535,28 +394,6 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
       if ('vibrate' in navigator) { navigator.vibrate(50) }
       setSelectedExerciseId(null)
       setSelectedExerciseName(null)
-    },
-  })
-
-  const logSet = useMutation({
-    mutationFn: ({ weightKg, reps }: { weightKg: number; reps: number }) => {
-      if (!currentExercise) { throw new Error('No exercise') }
-      return setsApi.logSet(sessionId, {
-        exerciseId: currentExercise.id,
-        setNumber: loggedCount + 1,
-        reps,
-        weightKg,
-        done: false,
-      })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
-      if ('vibrate' in navigator) { navigator.vibrate(50) }
-      if (template && currentExercise && currentExercise.defaultSets > 0) {
-        const newLength = currentExercise.loggedSets.length + 1
-        const allOtherDone = currentExercise.loggedSets.every((s: WorkoutSet) => s.done)
-        if (newLength >= currentExercise.defaultSets && allOtherDone) { setAllDoneOpen(true) }
-      }
     },
   })
 
@@ -577,10 +414,8 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
     },
   })
 
-
-
-  const isTemplateBased = !!template
-  const isLogPending = isTemplateBased ? logSet.isPending : freeLogSet.isPending
+  const isTemplateBased = !!session?.templateId
+  const canAddSet = isTemplateBased ? !!currentExercise : !!(selectedExerciseId ?? currentExercise?.id)
 
   if (showPicker) {
     return (
@@ -663,55 +498,26 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         </div>
       ) : null}
 
-      {/* Set rows */}
+      {/* Set rows — every row is a real (Planned or Done) Set from the snapshot */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {isTemplateBased && currentExercise
-          ? Array.from({ length: Math.max(currentExercise.defaultSets, currentExercise.loggedSets.length) }).map((_, i) => {
-              const s = currentExercise.loggedSets[i] as WorkoutSet | undefined
-              if (s) {
-                return (
-                  <InlineSetRow
-                    key={s.id}
-                    isDeletePending={deleteSet.isPending && deleteSet.variables === s.id}
-                    set={s}
-                    onDelete={() => deleteSet.mutate(s.id)}
-                    onToggleDone={() => toggleDone.mutate({ setId: s.id, done: !s.done })}
-                    onUpdate={(data) => updateSet.mutate({ setId: s.id, data })}
-                  />
-                )
-              }
-              return (
-                <PendingSetRow
-                  key={`${currentExercise?.id}-${progressionSuggestion ? 'ps' : 'no-ps'}`}
-                  defaultReps={newSetReps}
-                  defaultWeight={newSetWeight}
-                  index={i}
-                  lastDoneReps={lastDoneSet?.reps}
-                  lastDoneWeightKg={lastDoneSet?.weightKg}
-                  progressionSuggestion={progressionSuggestion}
-                  onLog={(weightKg, reps) => logSet.mutate({ weightKg, reps })}
-                />
-              )
-            })
-          : currentExercise?.loggedSets.map((s: WorkoutSet) => (
-              <InlineSetRow
-                key={s.id}
-                isDeletePending={deleteSet.isPending && deleteSet.variables === s.id}
-                set={s}
-                onDelete={() => deleteSet.mutate(s.id)}
-                onToggleDone={() => toggleDone.mutate({ setId: s.id, done: !s.done })}
-                onUpdate={(data) => updateSet.mutate({ setId: s.id, data })}
-              />
-            ))
-        }
+        {currentExercise?.loggedSets.map((s: WorkoutSet) => (
+          <InlineSetRow
+            key={s.id}
+            isDeletePending={deleteSet.isPending && deleteSet.variables === s.id}
+            set={s}
+            onDelete={() => deleteSet.mutate(s.id)}
+            onToggleDone={() => toggleDone.mutate({ setId: s.id, done: !s.done })}
+            onUpdate={(data) => updateSet.mutate({ setId: s.id, data })}
+          />
+        ))}
 
-        {/* Free workout: empty state */}
-        {!isTemplateBased && !currentExercise?.loggedSets.length && (
+        {/* Empty state (freeform with no exercise, or an exercise with all sets removed) */}
+        {!currentExercise?.loggedSets.length && (
           <div className="flex flex-col items-center justify-center gap-3 py-10">
             <div className="bg-muted flex size-12 items-center justify-center rounded-full">
               <Plus className="text-muted-foreground" size={24} />
             </div>
-            {!(selectedExerciseId ?? currentExercise?.id) ? (
+            {!isTemplateBased && !(selectedExerciseId ?? currentExercise?.id) ? (
               <div className="text-center">
                 <p className="font-semibold">No exercise selected</p>
                 <p className="text-muted-foreground mt-1 text-sm">Tap "Add" to select one</p>
@@ -723,12 +529,12 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         )}
 
         {/* Add set link */}
-        {(isTemplateBased ? !!currentExercise : !!(selectedExerciseId ?? currentExercise?.id)) && (
+        {canAddSet && (
           <button
             className="text-muted-foreground active:bg-muted/50 flex w-full items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors disabled:opacity-40"
-            disabled={isLogPending}
+            disabled={addSet.isPending}
             type="button"
-            onClick={() => isTemplateBased ? logSet.mutate({ weightKg: newSetWeight, reps: newSetReps }) : freeLogSet.mutate()}
+            onClick={() => addSet.mutate()}
           >
             <Plus size={15} strokeWidth={2} />
             Add set

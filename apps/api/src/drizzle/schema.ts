@@ -60,7 +60,21 @@ export const sets = pgTable('sets', {
   rpe: real('rpe'),
   completedAt: integer('completed_at'),
   done: integer('done').default(0),
+  // Soft-removal timestamp. A non-null value means the user dropped this Set
+  // from the Session; it is hidden from the logger but kept for statistics.
+  removedAt: integer('removed_at'),
   notes: text('notes'),
+  equipmentId: text('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
+})
+
+// The Session Snapshot's ordered exercise list, copied from the Workout Template
+// (or built ad hoc for freeform Sessions) at Start. Structure is owned by the
+// Session from then on; the Template is never read live again.
+export const sessionExercises = pgTable('session_exercises', {
+  id: text('id').primaryKey(),
+  sessionId: text('session_id').references(() => workoutSessions.id),
+  exerciseId: text('exercise_id').references(() => exercises.id),
+  orderIndex: integer('order_index').notNull(),
   equipmentId: text('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
 })
 
