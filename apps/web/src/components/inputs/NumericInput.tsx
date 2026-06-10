@@ -52,10 +52,11 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
           {!readOnly && editing ? (
             <input
               ref={inputRef}
-              className={`h-full w-full bg-transparent text-center font-bold tabular-nums outline-none ${lg ? 'text-2xl' : 'text-xl'}`}
+              className={`font-display font-700 h-full w-full bg-transparent text-center tracking-wide tabular-nums outline-none ${lg ? 'text-3xl' : 'text-2xl'}`}
               defaultValue={value === 0 ? '' : value}
               type="number"
               autoFocus
+              onFocus={e => e.target.select()}
               onBlur={e => {
                 onChange(clamp(parseFloat(e.target.value) || value))
                 setEditing(false)
