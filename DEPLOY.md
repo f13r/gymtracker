@@ -18,9 +18,11 @@ SQLite→Postgres migration).
 - **Process manager**: PM2 via `ecosystem.config.js` (repo root). The PM2 app sets
   `cwd: apps/api`, so the API loads `apps/api/.env` at runtime — the **same** env file
   `db:migrate` uses. There is **one** source of truth for `DATABASE_URL`: `apps/api/.env`.
-- **Web server**: Nginx serves `apps/web/dist` and proxies `/api/` → `127.0.0.1:3000`.
+- **Web server**: Nginx listens on **port 8095** (the public port — there is no `:80` vhost
+  for this app), serves `apps/web/dist`, and proxies `/api/` → `127.0.0.1:3000`.
 - **Paths**: repo `/var/www/gymtracker`; uploaded photos `/var/data/gymtracker/photos`.
-- **API port**: 3000 (internal only).
+- **Ports**: API **3000** (internal only); Nginx public **8095**. Hitting `http://localhost/`
+  (port 80) returns 404 — always use `http://localhost:8095/`.
 - **Node**: v22.x.
 
 ---
@@ -92,8 +94,19 @@ including the `vector(768)` coaching-knowledge embeddings. It is restored **as t
 superuser** (so the pgvector extension can be created) but with `SET ROLE gymtracker` so every
 restored object ends up **owned by the `gymtracker` app role**.
 
+> **Two operational gotchas before you run this:**
+> - **Stop the API first.** If `pm2 gymtracker` is running it holds open connections, so
+>   `DROP DATABASE` fails with `database "gymtracker" is being accessed by other users`.
+>   Run `pm2 stop gymtracker` before the drop and `pm2 start ecosystem.config.js --env production`
+>   after the restore.
+> - **Run it from a real terminal** (so `sudo` uses cached credentials). The recipe pipes SQL into
+>   `sudo -u postgres psql` over stdin; in a non-interactive shell `sudo`'s password prompt and the
+>   piped SQL fight over stdin. If sudo isn't pre-authenticated, run `sudo -v` first, or open a
+>   `sudo -u postgres psql` session and `\i` the file.
+
 ```bash
 cd /var/www/gymtracker
+pm2 stop gymtracker 2>/dev/null || true   # release DB connections; DROP fails while the API holds them
 # (Re)create an empty DB owned by the app role. DESTRUCTIVE — only at cutover.
 sudo -u postgres psql -v ON_ERROR_STOP=1 <<'SQL'
 DROP DATABASE IF EXISTS gymtracker;
@@ -186,7 +199,9 @@ EOF
 
 ### 6. Nginx + GitHub Actions auto-deploy
 Follow `docs/server-setup.md` **Step 9** (Nginx site) and **Steps 11–12** (SSH key + secrets).
-Those parts are still accurate.
+Those parts are still accurate **except the listen port**: this app's vhost listens on
+**`8095`**, not `80` (and `server-setup.md`'s verify `curl http://localhost/...` lines should be
+`http://localhost:8095/...`). The `proxy_pass` to `127.0.0.1:3000` is correct.
 
 ---
 
@@ -244,8 +259,8 @@ ls apps/api/dist/main.js apps/web/dist/index.html      # build artifacts exist
 pm2 status                                             # "gymtracker" is "online"
 pm2 logs gymtracker --lines 30                         # no boot errors
 curl -fsS http://localhost:3000/api/health             # API up (direct)
-curl -fsS http://localhost/api/health                  # API up (via Nginx)
-curl -s http://localhost/ | grep -o '<title>.*</title>'# SPA served
+curl -fsS http://localhost:8095/api/health             # API up (via Nginx — public port 8095, NOT 80)
+curl -s http://localhost:8095/ | grep -o '<title>.*</title>'  # SPA served
 ```
 
 ---
@@ -261,6 +276,8 @@ curl -s http://localhost/ | grep -o '<title>.*</title>'# SPA served
 | API boots then crashes on DB calls | Runtime read the wrong `DATABASE_URL` | Confirm PM2 `cwd: apps/api` and that no `DATABASE_URL` is set in `ecosystem.config.js` (it must come from `.env`) |
 | API exits immediately on boot, log mentions `GEMINI_API_KEY` / `getOrThrow` | `GEMINI_API_KEY` missing/empty in `apps/api/.env` | Set a real `GEMINI_API_KEY` in `.env` (step 5), then `pm2 reload …` |
 | Restore aborts on `must be owner of extension vector` | Snapshot still has the `COMMENT ON EXTENSION` line | Regenerate the snapshot with the `grep -v "^COMMENT ON EXTENSION vector"` filter (see "Regenerating the snapshot") |
+| `DROP DATABASE` fails: `database "gymtracker" is being accessed by other users` | The API (PM2) still holds connections | `pm2 stop gymtracker` before the drop; `pm2 start ecosystem.config.js --env production` after the restore |
+| `curl http://localhost/...` → 404 / connection refused | Nginx public port is **8095**, not 80 | Use `http://localhost:8095/` (see Architecture → Ports) |
 
 **See the real migrate error** (drizzle-kit hides it). Test the connection directly — this prints
 the `pg` error that `db:migrate` swallows:
