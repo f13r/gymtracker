@@ -194,6 +194,35 @@ the top of this section applies every time.
 
 ---
 
+## Automated deploys
+
+Two GitHub Actions workflows run on the **self-hosted runner on this box** (service
+`actions.runner.f13r-gymtracker.homeserver`, user `f13r`):
+
+- **`deploy.yml` — code deploy, automatic on push to `main`.** Runs the idempotent **Deploy /
+  start** block (build → `db:migrate` → `pm2 reload`). Never touches data. This is the everyday path.
+- **`ai-deploy.yml` — data resync, manual button (DESTRUCTIVE).** A headless Claude Code agent
+  (`claude -p` with the prompt in `.github/ai-deploy-prompt.md`, authed via the runner user's
+  `~/.claude` subscription creds) reads this file and performs the **"Restore the production data
+  snapshot"** recipe. Trigger it from **Actions → AI Deploy (data resync) → Run workflow**, typing
+  `RESTORE` to confirm. It is `workflow_dispatch`-only, so it can never fire on push. The agent
+  always `pg_dump`s a backup to `/var/data/gymtracker/pre-restore-<ts>.sql` before dropping, and
+  aborts (leaving the DB intact) if the backup or preconditions fail. To push local data to prod:
+  refresh + commit + push the snapshot (see "Regenerating the snapshot"), then click Run.
+
+### Non-interactive sudo (required by both the runner and any agent)
+The runner has **no tty**, so `sudo -u postgres …` can't prompt for a password. A scoped sudoers
+drop-in makes exactly the two restore/backup commands passwordless for `f13r` —
+`/etc/sudoers.d/gymtracker-deploy` (mode 440):
+```
+f13r ALL=(postgres) NOPASSWD: /usr/bin/psql, /usr/bin/pg_dump
+```
+With it, every `sudo -u postgres psql|pg_dump` in this doc works verbatim unattended. Recreate it
+on a fresh box (`visudo -c -f` to validate). For ad-hoc interactive sudo in an agent shell without
+this rule, the fallback is a `SUDO_ASKPASS` helper + `sudo -A` (the runner doesn't need it).
+
+---
+
 ## One-time provisioning
 
 Skip any step already satisfied. Run as a non-root sudo user (examples assume `ubuntu`).
