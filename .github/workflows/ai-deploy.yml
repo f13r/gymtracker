@@ -46,8 +46,17 @@ jobs:
           set -euo pipefail
           cd /var/www/gymtracker
           test -f .github/ai-deploy-prompt.md
+          # Scoped tool grant instead of --dangerously-skip-permissions: the agent can only run
+          # the command families the restore needs. Privileged DB access is further constrained at
+          # the OS layer by /etc/sudoers.d/gymtracker-deploy (sudo limited to psql/pg_dump as postgres).
           claude -p "$(cat .github/ai-deploy-prompt.md)" \
-            --dangerously-skip-permissions \
             --output-format text \
+            --add-dir /var/data/gymtracker \
+            --allowedTools \
+              "Read" \
+              "Bash(git:*)" "Bash(pm2:*)" "Bash(sudo:*)" \
+              "Bash(psql:*)" "Bash(pg_dump:*)" \
+              "Bash(curl:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(test:*)" \
+              "Bash(grep:*)" "Bash(mktemp:*)" "Bash(echo:*)" "Bash(date:*)" \
             | tee /tmp/ai-deploy.log
           echo "---- AI deploy finished ----"
