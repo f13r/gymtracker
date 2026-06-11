@@ -1,6 +1,6 @@
 {
   "name": "@gymtracker/shared",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "types": "./dist/index.d.ts",

@@ -27,6 +27,27 @@ SQLite→Postgres migration).
 
 ---
 
+## This server (read before a routine update)
+
+The provisioning sections below were done long ago; a **recurring update** only needs these facts:
+
+- **This host IS production — there is no SSH hop.** The Beelink Mini-PC (`192.168.50.69`,
+  user `f13r`) is the prod server. Deploy by running the **Deploy / start** block directly on it.
+- **Two checkouts live on this box** — don't confuse them:
+  - `/var/www/gymtracker` — the **production** checkout PM2 + Nginx serve. **Deploy here.**
+  - `/home/f13r/html/gymtracker` — a dev/working checkout. Not served; never deploy from it.
+- **Already cut over to Postgres + pgvector and seeded** (54 exercises, 20 `coaching_knowledge`,
+  `vector` extension present, journal at 11). So a routine update is **just the Deploy / start
+  block** — `db:migrate` is a no-op until a new migration lands. **Do not** run the snapshot
+  restore (it's destructive, cutover/resync-only).
+- **`sudo` is non-interactive here.** For psql/postgres admin from an agent shell, pipe the
+  password from the global `~/.claude/CLAUDE.md`:
+  `echo Ser38dik | sudo -S -p '' -u postgres psql -d gymtracker -c "…"`.
+- **Quick deploy:** the `/deploy` slash command (`.claude/commands/deploy.md`) wraps the
+  Deploy / start block + verification with the correct port (8095) and sudo handling.
+
+---
+
 ## ⚠️ Two settings that have broken this deploy before
 
 1. **`DATABASE_URL` must be a Postgres URL — never a file path.** The `pg` driver parses a
