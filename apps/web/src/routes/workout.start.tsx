@@ -18,12 +18,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScheduleDrawer } from '@/components/workout/ScheduleDrawer'
-import { useWorkoutStore } from '@/stores/workout.store'
 
 export function WorkoutStartPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const setActiveSession = useWorkoutStore(s => s.setActiveSession)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [scheduleTemplateId, setScheduleTemplateId] = useState<string | null>(null)
 
@@ -36,7 +34,6 @@ export function WorkoutStartPage() {
     mutationFn: ({ templateId, name }: { templateId?: string; name: string }) =>
       workoutsApi.startSession({ name, templateId }),
     onSuccess: session => {
-      setActiveSession(session.id)
       queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
       navigate({ to: '/workout/$sessionId', params: { sessionId: session.id } })
     },

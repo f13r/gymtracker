@@ -74,6 +74,14 @@ _Avoid_: copy, materialised plan, instance
 A Session whose `finishedAt` is null. Only one Session can be active at a time per user.
 _Avoid_: open session, in-progress workout
 
+**Active Exercise**:
+The single Exercise within the Active Session that the user is currently logging — the one the logger is focused on. A navigation concept, not a persisted domain attribute of the Session: it is part of *where the user is in the app*, addressable so that a refresh returns the user to the same Exercise. There is **at most one** Active Exercise, and only while the user is in the logger: when none is chosen the user is at the **overview** (the list of all the Session's exercises), not in the logger. Choosing an Exercise from the overview makes it the Active Exercise; leaving the logger with none chosen returns to the overview. Distinct from **Exercise Done** (a completed-state of an Exercise's Sets) — the Active Exercise may be done, partially done, or untouched.
+_Avoid_: current exercise, focused exercise, selected exercise
+
+**Overview**:
+The view of the Active Session as a whole — the ordered list of all its exercises with their progress — from which the user picks which Exercise to log. The home base of an in-progress Session: where the user is when no **Active Exercise** is chosen. Choosing an Exercise here opens the logger on it; finishing or leaving an Exercise returns here.
+_Avoid_: dashboard, hub, summary
+
 **Set**:
 A single recorded effort within a Session for a given Exercise: reps, weight, RPE, or duration. A Set is in one of **three** states: **Done** (`done = 1`), **Planned** (`done = 0`, not removed), or **Removed** (soft-removed via a non-null `removedAt`). Removed Sets are hidden from the logger but retained in the database so statistics can tell a deliberately-dropped set apart from a missed one. There is no hard delete of a snapshotted Set.
 _Avoid_: rep, effort, entry
@@ -198,6 +206,7 @@ _Avoid_: sessions per week, training frequency
 - **"warmup"**: `isWarmup` existed on Sets and TemplateExercises but has been removed. The concept may return with a better model in the future.
 - **"cardio volume"**: `reps × weight` is undefined for duration-based exercises. Cardio volume is deferred; no canonical definition exists yet.
 - **"default exercise"**: Initially meant globally shared and immutable, but the correct intent is: a convenience starting library that users can delete and replace with their own exercises.
+- **"same Exercise twice in a Session"**: The logger identifies an Exercise within a Session by its `exerciseId` (and the **Active Exercise** is addressed by `exerciseId`). A Session containing the same Exercise twice (e.g. a Template listing it twice, or a freeform add of an already-present Exercise) is therefore not currently representable in the logger — the two entries collide. Unsupported today; no canonical model for repeated Exercises within one Session yet.
 
 ## Planned features
 

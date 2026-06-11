@@ -1,5 +1,5 @@
 import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common'
-import { eq, and, asc, desc, sql } from 'drizzle-orm'
+import { eq, and, asc, desc } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { CreateTemplateDto, FinishSessionDto, StartSessionDto, UpdateTemplateDto } from '@gymtracker/shared'
@@ -64,16 +64,14 @@ export class WorkoutsService {
       .insert(schema.workoutTemplates)
       .values({ id, userId, name: dto.name, notes: dto.notes ?? null, createdAt: now })
     for (const ex of dto.exercises) {
-      await this.db
-        .insert(schema.templateExercises)
-        .values({
-          id: randomUUID(),
-          templateId: id,
-          ...ex,
-          defaultWeightKg: ex.defaultWeightKg ?? null,
-          defaultSets: ex.defaultSets ?? null,
-          defaultReps: ex.defaultReps ?? null,
-        })
+      await this.db.insert(schema.templateExercises).values({
+        id: randomUUID(),
+        templateId: id,
+        ...ex,
+        defaultWeightKg: ex.defaultWeightKg ?? null,
+        defaultSets: ex.defaultSets ?? null,
+        defaultReps: ex.defaultReps ?? null,
+      })
     }
     return this.getTemplate(id, userId)
   }
@@ -88,18 +86,16 @@ export class WorkoutsService {
       .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
     await this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id))
     for (const ex of dto.exercises) {
-      await this.db
-        .insert(schema.templateExercises)
-        .values({
-          id: randomUUID(),
-          templateId: id,
-          exerciseId: ex.exerciseId,
-          orderIndex: ex.orderIndex,
-          defaultSets: ex.defaultSets ?? null,
-          defaultReps: ex.defaultReps ?? null,
-          defaultWeightKg: ex.defaultWeightKg ?? null,
-          equipmentId: ex.equipmentId ?? null,
-        })
+      await this.db.insert(schema.templateExercises).values({
+        id: randomUUID(),
+        templateId: id,
+        exerciseId: ex.exerciseId,
+        orderIndex: ex.orderIndex,
+        defaultSets: ex.defaultSets ?? null,
+        defaultReps: ex.defaultReps ?? null,
+        defaultWeightKg: ex.defaultWeightKg ?? null,
+        equipmentId: ex.equipmentId ?? null,
+      })
     }
     return this.getTemplate(id, userId)
   }
@@ -108,9 +104,14 @@ export class WorkoutsService {
     await this.getTemplate(id, userId)
     await this.db.delete(schema.programPhaseTemplates).where(eq(schema.programPhaseTemplates.templateId, id))
     await this.db.delete(schema.workoutSchedules).where(eq(schema.workoutSchedules.templateId, id))
-    await this.db.update(schema.workoutSessions).set({ templateId: null }).where(eq(schema.workoutSessions.templateId, id))
+    await this.db
+      .update(schema.workoutSessions)
+      .set({ templateId: null })
+      .where(eq(schema.workoutSessions.templateId, id))
     await this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id))
-    await this.db.delete(schema.workoutTemplates).where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
+    await this.db
+      .delete(schema.workoutTemplates)
+      .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
   }
 
   async getSessions(userId: string) {
@@ -158,9 +159,11 @@ export class WorkoutsService {
       throw new BadRequestException('A session is already active')
     }
     const id = randomUUID()
-    await this.db
-      .insert(schema.workoutSessions)
-      .values({
+    // The session row, its program-phase link, and the whole plan snapshot are
+    // written atomically: a mid-snapshot failure must leave no session and no
+    // partial set of session_exercises/sets rows behind. Per ADR-0008.
+    await this.db.transaction(async tx => {
+      await tx.insert(schema.workoutSessions).values({
         id,
         userId,
         templateId: dto.templateId ?? null,
@@ -170,22 +173,23 @@ export class WorkoutsService {
         notes: null,
       })
 
-    if (dto.templateId) {
-      const [phaseTemplate] = await this.db
-        .select({ phaseId: schema.programPhaseTemplates.phaseId })
-        .from(schema.programPhaseTemplates)
-        .where(eq(schema.programPhaseTemplates.templateId, dto.templateId))
-        .limit(1)
+      if (dto.templateId) {
+        const [phaseTemplate] = await tx
+          .select({ phaseId: schema.programPhaseTemplates.phaseId })
+          .from(schema.programPhaseTemplates)
+          .where(eq(schema.programPhaseTemplates.templateId, dto.templateId))
+          .limit(1)
 
-      if (phaseTemplate) {
-        await this.db
-          .update(schema.workoutSessions)
-          .set({ programPhaseId: phaseTemplate.phaseId })
-          .where(eq(schema.workoutSessions.id, id))
+        if (phaseTemplate) {
+          await tx
+            .update(schema.workoutSessions)
+            .set({ programPhaseId: phaseTemplate.phaseId })
+            .where(eq(schema.workoutSessions.id, id))
+        }
+
+        await this.snapshotPlan(tx, id, userId, dto.templateId)
       }
-
-      await this.snapshotPlan(id, userId, dto.templateId)
-    }
+    })
 
     return this.getSession(id, userId)
   }
@@ -195,17 +199,37 @@ export class WorkoutsService {
    * count) into session-owned rows, seeding each Set's reps/weight from the
    * Exercise's last-done values (Template default the first time). Per ADR-0008.
    */
-  private async snapshotPlan(sessionId: string, userId: string, templateId: string) {
-    const templateExercises = await this.db
+  private async snapshotPlan(
+    tx: NodePgDatabase<typeof schema>,
+    sessionId: string,
+    userId: string,
+    templateId: string,
+  ) {
+    // Idempotent: a Session is snapshotted exactly once. If rows already exist
+    // (a retried or future "restart" Start), do nothing rather than inserting a
+    // duplicate set of session_exercises/sets. Per ADR-0008 ("re-read at Start"
+    // applies to *new* Sessions, not re-snapshotting an existing one).
+    const [existing] = await tx
+      .select({ id: schema.sessionExercises.id })
+      .from(schema.sessionExercises)
+      .where(eq(schema.sessionExercises.sessionId, sessionId))
+      .limit(1)
+    if (existing) {
+      return
+    }
+
+    const templateExercises = await tx
       .select()
       .from(schema.templateExercises)
       .where(eq(schema.templateExercises.templateId, templateId))
       .orderBy(asc(schema.templateExercises.orderIndex))
 
     for (const te of templateExercises) {
-      if (!te.exerciseId) { continue }
+      if (!te.exerciseId) {
+        continue
+      }
 
-      await this.db.insert(schema.sessionExercises).values({
+      await tx.insert(schema.sessionExercises).values({
         id: randomUUID(),
         sessionId,
         exerciseId: te.exerciseId,
@@ -215,9 +239,10 @@ export class WorkoutsService {
 
       const setCount = te.defaultSets ?? 3
       // Last-done Done Sets for this Exercise, by set position, for number seeding.
-      const res = await this.db.execute(lastFinishedSessionSetsSql(te.exerciseId, userId))
-      const lastDone = (res.rows as Array<{ reps: number | null; weightKg: number | null; done: number }>)
-        .filter(r => r.done === 1)
+      const res = await tx.execute(lastFinishedSessionSetsSql(te.exerciseId, userId))
+      const lastDone = (res.rows as Array<{ reps: number | null; weightKg: number | null; done: number }>).filter(
+        r => r.done === 1,
+      )
 
       for (let i = 0; i < setCount; i++) {
         // Match by position; carry the last known set forward for positions
@@ -225,7 +250,7 @@ export class WorkoutsService {
         const seed = lastDone[i] ?? lastDone[lastDone.length - 1]
         const reps = seed?.reps ?? te.defaultReps ?? null
         const weightKg = seed?.weightKg ?? te.defaultWeightKg ?? null
-        await this.db.insert(schema.sets).values({
+        await tx.insert(schema.sets).values({
           id: randomUUID(),
           sessionId,
           exerciseId: te.exerciseId,

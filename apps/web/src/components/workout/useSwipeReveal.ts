@@ -3,10 +3,11 @@ import { useRef, useState } from 'react'
 /**
  * Swipe-left-to-reveal gesture for a list row.
  *
- * Tracks a horizontal drag (ignoring vertical scrolls and presses that start on
- * a button/input), exposes the live `dragX` translation, and snaps open/closed
+ * Tracks a horizontal drag (ignoring vertical scrolls and presses that start in
+ * a focused input), exposes the live `dragX` translation, and snaps open/closed
  * on release. Pointer capture is only acquired once the gesture is confirmed
- * horizontal, so vertical scrolling and taps are left untouched.
+ * horizontal, so vertical scrolling and taps — including taps on the stepper
+ * buttons the row contains — are left untouched.
  */
 export function useSwipeReveal(openWidth = 96) {
   const [dragX, setDragX] = useState(0)
@@ -19,7 +20,7 @@ export function useSwipeReveal(openWidth = 96) {
   const didDragRef = useRef(false)
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('button, input')) { return }
+    if ((e.target as HTMLElement).closest('input')) { return }
     startXRef.current = e.clientX
     startYRef.current = e.clientY
     axisRef.current = 'none'

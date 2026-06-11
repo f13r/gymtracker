@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button'
 import { ThisWeekCard } from '@/components/workout/ThisWeekCard'
 import { useSessionVolume } from '@/hooks/useSessionVolume'
 import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
-import { useWorkoutStore } from '@/stores/workout.store'
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -125,7 +124,6 @@ function WorkoutSummaryCard({
 function WorkoutHub({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { activeExerciseIndex, setActiveExerciseIndex, setActiveSession } = useWorkoutStore()
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   const { data: session } = useQuery({
@@ -201,6 +199,15 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     }))
   }, [template, session, exerciseNameMap])
 
+  // The resume target shown as "current" in the overview: the first Exercise
+  // that isn't fully done (-1 if all complete). Mirrors the logger's first-not-done
+  // resolution so the highlight matches where a tap-through lands (ADR-0009).
+  const resumeIndex = exercises.findIndex(ex => {
+    const total = ex.defaultSets > 0 ? ex.defaultSets : ex.loggedSets.length
+    const done = ex.loggedSets.filter((s: WorkoutSet) => s.done).length
+    return !(total > 0 && done >= total)
+  })
+
   const sessionSets = session?.sets ?? []
   const prevSessionDataSets = useMemo(() => prevSessionData?.sets ?? [], [prevSessionData?.sets])
   const { current: currentVolume, prev: sessionPrevVolume } = useSessionVolume(sessionSets, prevSessionDataSets)
@@ -247,7 +254,6 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   const finishWorkout = useMutation({
     mutationFn: () => workoutsApi.finishSession(sessionId),
     onSuccess: () => {
-      setActiveSession(null)
       queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
       queryClient.invalidateQueries({ queryKey: queryKeys.sessions() })
       navigate({ to: '/dashboard' })
@@ -289,7 +295,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
             const totalSets = ex.defaultSets > 0 ? ex.defaultSets : loggedCount
             const isComplete = totalSets > 0 && doneCount >= totalSets
             const isInProgress = !isComplete && loggedCount > 0
-            const isCurrent = i === activeExerciseIndex
+            // Highlight the resume target: the first not-complete Exercise. Mirrors
+            // the logger's first-not-done resolution (ADR-0009).
+            const isCurrent = i === resumeIndex
 
             return (
               <button
@@ -299,10 +307,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                   isCurrent && !isComplete && 'bg-primary/5',
                 )}
                 type="button"
-                onClick={() => {
-                  setActiveExerciseIndex(i)
-                  navigate({ to: '/workout/$sessionId', params: { sessionId } })
-                }}
+                onClick={() => navigate({ to: '/workout/$sessionId', params: { sessionId }, search: { exercise: ex.id } })}
               >
                 <div className="flex items-center gap-3">
                   {isComplete ? (
@@ -363,7 +368,6 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
 export function DashboardPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const setActiveSession = useWorkoutStore(s => s.setActiveSession)
   const [promptDismissed, setPromptDismissed] = useState(false)
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const greeting = useMemo(() => getGreeting(), [])
@@ -383,7 +387,6 @@ export function DashboardPage() {
         name: todaySchedule!.templateName,
       }),
     onSuccess: session => {
-      setActiveSession(session.id)
       queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
       queryClient.invalidateQueries({ queryKey: ['todaySchedule'] })
       navigate({ to: '/workout/$sessionId', params: { sessionId: session.id } })

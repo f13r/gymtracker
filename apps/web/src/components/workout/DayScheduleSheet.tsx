@@ -12,7 +12,6 @@ import { workoutsApi } from '@/api/workouts'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { dayLabelByTemplate, dayTitle, isSameDay, toYMD, workoutsForDate } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
-import { useWorkoutStore } from '@/stores/workout.store'
 
 interface DayScheduleSheetProps {
   /** The day whose schedule is shown. `null` keeps the sheet closed. */
@@ -24,7 +23,6 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
   const open = date != null
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const setActiveSession = useWorkoutStore(s => s.setActiveSession)
   const [adding, setAdding] = useState(false)
 
   const { data: schedules = [] } = useQuery({
@@ -48,7 +46,6 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
     mutationFn: ({ templateId, name }: { templateId: string; name: string }) =>
       workoutsApi.startSession({ name, templateId }),
     onSuccess: session => {
-      setActiveSession(session.id)
       queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
       navigate({ to: '/workout/$sessionId', params: { sessionId: session.id } })
     },

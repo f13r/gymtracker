@@ -2,8 +2,10 @@
 -- PostgreSQL database dump
 --
 
+\restrict tVxeOc0g8MvZZgKi7ecQdsAkuVyZBZI53gJJNcIK0vheRT4byo8kWVv4KxoKbVq
+
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg12+1)
--- Dumped by pg_dump version 16.1
+-- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg12+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -269,6 +271,19 @@ CREATE TABLE public.progression_suggestions (
 
 
 --
+-- Name: session_exercises; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.session_exercises (
+    id text NOT NULL,
+    session_id text,
+    exercise_id text,
+    order_index integer NOT NULL,
+    equipment_id text
+);
+
+
+--
 -- Name: sets; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -284,7 +299,8 @@ CREATE TABLE public.sets (
     completed_at integer,
     done integer DEFAULT 0,
     equipment_id text,
-    notes text
+    notes text,
+    removed_at integer
 );
 
 
@@ -399,6 +415,7 @@ COPY drizzle.__drizzle_migrations (id, hash, created_at) FROM stdin;
 8	09fbfb13dc487d942979b481b639dcea0cb7d14dc738ba67acb109c0dbf52417	1780474494628
 9	3ee9240f94c042b2b0f08a0b97acc68906c48a7c2568524821e5ce7fe45032d3	1780480156441
 10	7dce3bdee4f3094c951c46fd2a267bc1a4f18d3b5497fe0fcacc7a466c0def63	1781020424095
+11	35c1b0b01c16e77eca5d3f9f6d673ba5a21726489d55dcef485ba16eddfbeb44	1781084645803
 \.
 
 
@@ -477,6 +494,8 @@ f0d935f9-3943-4dfa-a0a7-f1c1476e51f9	default-user	Rowing seated, narrow grip	pul
 b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	default-user	Seated W Curl	pull	dumbbell	\N	0	1781015328	1448
 6afa800f-2336-4f1b-ad9b-731999837f6d	default-user	Biceps Curl With Cable	other	cable	\N	0	1781015328	95
 13766288-7c7a-4e1e-9a73-b22117dc4145	default-user	Incline Crunches	core	bodyweight	\N	0	1781015328	171
+4538bc64-1f2a-4090-b6ac-4b70dbabea0f	default-user	Leg Press	legs	machine	First set is warmup	0	1781015328	371
+741466ec-0623-48c8-9ee5-e04aada30c83	default-user	Leg Press on Hackenschmidt Machine	legs	machine	\N	0	1781015328	375
 e324e68f-e71d-4641-ad92-0e128ab2329f	default-user	Bench Press	push	barbell	\N	1	1779278627	73
 61ad47d9-82b8-42e6-877c-1eca8a9161c7	default-user	Squat	legs	barbell	\N	1	1779278627	1801
 dc2b958c-8252-4b4e-8c22-ee0756b4d9fc	default-user	Deadlift	pull	barbell	\N	1	1779278627	184
@@ -489,12 +508,6 @@ cd19ea72-767a-4179-b85e-e2a6f361386e	default-user	Incline Chest Press (Machine)	
 9c0fdd5f-dc98-4cb5-9779-f79b4fc98656	default-user	Cable Crossover	push	cable	\N	0	1781015328	\N
 ac2fe6e1-3647-441c-a2e6-55eaf451e45a	default-user	Cable Tricep Pushdown (Rope)	push	cable	\N	0	1781015328	\N
 051091de-d9e0-4773-8c27-0018f35a00b1	default-user	Seated Tricep Machine	push	machine	\N	0	1781015328	\N
-4538bc64-1f2a-4090-b6ac-4b70dbabea0f	default-user	Leg Press	legs	machine	First set is warmup	0	1781015328	\N
-741466ec-0623-48c8-9ee5-e04aada30c83	default-user	Hack Squat	legs	machine	\N	0	1781015328	\N
-993228d3-33c4-4f18-b087-be3fedd33a6f	default-user	Lying Leg Curl	legs	machine	\N	0	1781015328	\N
-57c478ac-ec44-4a51-aee3-243fe403bc45	default-user	Smith Machine Romanian Deadlift	legs	barbell	\N	0	1781015328	\N
-6939641e-5706-433c-b18d-8bb0b2154f90	default-user	Overhead Press (Machine)	push	machine	First set is warmup	0	1781015328	\N
-52fd1cd2-0513-49ac-b847-c1c3515d2d49	default-user	Dumbbell Lateral Raise	push	dumbbell	\N	0	1781015328	\N
 9220ee33-c92c-4c1d-8d91-092168eb93c1	default-user	Calf Raise	legs	machine	\N	0	1781015328	\N
 5227c454-85d4-464d-8956-47d3b00f999c	default-user	Front Squat	legs	barbell	\N	1	1779278627	1640
 13ceeda4-395c-4e73-946f-17a0b4933e8b	default-user	Incline Bench Press	push	barbell	\N	1	1779278627	538
@@ -522,6 +535,10 @@ cc643582-6f21-4cbb-a68a-5163714c9e21	default-user	Hollow Hold	core	bodyweight	\N
 005572bc-691b-4404-9861-181f32067b5b	default-user	Cycling	cardio	other	\N	1	1779278627	\N
 816a6326-0599-4939-96e8-5da216c63462	default-user	Rowing (erg)	cardio	other	\N	1	1779278627	\N
 1696ee6c-6a57-456e-ae44-c1844b66989d	default-user	Jump Rope	cardio	other	\N	1	1779278627	\N
+993228d3-33c4-4f18-b087-be3fedd33a6f	default-user	Leg Curl	legs	machine	\N	0	1781015328	364
+57c478ac-ec44-4a51-aee3-243fe403bc45	default-user	Rack Deadlift	pull	barbell	\N	0	1781015328	484
+6939641e-5706-433c-b18d-8bb0b2154f90	default-user	Shoulder Press, on Machine	push	machine	First set is warmup	0	1781015328	543
+52fd1cd2-0513-49ac-b847-c1c3515d2d49	default-user	Lateral Raises	push	dumbbell	\N	0	1781015328	348
 \.
 
 
@@ -578,6 +595,24 @@ COPY public.progress_photos (id, user_id, recorded_at, file_path, thumb_path, bo
 --
 
 COPY public.progression_suggestions (id, user_id, exercise_id, suggested_sets, suggested_reps, suggested_weight_kg, reason, evidence, created_at) FROM stdin;
+5bd49587-6e36-4be5-9994-a61c4b9ac547	default-user	4538bc64-1f2a-4090-b6ac-4b70dbabea0f	4	12	12.5	Applying conservative progression for a beginner during the calibration phase to establish a baseline and promote continued linear adaptation.	["Current heaviest working weight 10kg x 12. Estimated 1-rep max stable at 14kg. Insufficient history — system is calibrating this exercise baseline."]	1781198634
+48d83c95-34c1-4963-b274-cba3e14c30a9	default-user	741466ec-0623-48c8-9ee5-e04aada30c83	3	12	2.5	Initializing weight with a conservative increment for a beginner during the calibration phase to establish a baseline for progression and build towards target weekly volume.	["Current working weight 0kg x 12. Insufficient history — system is calibrating this exercise baseline."]	1781198634
+\.
+
+
+--
+-- Data for Name: session_exercises; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.session_exercises (id, session_id, exercise_id, order_index, equipment_id) FROM stdin;
+5e8ebb81-4d31-4773-9c26-74db15680a81	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cef5a7c-996e-41aa-8fe1-01063c0a6971	0	\N
+28c727e8-0e38-40ef-9147-ce4721fb9e04	e7e65366-20b5-40f2-9572-7a1d74cb3df3	49c117e1-c8ca-4b9c-a1e7-7139c2569807	1	\N
+f095cd5b-30c6-4bc3-95ef-45048ab93c6a	e7e65366-20b5-40f2-9572-7a1d74cb3df3	f0d935f9-3943-4dfa-a0a7-f1c1476e51f9	2	\N
+2c0ed92c-f461-46ca-890b-9517e0b576ed	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cbd88f7-3ca3-4bc2-ad02-a3af60cfeb9d	3	\N
+fe40dadb-58a9-4065-9620-610db1fa3ab0	e7e65366-20b5-40f2-9572-7a1d74cb3df3	19e5f016-c4d6-4dc7-90bb-9d08cd289ce7	4	\N
+3d4d6987-3189-4f04-bb2a-00a590103361	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	5	\N
+355c2a32-a6fc-4676-b86f-e5ed241b6720	e7e65366-20b5-40f2-9572-7a1d74cb3df3	6afa800f-2336-4f1b-ad9b-731999837f6d	6	\N
+4a887041-5d66-4fb3-82d9-2971a33e21e5	e7e65366-20b5-40f2-9572-7a1d74cb3df3	13766288-7c7a-4e1e-9a73-b22117dc4145	7	\N
 \.
 
 
@@ -585,7 +620,44 @@ COPY public.progression_suggestions (id, user_id, exercise_id, suggested_sets, s
 -- Data for Name: sets; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.sets (id, session_id, exercise_id, set_number, reps, weight_kg, duration_sec, rpe, completed_at, done, equipment_id, notes) FROM stdin;
+COPY public.sets (id, session_id, exercise_id, set_number, reps, weight_kg, duration_sec, rpe, completed_at, done, equipment_id, notes, removed_at) FROM stdin;
+688d8612-c241-4513-bf9f-431759bccef8	e7e65366-20b5-40f2-9572-7a1d74cb3df3	f0d935f9-3943-4dfa-a0a7-f1c1476e51f9	1	12	20	\N	\N	\N	0	\N	\N	\N
+3eebb54a-8b51-4251-8c04-30c33b281aa9	e7e65366-20b5-40f2-9572-7a1d74cb3df3	f0d935f9-3943-4dfa-a0a7-f1c1476e51f9	2	12	20	\N	\N	\N	0	\N	\N	\N
+bbda2b9a-a357-493e-b913-5372101765e7	e7e65366-20b5-40f2-9572-7a1d74cb3df3	f0d935f9-3943-4dfa-a0a7-f1c1476e51f9	3	12	20	\N	\N	\N	0	\N	\N	\N
+ed9a0d64-9e0c-43f5-82f6-66de4a185fdc	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cbd88f7-3ca3-4bc2-ad02-a3af60cfeb9d	1	12	20	\N	\N	\N	0	\N	\N	\N
+6d8d9b78-0141-401b-9b3c-f3543a209d2a	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cbd88f7-3ca3-4bc2-ad02-a3af60cfeb9d	2	12	20	\N	\N	\N	0	\N	\N	\N
+f287cb2d-45d3-4751-a517-a9729ad09ba9	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cbd88f7-3ca3-4bc2-ad02-a3af60cfeb9d	3	12	20	\N	\N	\N	0	\N	\N	\N
+8920fa79-2619-49f1-8ce3-a267604e945d	e7e65366-20b5-40f2-9572-7a1d74cb3df3	19e5f016-c4d6-4dc7-90bb-9d08cd289ce7	1	12	20	\N	\N	\N	0	\N	\N	\N
+7326adbf-aff7-4bc7-ad86-34ee5e32d9f1	e7e65366-20b5-40f2-9572-7a1d74cb3df3	19e5f016-c4d6-4dc7-90bb-9d08cd289ce7	2	12	20	\N	\N	\N	0	\N	\N	\N
+f2d7bf46-e49d-4d8a-9956-5287e48d073d	e7e65366-20b5-40f2-9572-7a1d74cb3df3	19e5f016-c4d6-4dc7-90bb-9d08cd289ce7	3	12	20	\N	\N	\N	0	\N	\N	\N
+4351a359-d79e-4043-a73f-16d9ce777e0e	e7e65366-20b5-40f2-9572-7a1d74cb3df3	6afa800f-2336-4f1b-ad9b-731999837f6d	1	12	20	\N	\N	\N	0	\N	\N	\N
+37a0436d-700d-4a5c-8582-0a4d299da785	e7e65366-20b5-40f2-9572-7a1d74cb3df3	6afa800f-2336-4f1b-ad9b-731999837f6d	2	12	20	\N	\N	\N	0	\N	\N	\N
+cfd9ab1e-fbd3-446f-ab1f-260aaee0f5f6	e7e65366-20b5-40f2-9572-7a1d74cb3df3	6afa800f-2336-4f1b-ad9b-731999837f6d	3	12	20	\N	\N	\N	0	\N	\N	\N
+ccc80e8f-325f-4b2c-834d-2b198230c105	e7e65366-20b5-40f2-9572-7a1d74cb3df3	13766288-7c7a-4e1e-9a73-b22117dc4145	1	12	\N	\N	\N	\N	0	\N	\N	\N
+09a42b82-793e-4861-92ae-3faed7ef7a99	e7e65366-20b5-40f2-9572-7a1d74cb3df3	13766288-7c7a-4e1e-9a73-b22117dc4145	2	12	\N	\N	\N	\N	0	\N	\N	\N
+ba9ecc86-68d6-4057-bfcc-6a5418bf206f	e7e65366-20b5-40f2-9572-7a1d74cb3df3	13766288-7c7a-4e1e-9a73-b22117dc4145	3	12	\N	\N	\N	\N	0	\N	\N	\N
+c7fcd9c5-c21e-4882-ac8a-6e5cf6206730	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cef5a7c-996e-41aa-8fe1-01063c0a6971	4	12	\N	\N	\N	\N	0	\N	\N	1781101531
+cf93f4ff-6ad8-4944-9e41-3d44ed09ad37	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	3	8	0	\N	\N	\N	0	\N	\N	1781101591
+b60eb1a3-0b80-45e4-a7d0-e666b5883903	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	2	8	0	\N	\N	\N	0	\N	\N	1781101592
+7476e5ec-d553-40e9-ab0a-8f2c9528fa51	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cef5a7c-996e-41aa-8fe1-01063c0a6971	1	3	0	\N	\N	1781101544	1	\N	\N	\N
+106ed96e-8fd2-4ff1-9984-7fa9aac31bd4	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	1	8	0	\N	\N	\N	0	\N	\N	1781101594
+8188abd7-cf2c-4abc-b7ba-320f0654a4b3	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cef5a7c-996e-41aa-8fe1-01063c0a6971	2	2	0	\N	\N	1781101545	1	\N	\N	\N
+6308ec3f-0ee2-442d-b954-4c56266e235e	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cef5a7c-996e-41aa-8fe1-01063c0a6971	3	0	0	\N	\N	1781101545	1	\N	\N	\N
+1a5c59a4-0f14-42ef-a816-af6b54e6a350	e7e65366-20b5-40f2-9572-7a1d74cb3df3	7cef5a7c-996e-41aa-8fe1-01063c0a6971	4	0	0	\N	\N	1781101546	1	\N	\N	\N
+230a1251-3a5b-4690-bdc3-5213d92eb658	e7e65366-20b5-40f2-9572-7a1d74cb3df3	49c117e1-c8ca-4b9c-a1e7-7139c2569807	1	12	20	\N	\N	1781101553	1	\N	\N	\N
+bfd52f98-b021-4c77-a3b6-3bf6122fe602	e7e65366-20b5-40f2-9572-7a1d74cb3df3	49c117e1-c8ca-4b9c-a1e7-7139c2569807	2	12	20	\N	\N	1781101554	1	\N	\N	\N
+ba2abf73-f9c1-44ff-9894-e4453ecc4bf6	e7e65366-20b5-40f2-9572-7a1d74cb3df3	49c117e1-c8ca-4b9c-a1e7-7139c2569807	3	12	20	\N	\N	1781101554	1	\N	\N	\N
+c93045fa-9207-4b8f-b21e-f2dae2f3608c	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	1	12	20	\N	\N	1781101579	1	\N	\N	1781101581
+941d60ed-07d6-4c89-8dcc-086dfbb9c7a4	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	2	12	20	\N	\N	\N	0	\N	\N	1781101582
+10e0a08e-5e8c-4283-bcb1-ba0c83dc03ad	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	3	12	20	\N	\N	\N	0	\N	\N	1781101584
+10d43742-d301-4a9e-b2bc-c761854cb147	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	2	8	0	\N	\N	\N	0	\N	\N	1781101976
+03efe469-12bf-4936-8ee0-2b17287d6b49	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	1	8	0	\N	\N	\N	0	\N	\N	1781101978
+1ef76636-ce14-42aa-83ba-2b557de47957	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	5	12	20	\N	\N	\N	0	\N	\N	1781101988
+92aa13c4-1735-46bb-a0d1-6c58548b9022	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	4	12	20	\N	\N	\N	0	\N	\N	1781101989
+4530acda-4984-4e71-bb0b-1f84941b6aab	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	3	12	20	\N	\N	\N	0	\N	\N	1781101991
+e425cd0f-9490-4d3b-9108-e70a0a11fcf9	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	1	12	20	\N	\N	1781102056	1	\N	\N	\N
+624cc183-5ba0-4f3f-a733-dfe3d58ec020	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	2	12	20	\N	\N	1781102057	1	\N	\N	\N
+93c66fb0-b66b-4bd3-ae1c-25ead50e3367	e7e65366-20b5-40f2-9572-7a1d74cb3df3	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	3	12	20	\N	\N	1781102058	1	\N	\N	\N
 \.
 
 
@@ -602,6 +674,14 @@ bbec5e1b-dc21-4635-95ea-e60af862daf0	14512ddd-5fae-45ae-8cef-0ac23bc87b66	7cbd88
 cb970791-1217-4f28-a389-689bac19e916	14512ddd-5fae-45ae-8cef-0ac23bc87b66	b18e8913-549d-4e0c-a8cd-e6e0a981e4b1	5	3	12	20	\N
 7cef4cd4-605f-4ff7-8e15-ed0a7d73b5ba	14512ddd-5fae-45ae-8cef-0ac23bc87b66	6afa800f-2336-4f1b-ad9b-731999837f6d	6	3	12	20	\N
 b05ee426-f699-4d31-9080-918589be6830	14512ddd-5fae-45ae-8cef-0ac23bc87b66	13766288-7c7a-4e1e-9a73-b22117dc4145	7	3	12	\N	\N
+6cb0d4c6-ab0f-4222-a6ea-6f6adad23f7d	473783a3-0612-4928-9364-6adbddf992be	4538bc64-1f2a-4090-b6ac-4b70dbabea0f	0	4	12	60	\N
+9fee69f0-951a-4033-a175-61d661f51b48	473783a3-0612-4928-9364-6adbddf992be	741466ec-0623-48c8-9ee5-e04aada30c83	1	3	12	60	\N
+01b716bf-99c5-494c-8f5b-319f7a0668ba	473783a3-0612-4928-9364-6adbddf992be	993228d3-33c4-4f18-b087-be3fedd33a6f	2	3	12	40	\N
+9064c2e4-0c97-44c9-a953-3851301d837a	473783a3-0612-4928-9364-6adbddf992be	57c478ac-ec44-4a51-aee3-243fe403bc45	3	3	12	20	\N
+030b237b-bf79-4154-9014-3140a220c415	473783a3-0612-4928-9364-6adbddf992be	6939641e-5706-433c-b18d-8bb0b2154f90	4	4	12	20	\N
+ef20310f-957a-460a-ac8d-11048e2e4222	473783a3-0612-4928-9364-6adbddf992be	52fd1cd2-0513-49ac-b847-c1c3515d2d49	5	3	12	16	\N
+d95b3a7e-e7b6-4b81-8597-a7977220345b	473783a3-0612-4928-9364-6adbddf992be	9220ee33-c92c-4c1d-8d91-092168eb93c1	6	3	12	30	\N
+ae1ae275-af97-4d39-bca4-c63173a453fc	473783a3-0612-4928-9364-6adbddf992be	13766288-7c7a-4e1e-9a73-b22117dc4145	7	3	12	\N	\N
 42add69b-c7e3-4187-b92d-8e3e5cbee3e3	133f4eba-6912-4020-a704-9754150a176e	a3478b98-7a9c-4c00-8a52-428e6457d84b	0	4	12	\N	\N
 c8902662-824b-4dcc-a9d6-7ccb5338b73d	133f4eba-6912-4020-a704-9754150a176e	a9669c3d-1f91-4986-aa7c-5db68030d9d0	1	3	12	\N	\N
 5328df35-a538-4014-b19d-e812b495c888	133f4eba-6912-4020-a704-9754150a176e	cd19ea72-767a-4179-b85e-e2a6f361386e	2	3	12	\N	\N
@@ -609,14 +689,6 @@ c8902662-824b-4dcc-a9d6-7ccb5338b73d	133f4eba-6912-4020-a704-9754150a176e	a9669c
 6064865e-72c3-4ed3-937e-08608e170cf8	133f4eba-6912-4020-a704-9754150a176e	ac2fe6e1-3647-441c-a2e6-55eaf451e45a	4	3	12	\N	\N
 cba95a21-bc08-4aa9-87f5-ba1c6343fff8	133f4eba-6912-4020-a704-9754150a176e	051091de-d9e0-4773-8c27-0018f35a00b1	5	3	12	\N	\N
 e87c62dd-7338-4035-95fc-362265aa9fbf	133f4eba-6912-4020-a704-9754150a176e	13766288-7c7a-4e1e-9a73-b22117dc4145	6	3	12	\N	\N
-658f4fb2-f72a-4172-b020-ee1c12f2d950	473783a3-0612-4928-9364-6adbddf992be	4538bc64-1f2a-4090-b6ac-4b70dbabea0f	0	4	12	\N	\N
-814b94b6-cef4-4cc4-8ecd-56979e2a1f14	473783a3-0612-4928-9364-6adbddf992be	741466ec-0623-48c8-9ee5-e04aada30c83	1	3	12	\N	\N
-21bd3cf6-e3e9-416f-a249-688a5f2fae7b	473783a3-0612-4928-9364-6adbddf992be	993228d3-33c4-4f18-b087-be3fedd33a6f	2	3	12	\N	\N
-fce27feb-017d-4a3c-844b-05965363f13b	473783a3-0612-4928-9364-6adbddf992be	57c478ac-ec44-4a51-aee3-243fe403bc45	3	3	12	\N	\N
-80c24669-cc76-4b0b-9913-420892a755a6	473783a3-0612-4928-9364-6adbddf992be	6939641e-5706-433c-b18d-8bb0b2154f90	4	4	12	\N	\N
-e9f91211-2ef7-4e8e-a02c-d00306c7174a	473783a3-0612-4928-9364-6adbddf992be	52fd1cd2-0513-49ac-b847-c1c3515d2d49	5	3	12	\N	\N
-f71c46cc-ee3e-4b2e-966b-aa1f08397980	473783a3-0612-4928-9364-6adbddf992be	9220ee33-c92c-4c1d-8d91-092168eb93c1	6	3	12	\N	\N
-3c6c9547-37a7-4727-8c37-95fc41739d99	473783a3-0612-4928-9364-6adbddf992be	13766288-7c7a-4e1e-9a73-b22117dc4145	7	3	12	\N	\N
 \.
 
 
@@ -660,7 +732,7 @@ fa6077c3-f699-4b30-b019-80cf89d1f6ee	default-user	473783a3-0612-4928-9364-6adbdd
 --
 
 COPY public.workout_sessions (id, user_id, template_id, name, started_at, finished_at, notes, program_phase_id) FROM stdin;
-9d24cd31-e51b-4b15-b929-0a2b8b1120eb	default-user	14512ddd-5fae-45ae-8cef-0ac23bc87b66	Pull Day	1781031061	1781031076	\N	\N
+e7e65366-20b5-40f2-9572-7a1d74cb3df3	default-user	14512ddd-5fae-45ae-8cef-0ac23bc87b66	Pull Day	1781101520	1781198041	\N	\N
 \.
 
 
@@ -670,8 +742,8 @@ COPY public.workout_sessions (id, user_id, template_id, name, started_at, finish
 
 COPY public.workout_templates (id, user_id, name, notes, created_at) FROM stdin;
 133f4eba-6912-4020-a704-9754150a176e	default-user	Push Day	\N	1781015328
-473783a3-0612-4928-9364-6adbddf992be	default-user	Legs + Shoulders	\N	1781015328
 14512ddd-5fae-45ae-8cef-0ac23bc87b66	default-user	Pull Day	\N	1781015328
+473783a3-0612-4928-9364-6adbddf992be	default-user	Legs + Shoulders	\N	1781015328
 \.
 
 
@@ -679,7 +751,7 @@ COPY public.workout_templates (id, user_id, name, notes, created_at) FROM stdin;
 -- Name: __drizzle_migrations_id_seq; Type: SEQUENCE SET; Schema: drizzle; Owner: -
 --
 
-SELECT pg_catalog.setval('drizzle.__drizzle_migrations_id_seq', 10, true);
+SELECT pg_catalog.setval('drizzle.__drizzle_migrations_id_seq', 11, true);
 
 
 --
@@ -792,6 +864,14 @@ ALTER TABLE ONLY public.progress_photos
 
 ALTER TABLE ONLY public.progression_suggestions
     ADD CONSTRAINT progression_suggestions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: session_exercises session_exercises_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.session_exercises
+    ADD CONSTRAINT session_exercises_pkey PRIMARY KEY (id);
 
 
 --
@@ -985,6 +1065,30 @@ ALTER TABLE ONLY public.progression_suggestions
 
 
 --
+-- Name: session_exercises session_exercises_equipment_id_equipment_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.session_exercises
+    ADD CONSTRAINT session_exercises_equipment_id_equipment_id_fk FOREIGN KEY (equipment_id) REFERENCES public.equipment(id) ON DELETE SET NULL;
+
+
+--
+-- Name: session_exercises session_exercises_exercise_id_exercises_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.session_exercises
+    ADD CONSTRAINT session_exercises_exercise_id_exercises_id_fk FOREIGN KEY (exercise_id) REFERENCES public.exercises(id);
+
+
+--
+-- Name: session_exercises session_exercises_session_id_workout_sessions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.session_exercises
+    ADD CONSTRAINT session_exercises_session_id_workout_sessions_id_fk FOREIGN KEY (session_id) REFERENCES public.workout_sessions(id);
+
+
+--
 -- Name: sets sets_equipment_id_equipment_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1091,4 +1195,6 @@ ALTER TABLE ONLY public.workout_templates
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict tVxeOc0g8MvZZgKi7ecQdsAkuVyZBZI53gJJNcIK0vheRT4byo8kWVv4KxoKbVq
 

@@ -47,8 +47,12 @@ an older build. The codebase no longer supports SQLite — it now requires **Pos
 pgvector**. This deploy is a one-way cutover, and it does **not** start from an empty database:
 it **restores a snapshot of the current local data** so the production DB ends up with *exactly
 the same information* — the default user, all 54 exercises (incl. `wger_id`s), the 3 workout
-templates, June 2026 schedules, body data, and the 20 pre-computed `coaching_knowledge`
-embeddings. The snapshot is committed at **`apps/api/db/prod-snapshot.sql`**.
+templates (23 template-exercises), June 2026 schedules, body data, the 20 pre-computed
+`coaching_knowledge` embeddings, **and the logged workout history** (`workout_sessions`, `sets`,
+`session_exercises`, `progression_suggestions`). The snapshot also carries the full Drizzle
+journal at **11 migrations** (through `0010_quick_slayback`). It is committed at
+**`apps/api/db/prod-snapshot.sql`** and is regenerated from the live local DB whenever you want
+prod to mirror local — see "Regenerating the snapshot" below.
 
 Do the cutover in this order:
 
@@ -81,12 +85,15 @@ Do the cutover in this order:
 
 ---
 
-## Restore the production data snapshot (ONE-TIME, initial cutover only)
+## Restore the production data snapshot (overwrite prod with the committed snapshot)
 
-> ⚠️ **Run this exactly once, during the initial Postgres cutover.** It is **not** part of the
-> recurring release flow and is **not** in `.github/workflows/deploy.yml`. Re-running it against
-> a live database **drops and recreates the database**, destroying any data logged on the server
-> since cutover. Do not wire it into the deploy pipeline.
+> ⚠️ **Destructive — it `DROP`s and recreates the `gymtracker` database.** Run it (a) at the
+> initial Postgres cutover, or (b) any time you deliberately want production to **mirror the
+> local DB exactly** ("dump local → restore on server"). Everything logged on the server since
+> the last restore is **destroyed** — so this is a manual, intentional act, **not** part of the
+> recurring release flow and **not** in `.github/workflows/deploy.yml`. Never wire it into the
+> deploy pipeline. To resync prod to local: regenerate the snapshot (bottom of this section),
+> commit + push, `git pull` it on the server, then run the recipe below.
 
 The snapshot is `apps/api/db/prod-snapshot.sql` — a plain-SQL `pg_dump` (`--no-owner
 --no-privileges`) containing the full schema, the `drizzle` migration journal, and all rows
@@ -123,24 +130,46 @@ This recipe was validated end-to-end against a scratch DB: it restores with **ze
 every table (exercises, templates, schedules, `coaching_knowledge`, the Drizzle journal) ends up
 owned by `gymtracker`. After it completes, skip `db:migrate` and go straight to `pm2 start`.
 
-**Verify the restore:**
+**Verify the restore** (counts must match the local DB the snapshot was taken from):
 ```bash
 sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS exercises FROM exercises;"            # expect 54
 sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS coaching FROM coaching_knowledge;"    # expect 20
-sudo -u postgres psql -d gymtracker -c "SELECT count(*) FROM drizzle.__drizzle_migrations;"      # 10 in this snapshot; the next release's db:migrate applies newer migrations (0010+) on top
+sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS templates FROM workout_templates;"    # expect 3
+sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS sessions FROM workout_sessions;"      # expect 1
+sudo -u postgres psql -d gymtracker -c "SELECT count(*) FROM drizzle.__drizzle_migrations;"      # expect 11 (through 0010) — the next release's db:migrate applies any newer migrations on top
 ```
 
-### Regenerating the snapshot (from the dev machine, when local data changes)
-The snapshot is a point-in-time capture. To refresh it, dump the local DB and **drop the single
-`COMMENT ON EXTENSION` line** (it requires extension ownership and would break the `SET ROLE`
-restore), then commit:
+### Regenerating the snapshot (from the dev machine, to push local → prod)
+The snapshot is a point-in-time capture. To refresh it, dump the **live local DB** and **drop the
+single `COMMENT ON EXTENSION` line** (it requires extension ownership and would break the
+`SET ROLE` restore), then commit. Locally the DB runs in the OrbStack compose container
+`gymtracker-postgres-1`, so dump from inside it — this guarantees the dump's `pg_dump` matches the
+server's Postgres 16 (a newer client dumping an older server, or vice-versa, can emit incompatible
+SQL):
 ```bash
-pg_dump "$LOCAL_DATABASE_URL" --no-owner --no-privileges \
+# Container must be up: `docker compose up -d` (starts OrbStack's gymtracker-postgres-1).
+docker exec gymtracker-postgres-1 pg_dump -U postgres -d gymtracker --no-owner --no-privileges \
   | grep -v "^COMMENT ON EXTENSION vector" > apps/api/db/prod-snapshot.sql
 git add apps/api/db/prod-snapshot.sql && git commit -m "chore: refresh prod data snapshot"
 ```
-Because a refreshed snapshot carries a new schema + journal, only restore it onto a server you
-intend to reset to that state — the same one-time, destructive caveat applies.
+> Not using Docker locally? `pg_dump "$LOCAL_DATABASE_URL" --no-owner --no-privileges | grep -v
+> "^COMMENT ON EXTENSION vector" > apps/api/db/prod-snapshot.sql` does the same, **provided your
+> `pg_dump` is ≥ the server's major version**.
+
+**Validate before you push** (the restore recipe above, against a throwaway DB — proves it loads
+with zero errors and the counts match local):
+```bash
+docker exec -i gymtracker-postgres-1 psql -U postgres -v ON_ERROR_STOP=1 \
+  -c "DROP DATABASE IF EXISTS gymtracker_verify;" -c "CREATE DATABASE gymtracker_verify;"
+docker exec gymtracker-postgres-1 psql -U postgres -d gymtracker_verify -c "CREATE EXTENSION IF NOT EXISTS vector;"
+docker exec -i gymtracker-postgres-1 psql -U postgres -d gymtracker_verify -v ON_ERROR_STOP=1 \
+  < apps/api/db/prod-snapshot.sql            # expect no ERROR lines
+docker exec gymtracker-postgres-1 psql -U postgres -d gymtracker_verify -c "SELECT count(*) FROM exercises;"  # 54
+docker exec gymtracker-postgres-1 psql -U postgres -c "DROP DATABASE gymtracker_verify;"
+```
+Because a refreshed snapshot carries the local schema + journal **and all local rows**, only
+restore it onto a server you intend to overwrite with that exact state — the destructive caveat at
+the top of this section applies every time.
 
 ---
 
@@ -234,6 +263,9 @@ automatically — adding a migration to the repo needs no extra deploy step. New
 - **`0010_quick_slayback`** — Session Snapshot model (ADR-0008). Adds the `session_exercises`
   table and the nullable `sets.removed_at` column. **Additive and safe on the live DB**: existing
   `sets` backfill to `removed_at = NULL`; no history backfill; stats unaffected.
+  - **Now included in the committed snapshot** (journal at 11). A server brought up via the full
+    restore above already has it, so `db:migrate` is a no-op there; the warning below only applies
+    when `db:migrate` adds 0010 to a pre-0010 live DB (i.e. a release that is *not* a full restore).
   - ⚠️ **Finish any in-progress Session before deploying this release.** A Session started under
     the pre-0010 build has no `session_exercises` rows and will render degraded in the logger.
     New sessions snapshot correctly. (Check: `SELECT id FROM workout_sessions WHERE finished_at

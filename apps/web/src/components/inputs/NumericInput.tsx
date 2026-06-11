@@ -56,11 +56,12 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
               defaultValue={value === 0 ? '' : value}
               type="number"
               autoFocus
-              onFocus={e => e.target.select()}
               onBlur={e => {
-                onChange(clamp(parseFloat(e.target.value) || value))
+                const parsed = parseFloat(e.target.value)
+                onChange(clamp(Number.isNaN(parsed) ? value : parsed))
                 setEditing(false)
               }}
+              onFocus={e => e.target.select()}
               onKeyDown={e => e.key === 'Enter' && inputRef.current?.blur()}
             />
           ) : (

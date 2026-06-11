@@ -171,7 +171,6 @@ export class ExerciseHistoryService {
         ),
         ranked AS (
           SELECT week,
-                 ROW_NUMBER() OVER (ORDER BY week DESC) AS rn,
                  to_char(
                    (SELECT MAX(to_timestamp(s2.completed_at))
                     FROM sets s2 JOIN workout_sessions ws2 ON ws2.id = s2.session_id
@@ -179,7 +178,10 @@ export class ExerciseHistoryService {
                    - (rn - 1) * interval '1 week',
                    'IYYY-"W"IW'
                  ) AS expected_week
-          FROM weekly
+          FROM (
+            SELECT week, ROW_NUMBER() OVER (ORDER BY week DESC) AS rn
+            FROM weekly
+          ) numbered
         )
         SELECT COUNT(*) AS consecutive
         FROM ranked

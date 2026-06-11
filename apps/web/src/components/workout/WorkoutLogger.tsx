@@ -1,26 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon, Trash2 } from 'lucide-react'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { Navigate } from '@tanstack/react-router'
+import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon, Trash2, Loader2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 
-import type { Exercise, WorkoutSet } from '@gymtracker/shared'
+import type { WorkoutSet } from '@gymtracker/shared'
 import { calculateVolume, getDoneSets } from '@gymtracker/shared'
 
-import { exercisesApi } from '@/api/exercises'
-import { queryKeys } from '@/api/queryKeys'
-import { setsApi } from '@/api/sets'
-import { workoutsApi } from '@/api/workouts'
 import { NumericInput } from '@/components/inputs/NumericInput'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { ExerciseMediaDrawer } from '@/components/workout/ExerciseMediaDrawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
-import { usePrepopulatedSet } from '@/components/workout/usePrepopulatedSet'
 import { useSwipeReveal } from '@/components/workout/useSwipeReveal'
+import { useWorkoutLogger } from '@/components/workout/useWorkoutLogger'
 import { cn, formatElapsed } from '@/lib/utils'
-import { useWorkoutStore } from '@/stores/workout.store'
 
 interface WorkoutLoggerProps {
   sessionId: string
+  /** The Active Exercise's id, from the `?exercise=` URL search param (ADR-0009). */
+  activeExerciseId?: string
 }
 
 // px of the swipe affordance revealed when a row is snapped open
@@ -59,8 +55,11 @@ function InlineSetRow({
   const isDirtyRef = useRef(false)
   const { dragX, dragging, revealed, close, consumeDrag, swipeHandlers } = useSwipeReveal(SWIPE_OPEN)
 
+  // Resync local fields when the underlying Set changes from outside (refetch).
+  // Compare with Object.is, not !==: a NaN would make `NaN !== NaN` perpetually
+  // true and re-fire this render-phase setState forever ("too many re-renders").
   // eslint-disable-next-line react-hooks/refs
-  if (!isDirtyRef.current && (set.weightKg !== prevSet.weightKg || set.reps !== prevSet.reps)) {
+  if (!isDirtyRef.current && (!Object.is(set.weightKg, prevSet.weightKg) || !Object.is(set.reps, prevSet.reps))) {
     setPrevSet(set)
     setWeight(set.weightKg ?? 0)
     setReps(set.reps ?? 8)
@@ -146,7 +145,7 @@ function InlineSetRow({
             highlighted={isDone}
             label="REPS"
             max={50}
-            min={1}
+            min={0}
             readOnly={isDone}
             size="lg"
             step={1}
@@ -243,190 +242,62 @@ function ExerciseSummaryBar({
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
+//
+// A thin view over `useWorkoutLogger` — all queries, mutations, derived Exercise
+// data, navigation, and UI state live in that controller hook.
 
-export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { activeExerciseIndex, nextExercise, prevExercise } = useWorkoutStore()
-
-  const [showPicker, setShowPicker] = useState(false)
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null)
-  const [selectedExerciseName, setSelectedExerciseName] = useState<string | null>(null)
-
-  const [allDoneOpen, setAllDoneOpen] = useState(false)
-  const [mediaOpen, setMediaOpen] = useState(false)
-
-  const [workoutSeconds, setWorkoutSeconds] = useState(0)
-
-  const { data: session } = useQuery({
-    queryKey: queryKeys.session(sessionId),
-    queryFn: () => workoutsApi.getSession(sessionId),
-  })
-
-  // The Template is still fetched only for its per-Exercise defaults (used by the
-  // "vs template" summary fallback). Structure now comes from the Session Snapshot.
-  const { data: template } = useQuery({
-    queryKey: queryKeys.template(session?.templateId),
-    queryFn: () => workoutsApi.getTemplate(session!.templateId!),
-    enabled: !!session?.templateId,
-  })
-
-  const { data: allExercises = [] } = useQuery({
-    queryKey: queryKeys.exercises(),
-    queryFn: exercisesApi.getAll,
-  })
-
-  const exerciseNameMap = useMemo(() => {
-    const map: Record<string, string> = {}
-    allExercises.forEach((e: Exercise) => { map[e.id] = e.name })
-    return map
-  }, [allExercises])
-
-  const wgerIdMap = useMemo(() => {
-    const map: Record<string, number | null> = {}
-    allExercises.forEach((e: Exercise) => { map[e.id] = e.wgerId })
-    return map
-  }, [allExercises])
-
-  const templateDefaults = useMemo(() => {
-    const map: Record<string, { defaultSets: number; defaultReps: number; defaultWeightKg: number }> = {}
-    template?.exercises.forEach(te => {
-      if (te.exerciseId) {
-        map[te.exerciseId] = {
-          defaultSets: te.defaultSets ?? 0,
-          defaultReps: te.defaultReps ?? 8,
-          defaultWeightKg: te.defaultWeightKg ?? 0,
-        }
-      }
-    })
-    return map
-  }, [template])
-
-  // Exercise list = the Session Snapshot (session.exercises), ordered. Freeform
-  // sessions have no snapshot, so derive the list from their Sets. Removed Sets
-  // (removedAt != null) are hidden from the logger.
-  const exercises = useMemo(() => {
-    const liveSets = (exId: string) =>
-      (session?.sets ?? [])
-        .filter((s: WorkoutSet) => s.exerciseId === exId && s.removedAt == null)
-        .sort((a, b) => a.setNumber - b.setNumber || a.id.localeCompare(b.id))
-
-    const snapshot = session?.exercises ?? []
-    if (snapshot.length > 0) {
-      return snapshot
-        .slice()
-        .sort((a, b) => a.orderIndex - b.orderIndex)
-        .map(se => ({
-          id: se.exerciseId,
-          name: exerciseNameMap[se.exerciseId] ?? 'Exercise',
-          defaultSets: templateDefaults[se.exerciseId]?.defaultSets ?? 0,
-          defaultReps: templateDefaults[se.exerciseId]?.defaultReps ?? 8,
-          defaultWeightKg: templateDefaults[se.exerciseId]?.defaultWeightKg ?? 0,
-          loggedSets: liveSets(se.exerciseId),
-        }))
-    }
-    if (!session?.sets) { return [] }
-    const ids = [...new Set(session.sets.filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId))]
-    return ids.map(id => ({
-      id,
-      name: exerciseNameMap[id] ?? 'Exercise',
-      defaultSets: 0,
-      defaultReps: 8,
-      defaultWeightKg: 0,
-      loggedSets: liveSets(id),
-    }))
-  }, [session, templateDefaults, exerciseNameMap])
-
-  const currentExercise = exercises[activeExerciseIndex]
-  const nextExerciseData = activeExerciseIndex < exercises.length - 1 ? exercises[activeExerciseIndex + 1] : null
-  const loggedCount = currentExercise?.loggedSets.length ?? 0
-  const doneCount = currentExercise?.loggedSets.filter((s: WorkoutSet) => s.done).length ?? 0
-
-  // Last finished Session's Sets for this Exercise — drives the "vs last time" summary.
-  const { prevSets } = usePrepopulatedSet(currentExercise)
-
-  useEffect(() => {
-    const startedAt = session?.startedAt
-    if (!startedAt) { return }
-    const id = setInterval(() => {
-      setWorkoutSeconds(Math.floor(Date.now() / 1000) - startedAt)
-    }, 1000)
-    return () => clearInterval(id)
-  }, [session?.startedAt])
-
-  const toggleDone = useMutation({
-    mutationFn: ({ setId, done }: { setId: string; done: boolean }) =>
-      setsApi.updateSet(sessionId, setId, { done }),
-    onSuccess: (_, { setId, done }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
-      if (done && isTemplateBased && currentExercise) {
-        const allDone =
-          currentExercise.loggedSets.length > 0 &&
-          currentExercise.loggedSets.every(s => s.id === setId || s.done)
-        if (allDone) { setAllDoneOpen(true) }
-      }
-    },
-  })
-
-  const deleteSet = useMutation({
-    mutationFn: (setId: string) => setsApi.deleteSet(sessionId, setId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
-    },
-  })
-
-  // Add a Set to the current Exercise, carrying the last Set's numbers forward.
-  const addSet = useMutation({
-    mutationFn: () => {
-      const exId = currentExercise?.id ?? selectedExerciseId
-      if (!exId) { throw new Error('No exercise selected') }
-      const last = currentExercise?.loggedSets.at(-1)
-      return setsApi.logSet(sessionId, {
-        exerciseId: exId,
-        setNumber: (currentExercise?.loggedSets.length ?? 0) + 1,
-        reps: last?.reps ?? 8,
-        weightKg: last?.weightKg ?? 0,
-        done: false,
-      })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
-      if ('vibrate' in navigator) { navigator.vibrate(50) }
-      setSelectedExerciseId(null)
-      setSelectedExerciseName(null)
-    },
-  })
-
-  const updateSet = useMutation({
-    mutationFn: ({ setId, data }: { setId: string; data: { weightKg: number; reps: number } }) =>
-      setsApi.updateSet(sessionId, setId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
-    },
-  })
-
-  const finishWorkout = useMutation({
-    mutationFn: () => workoutsApi.finishSession(sessionId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.sessions() })
-      navigate({ to: '/dashboard' })
-    },
-  })
-
-  const isTemplateBased = !!session?.templateId
-  const canAddSet = isTemplateBased ? !!currentExercise : !!(selectedExerciseId ?? currentExercise?.id)
+export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProps) {
+  const {
+    session,
+    exercises,
+    currentExercise,
+    activeExerciseIndex,
+    nextExerciseData,
+    isTemplateBased,
+    shouldRedirectToOverview,
+    resolving,
+    loggedCount,
+    doneCount,
+    canAddSet,
+    workoutSeconds,
+    prevSets,
+    wgerIdMap,
+    pendingSelection,
+    showPicker,
+    setShowPicker,
+    mediaOpen,
+    setMediaOpen,
+    allDoneOpen,
+    setAllDoneOpen,
+    navigate,
+    prevExercise,
+    nextExercise,
+    handlePickerSelect,
+    toggleDone,
+    deleteSet,
+    addSet,
+    updateSet,
+    finishWorkout,
+  } = useWorkoutLogger(sessionId, activeExerciseId)
 
   if (showPicker) {
+    return <ExercisePicker onClose={() => setShowPicker(false)} onSelect={handlePickerSelect} />
+  }
+
+  // No valid Active Exercise once structure has settled → redirect to the
+  // overview declaratively, during render. Replaces the old navigate-in-useEffect
+  // (an event-handler-in-an-effect): <Navigate> redirects without an extra render.
+  if (shouldRedirectToOverview) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  // Show a loader (never a positional fallback) until we can render the exact
+  // Exercise the URL names.
+  if (!session || resolving) {
     return (
-      <ExercisePicker
-        onClose={() => setShowPicker(false)}
-        onSelect={(id, name) => {
-          setSelectedExerciseId(id)
-          setSelectedExerciseName(name)
-          setShowPicker(false)
-        }}
-      />
+      <div className="bg-background flex h-svh items-center justify-center">
+        <Loader2 className="text-muted-foreground animate-spin" size={24} />
+      </div>
     )
   }
 
@@ -487,7 +358,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
                 {exercises.length > 0 ? `Exercise ${activeExerciseIndex + 1} of ${exercises.length}` : 'Exercise'}
               </p>
               <p className="font-display font-700 text-3xl leading-tight tracking-wide">
-                {(selectedExerciseName ?? currentExercise?.name ?? 'Select Exercise').toUpperCase()}
+                {(pendingSelection?.name ?? currentExercise?.name ?? 'Select Exercise').toUpperCase()}
               </p>
             </div>
             <div className="text-primary flex items-center gap-1.5">
@@ -514,10 +385,7 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
         {/* Empty state (freeform with no exercise, or an exercise with all sets removed) */}
         {!currentExercise?.loggedSets.length && (
           <div className="flex flex-col items-center justify-center gap-3 py-10">
-            <div className="bg-muted flex size-12 items-center justify-center rounded-full">
-              <Plus className="text-muted-foreground" size={24} />
-            </div>
-            {!isTemplateBased && !(selectedExerciseId ?? currentExercise?.id) ? (
+            {!isTemplateBased && !(pendingSelection?.id ?? currentExercise?.id) ? (
               <div className="text-center">
                 <p className="font-semibold">No exercise selected</p>
                 <p className="text-muted-foreground mt-1 text-sm">Tap "Add" to select one</p>
@@ -530,15 +398,17 @@ export function WorkoutLogger({ sessionId }: WorkoutLoggerProps) {
 
         {/* Add set link */}
         {canAddSet && (
-          <button
-            className="text-muted-foreground active:bg-muted/50 flex w-full items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors disabled:opacity-40"
-            disabled={addSet.isPending}
-            type="button"
-            onClick={() => addSet.mutate()}
-          >
-            <Plus size={15} strokeWidth={2} />
-            Add set
-          </button>
+          <div className="flex justify-center py-2">
+            <button
+              className="text-muted-foreground border-border active:bg-muted/50 flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-base font-medium transition-colors disabled:opacity-40"
+              disabled={addSet.isPending}
+              type="button"
+              onClick={() => addSet.mutate()}
+            >
+              <Plus size={18} strokeWidth={2.5} />
+              Add set
+            </button>
+          </div>
         )}
       </div>
 

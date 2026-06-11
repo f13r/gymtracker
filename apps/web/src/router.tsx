@@ -131,6 +131,11 @@ const calendarRoute = createRoute({
 const workoutSessionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/workout/$sessionId',
+  // The Active Exercise (the Exercise the logger is focused on) lives in the URL
+  // as the single source of truth, addressed by exerciseId — see ADR-0009.
+  validateSearch: (search: Record<string, unknown>): { exercise?: string } => ({
+    exercise: typeof search.exercise === 'string' ? search.exercise : undefined,
+  }),
   component: lazyRouteComponent(() =>
     import('./routes/workout.$sessionId').then(m => ({ default: m.WorkoutSessionPage })),
   ),
