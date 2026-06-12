@@ -32,4 +32,4 @@ echo Ser38dik | sudo -S -p '' -u postgres psql -d gymtracker -tAc \
   "SELECT (SELECT count(*) FROM exercises) ex, (SELECT count(*) FROM coaching_knowledge) ck;"  # sanity: 54 / 20
 ```
 
-If `db:migrate` exits 1 with no error text, it's almost always (a) `DATABASE_URL` not a real `postgresql://` URL, or (b) pgvector missing — see `DEPLOY.md` Troubleshooting and the verbose `pg` connection probe there. **Never** run the snapshot-restore block (`apps/api/db/prod-snapshot.sql`) as part of a routine deploy — it DROPs and recreates the database; it is cutover-only.
+If `db:migrate` exits 1 with no error text, it's almost always (a) `DATABASE_URL` not a real `postgresql://` URL, or (b) pgvector missing — see `DEPLOY.md` Troubleshooting and the verbose `pg` connection probe there. The prod database is the live source of truth — never restore any dump over it as part of a deploy (the old committed snapshot and its restore recipe were removed from the repo).

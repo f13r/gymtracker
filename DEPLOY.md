@@ -38,8 +38,8 @@ The provisioning sections below were done long ago; a **recurring update** only 
   - `/home/f13r/html/gymtracker` — a dev/working checkout. Not served; never deploy from it.
 - **Already cut over to Postgres + pgvector and seeded** (54 exercises, 20 `coaching_knowledge`,
   `vector` extension present, journal at 11). So a routine update is **just the Deploy / start
-  block** — `db:migrate` is a no-op until a new migration lands. **Do not** run the snapshot
-  restore (it's destructive, cutover/resync-only).
+  block** — `db:migrate` is a no-op until a new migration lands. The prod data is the live source
+  of truth; nothing in a release reads or writes it (see "Production data").
 - **`sudo` is non-interactive here.** For psql/postgres admin from an agent shell, pipe the
   password from the global `~/.claude/CLAUDE.md`:
   `echo Ser38dik | sudo -S -p '' -u postgres psql -d gymtracker -c "…"`.
@@ -85,23 +85,17 @@ and recreating the local `gymtracker` DB and `CREATE EXTENSION vector`).
 
 ## Automated deploys
 
-Two GitHub Actions workflows run on the **self-hosted runner on this box** (service
+One GitHub Actions workflow runs on the **self-hosted runner on this box** (service
 `actions.runner.f13r-gymtracker.homeserver`, user `f13r`):
 
 - **`deploy.yml` — code deploy, automatic on push to `main`.** Runs the idempotent **Deploy /
-  start** block (build → `db:migrate` → `pm2 reload`). Never touches data. This is the everyday path.
-- **`ai-deploy.yml` — data resync, manual button (DESTRUCTIVE).** A headless Claude Code agent
-  (`claude -p` with the prompt in `.github/ai-deploy-prompt.md`, authed via the runner user's
-  `~/.claude` subscription creds) reads this file and performs the **"Restore the production data
-  snapshot"** recipe. Trigger it from **Actions → AI Deploy (data resync) → Run workflow**, typing
-  `RESTORE` to confirm. It is `workflow_dispatch`-only, so it can never fire on push. The agent
-  always `pg_dump`s a backup to `/var/data/gymtracker/pre-restore-<ts>.sql` before dropping, and
-  aborts (leaving the DB intact) if the backup or preconditions fail. To push local data to prod:
-  refresh + commit + push the snapshot (see "Regenerating the snapshot"), then click Run.
+  start** block (build → `db:migrate` → `pm2 reload`). Never touches data. This is the only
+  automated path. (The former `ai-deploy.yml` data-resync workflow was removed together with the
+  committed snapshot — there is no restore path any more, by design.)
 
 ### Non-interactive sudo (required by both the runner and any agent)
 The runner has **no tty**, so `sudo -u postgres …` can't prompt for a password. A scoped sudoers
-drop-in makes exactly the two restore/backup commands passwordless for `f13r` —
+drop-in makes the psql/backup commands passwordless for `f13r` —
 `/etc/sudoers.d/gymtracker-deploy` (mode 440):
 ```
 f13r ALL=(postgres) NOPASSWD: /usr/bin/psql, /usr/bin/pg_dump
