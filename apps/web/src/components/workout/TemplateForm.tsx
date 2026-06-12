@@ -1,3 +1,22 @@
+import {
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -51,6 +70,117 @@ function rowsFromTemplate(template: WorkoutTemplateWithExercises): ExerciseRow[]
     }))
 }
 
+interface SortableExerciseRowProps {
+  row: ExerciseRow
+  idx: number
+  displayName: string
+  canRemove: boolean
+  onUpdate: (key: number, patch: Partial<ExerciseRow>) => void
+  onRemove: (key: number) => void
+  onPickExercise: (key: number) => void
+  onShowMedia: (key: number) => void
+}
+
+function SortableExerciseRow({
+  row,
+  idx,
+  displayName,
+  canRemove,
+  onUpdate,
+  onRemove,
+  onPickExercise,
+  onShowMedia,
+}: SortableExerciseRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.key,
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`bg-card border-border touch-manipulation overflow-hidden rounded-2xl border select-none ${
+        isDragging ? 'border-primary/50 relative z-10 shadow-lg' : ''
+      }`}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+    >
+      {/* Exercise header */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <div className="flex-1">
+          {row.exerciseId ? (
+            <p className="font-display font-600 text-base tracking-wide">{displayName}</p>
+          ) : (
+            <p className="text-muted-foreground text-sm">No exercise selected</p>
+          )}
+          <p className="text-muted-foreground mt-0.5 text-xs">Exercise {idx + 1}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          {row.exerciseId && (
+            <button
+              aria-label="Show exercise demonstration"
+              className="text-muted-foreground/60 active:text-primary flex size-10 items-center justify-center transition-colors"
+              type="button"
+              onClick={() => onShowMedia(row.key)}
+            >
+              <Eye size={16} strokeWidth={1.5} />
+            </button>
+          )}
+          <button
+            aria-label={row.exerciseId ? 'Change exercise' : 'Select exercise'}
+            className="text-muted-foreground/60 active:text-primary flex size-10 items-center justify-center transition-colors"
+            type="button"
+            onClick={() => onPickExercise(row.key)}
+          >
+            <Pencil size={16} strokeWidth={1.5} />
+          </button>
+          {canRemove && (
+            <button
+              aria-label="Remove exercise"
+              className="text-destructive/50 active:text-destructive flex size-10 items-center justify-center transition-colors"
+              type="button"
+              onClick={() => onRemove(row.key)}
+            >
+              <Trash2 size={16} strokeWidth={1.5} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sets / Reps / Weight */}
+      <div className="border-border/50 grid grid-cols-3 gap-3 border-t px-4 py-3">
+        <NumericInput
+          fieldKey={`sets-${row.key}`}
+          label="SETS"
+          max={20}
+          min={1}
+          step={1}
+          value={row.defaultSets}
+          onChange={v => onUpdate(row.key, { defaultSets: v })}
+        />
+        <NumericInput
+          fieldKey={`reps-${row.key}`}
+          label="REPS"
+          max={100}
+          min={1}
+          step={1}
+          value={row.defaultReps}
+          onChange={v => onUpdate(row.key, { defaultReps: v })}
+        />
+        <NumericInput
+          fieldKey={`weight-${row.key}`}
+          label="KG"
+          max={300}
+          min={0}
+          step={2.5}
+          value={row.defaultWeightKg}
+          onChange={v => onUpdate(row.key, { defaultWeightKg: v })}
+        />
+      </div>
+    </div>
+  )
+}
+
 interface TemplateFormProps {
   mode: 'create' | 'edit'
   /** Pre-fill values when editing an existing Workout Template. */
@@ -77,12 +207,31 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
     [allExercises],
   )
 
+  // Whole card is draggable: touch needs a long-press (so swipes still scroll the list),
+  // mouse needs 8px of movement (so clicks on the card don't lift it). Buttons/inputs
+  // inside the card never start a drag — dnd-kit sensors skip interactive elements.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
   function updateRow(key: number, patch: Partial<ExerciseRow>) {
     setRows(prev => prev.map(r => (r.key === key ? { ...r, ...patch } : r)))
   }
 
   function removeRow(key: number) {
     setRows(prev => prev.filter(r => r.key !== key))
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setRows(prev => {
+      const from = prev.findIndex(r => r.key === active.id)
+      const to = prev.findIndex(r => r.key === over.id)
+      return arrayMove(prev, from, to)
+    })
   }
 
   const canSave = name.trim().length > 0 && rows.some(r => r.exerciseId)
@@ -148,87 +297,30 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
         />
 
         {/* Exercise rows */}
-        <div className="space-y-3">
-          {rows.map((row, idx) => {
-            const displayName = exerciseMap.get(row.exerciseId)?.name ?? row.exerciseName
-            return (
-            <div key={row.key} className="bg-card border-border overflow-hidden rounded-2xl border">
-              {/* Exercise header */}
-              <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                <div className="flex-1">
-                  {row.exerciseId ? (
-                    <p className="font-display font-600 text-base tracking-wide">{displayName}</p>
-                  ) : (
-                    <p className="text-muted-foreground text-sm">No exercise selected</p>
-                  )}
-                  <p className="text-muted-foreground mt-0.5 text-xs">Exercise {idx + 1}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  {row.exerciseId && (
-                    <button
-                      aria-label="Show exercise demonstration"
-                      className="text-muted-foreground/60 active:text-primary flex size-10 items-center justify-center transition-colors"
-                      type="button"
-                      onClick={() => setMediaForKey(row.key)}
-                    >
-                      <Eye size={16} strokeWidth={1.5} />
-                    </button>
-                  )}
-                  <button
-                    aria-label={row.exerciseId ? 'Change exercise' : 'Select exercise'}
-                    className="text-muted-foreground/60 active:text-primary flex size-10 items-center justify-center transition-colors"
-                    type="button"
-                    onClick={() => setPickerForKey(row.key)}
-                  >
-                    <Pencil size={16} strokeWidth={1.5} />
-                  </button>
-                  {rows.length > 1 && (
-                    <button
-                      aria-label="Remove exercise"
-                      className="text-destructive/50 active:text-destructive flex size-10 items-center justify-center transition-colors"
-                      type="button"
-                      onClick={() => removeRow(row.key)}
-                    >
-                      <Trash2 size={16} strokeWidth={1.5} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Sets / Reps / Weight */}
-              <div className="border-border/50 grid grid-cols-3 gap-3 border-t px-4 py-3">
-                <NumericInput
-                  fieldKey={`sets-${row.key}`}
-                  label="SETS"
-                  max={20}
-                  min={1}
-                  step={1}
-                  value={row.defaultSets}
-                  onChange={v => updateRow(row.key, { defaultSets: v })}
+        <DndContext
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          sensors={sensors}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={rows.map(r => r.key)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {rows.map((row, idx) => (
+                <SortableExerciseRow
+                  key={row.key}
+                  canRemove={rows.length > 1}
+                  displayName={exerciseMap.get(row.exerciseId)?.name ?? row.exerciseName}
+                  idx={idx}
+                  row={row}
+                  onPickExercise={setPickerForKey}
+                  onRemove={removeRow}
+                  onShowMedia={setMediaForKey}
+                  onUpdate={updateRow}
                 />
-                <NumericInput
-                  fieldKey={`reps-${row.key}`}
-                  label="REPS"
-                  max={100}
-                  min={1}
-                  step={1}
-                  value={row.defaultReps}
-                  onChange={v => updateRow(row.key, { defaultReps: v })}
-                />
-                <NumericInput
-                  fieldKey={`weight-${row.key}`}
-                  label="KG"
-                  max={300}
-                  min={0}
-                  step={2.5}
-                  value={row.defaultWeightKg}
-                  onChange={v => updateRow(row.key, { defaultWeightKg: v })}
-                />
-              </div>
+              ))}
             </div>
-            )
-          })}
-        </div>
+          </SortableContext>
+        </DndContext>
 
         {/* Add exercise */}
         <button
