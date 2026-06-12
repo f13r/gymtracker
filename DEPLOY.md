@@ -76,10 +76,10 @@ restore a dump over the production database.
 sudo -u postgres pg_dump -d gymtracker --no-owner --no-privileges > ~/gymtracker-backup-$(date +%F).sql
 ```
 
-**Copy production data to a dev machine** (data flows prod → dev, never the other way): take the
-backup above, copy it down, then load it into the local Docker Postgres
-(`docker exec -i gymtracker-postgres-1 psql -U postgres -d gymtracker < backup.sql` after dropping
-and recreating the local `gymtracker` DB and `CREATE EXTENSION vector`).
+**Copy production data to a dev machine** (data flows prod → dev, never the other way): run
+`npm run db:pull-prod` on the dev machine (`scripts/db-pull-prod.sh`). It streams a `pg_dump`
+from the server over SSH (read-only against prod) and rebuilds the local Docker `gymtracker` DB
+from it. Requires key-based SSH to `f13r@192.168.50.69` and the local compose Postgres running.
 
 ---
 
