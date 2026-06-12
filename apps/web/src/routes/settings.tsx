@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { profileApi } from '@/api/profile'
+import { queryKeys } from '@/api/queryKeys'
 import { cn } from '@/lib/utils'
 import { usePreferencesStore } from '@/stores/preferences.store'
 
@@ -17,13 +18,13 @@ export function SettingsPage() {
   const queryClient = useQueryClient()
 
   const { data: profile } = useQuery({
-    queryKey: ['profile'],
+    queryKey: queryKeys.profile(),
     queryFn: profileApi.get,
   })
 
   const updateProfile = useMutation({
     mutationFn: profileApi.update,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profile'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.profile() }),
   })
 
   const currentDays = profile?.trainingDays ?? []

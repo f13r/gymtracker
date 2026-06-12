@@ -6,9 +6,12 @@ import {
   redirect,
   lazyRouteComponent,
 } from '@tanstack/react-router'
+import { Loader2 } from 'lucide-react'
 
 import { profileApi } from './api/profile'
+import { queryKeys } from './api/queryKeys'
 import { AppLayout } from './components/layout/AppLayout'
+import { queryClient } from './lib/query'
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> })
 
@@ -17,7 +20,23 @@ const layoutRoute = createRoute({
   id: 'layout',
   beforeLoad: async ({ location }) => {
     if (location.pathname === '/onboarding') {return}
-    const profile = await profileApi.get().catch(() => null)
+    // Onboarding gate. fetchQuery + staleTime: Infinity → hits the server once
+    // per app load, then answers from cache, so in-app navigation (e.g. logger
+    // → dashboard) never blocks on the network. Onboarding's invalidate of
+    // queryKeys.profile() marks it stale, forcing a refetch right after setup.
+    let profile
+    try {
+      profile = await queryClient.fetchQuery({
+        queryKey: queryKeys.profile(),
+        queryFn: profileApi.get,
+        staleTime: Infinity,
+      })
+    } catch {
+      // Network error: fail open. Sending an existing user to onboarding (or a
+      // blank page) because one request dropped is worse than letting the page
+      // render and surface its own query errors.
+      return
+    }
     if (!profile?.trainingDays) {
       throw redirect({ to: '/onboarding' })
     }
@@ -178,7 +197,16 @@ const routeTree = rootRoute.addChildren([
   aiLogRoute,
 ])
 
-export const router = createRouter({ routeTree })
+export const router = createRouter({
+  routeTree,
+  // Shown while a route's beforeLoad/lazy chunk is pending — without it the
+  // router renders nothing, which reads as a broken blank page on slow networks.
+  defaultPendingComponent: () => (
+    <div className="bg-background flex h-svh items-center justify-center">
+      <Loader2 className="text-muted-foreground animate-spin" size={24} />
+    </div>
+  ),
+})
 
 declare module '@tanstack/react-router' {
   interface Register {

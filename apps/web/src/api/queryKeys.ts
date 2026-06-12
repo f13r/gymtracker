@@ -9,6 +9,7 @@
 type Id = string | null | undefined
 
 export const queryKeys = {
+  profile: () => ['profile'] as const,
   exercises: () => ['exercises'] as const,
   session: (id: Id) => ['session', id] as const,
   template: (id: Id) => ['template', id] as const,

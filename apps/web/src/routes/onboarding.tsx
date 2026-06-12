@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { profileApi } from '@/api/profile'
+import { queryKeys } from '@/api/queryKeys'
 import { cn } from '@/lib/utils'
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
@@ -32,7 +33,7 @@ export function OnboardingPage() {
         sessionDurationMinutes: sessionDuration,
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profile() })
       void navigate({ to: '/program' })
     },
   })

@@ -7,6 +7,7 @@ import type { BodyWeight } from '@gymtracker/shared'
 
 import { bodyApi } from '@/api/body'
 import { profileApi, type UpdateProfilePayload, type UserProfile } from '@/api/profile'
+import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -129,7 +130,7 @@ export function BodyPage() {
 function ProfileCard() {
   // Gate on load so the form can initialise from data without an effect; `key`
   // remounts the form with fresh initial values once the profile resolves.
-  const { data: profile, isLoading } = useQuery({ queryKey: ['profile'], queryFn: profileApi.get })
+  const { data: profile, isLoading } = useQuery({ queryKey: queryKeys.profile(), queryFn: profileApi.get })
 
   if (isLoading) {
     return <div className="bg-card border-border h-40 animate-pulse rounded-xl border" />
@@ -153,7 +154,7 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
   const save = useMutation({
     mutationFn: () => profileApi.update(form),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile() })
       queryClient.invalidateQueries({ queryKey: ['program', 'preview'] })
     },
   })

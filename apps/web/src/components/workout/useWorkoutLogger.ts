@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
-import type { Exercise, WorkoutSet } from '@gymtracker/shared'
+import type { Exercise, SessionWithSets, WorkoutSet } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
@@ -166,17 +166,31 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
 
   const isTemplateBased = !!session?.templateId
 
+  // Optimistic: a tap must recolor the row instantly, even on a slow connection —
+  // the cache is flipped in onMutate and rolled back if the server rejects it.
   const toggleDone = useMutation({
     mutationFn: ({ setId, done }: { setId: string; done: boolean }) =>
       setsApi.updateSet(sessionId, setId, { done }),
-    onSuccess: (_, { setId, done }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
+    onMutate: async ({ setId, done }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.session(sessionId) })
+      const previous = queryClient.getQueryData<SessionWithSets>(queryKeys.session(sessionId))
+      queryClient.setQueryData<SessionWithSets>(queryKeys.session(sessionId), old =>
+        old ? { ...old, sets: old.sets.map(s => (s.id === setId ? { ...s, done } : s)) } : old,
+      )
       if (done && isTemplateBased && currentExercise) {
         const allDone =
           currentExercise.loggedSets.length > 0 &&
           currentExercise.loggedSets.every(s => s.id === setId || s.done)
         if (allDone) { setAllDoneOpen(true) }
       }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) { queryClient.setQueryData(queryKeys.session(sessionId), context.previous) }
+      setAllDoneOpen(false)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
     },
   })
 

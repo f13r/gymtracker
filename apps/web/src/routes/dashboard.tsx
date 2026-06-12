@@ -294,7 +294,10 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
             const doneCount = ex.loggedSets.filter((s: WorkoutSet) => s.done).length
             const totalSets = ex.defaultSets > 0 ? ex.defaultSets : loggedCount
             const isComplete = totalSets > 0 && doneCount >= totalSets
-            const isInProgress = !isComplete && loggedCount > 0
+            // "Started" means at least one Set marked done — the snapshot
+            // materialises all Planned Sets at Start (ADR-0008), so loggedCount
+            // is > 0 for every Exercise and says nothing about progress.
+            const isInProgress = !isComplete && doneCount > 0
             // Highlight the resume target: the first not-complete Exercise. Mirrors
             // the logger's first-not-done resolution (ADR-0009).
             const isCurrent = i === resumeIndex
