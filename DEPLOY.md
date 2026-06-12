@@ -61,136 +61,25 @@ The provisioning sections below were done long ago; a **recurring update** only 
 
 ---
 
-## Cutover from the current SQLite setup (READ FIRST)
+## Production data — the live DB is the source of truth
 
-**The production server is currently running on SQLite** (`/var/data/gymtracker/db.sqlite`) from
-an older build. The codebase no longer supports SQLite — it now requires **PostgreSQL 16 +
-pgvector**. This deploy is a one-way cutover, and it does **not** start from an empty database:
-it **restores a snapshot of the current local data** so the production DB ends up with *exactly
-the same information* — the default user, all 54 exercises (incl. `wger_id`s), the 3 workout
-templates (23 template-exercises), June 2026 schedules, body data, the 20 pre-computed
-`coaching_knowledge` embeddings, **and the logged workout history** (`workout_sessions`, `sets`,
-`session_exercises`, `progression_suggestions`). The snapshot also carries the full Drizzle
-journal at **11 migrations** (through `0010_quick_slayback`). It is committed at
-**`apps/api/db/prod-snapshot.sql`** and is regenerated from the live local DB whenever you want
-prod to mirror local — see "Regenerating the snapshot" below.
+The one-time SQLite→Postgres cutover is **done**: production runs PostgreSQL 16 + pgvector, was
+seeded once from a data snapshot (Drizzle journal at **11 migrations**, through
+`0010_quick_slayback`), and its data has been the canonical copy since. The committed snapshot
+file (`apps/api/db/prod-snapshot.sql`) has been **removed from the repo** — there is nothing to
+restore any more, and **no deploy step reads or writes data**. Releases only apply pending
+Drizzle schema migrations via `npm run db:migrate` (see `.github/workflows/deploy.yml`). Never
+restore a dump over the production database.
 
-Do the cutover in this order:
-
-1. **Provision Postgres** — do the "One-time provisioning" steps 1 & 2 below (install
-   `postgresql-16` + `postgresql-16-pgvector`, create the `gymtracker` role/db, and
-   `CREATE EXTENSION vector`).
-2. **Create `apps/api/.env`** — step 5 below. `DATABASE_URL` must be the `postgresql://…` URL
-   (never the old SQLite file path), and **`GEMINI_API_KEY` must be set** or the API throws on
-   boot (`gemini.service.ts` does `getOrThrow`).
-3. **Get the code** — clone (step 4) or, on an existing checkout, `git fetch origin main &&
-   git reset --hard origin/main && npm ci && build` (the **Deploy / start** block). The snapshot
-   file ships with the repo.
-4. **Restore the snapshot — this REPLACES `db:migrate` for the initial cutover.** See
-   **"Restore the production data snapshot"** below. The snapshot already contains the full
-   schema *and* the Drizzle migration journal, so you do **not** run `npm run db:migrate` on the
-   very first boot — the dump builds the schema. (`db:migrate` on later releases is a harmless
-   no-op until a genuinely new migration lands.)
-5. **Start** — `pm2 start ecosystem.config.js --env production`. On boot `SeedService` and
-   `CoachingKnowledgeService` see the rows already present and no-op, so nothing is duplicated or
-   re-embedded.
-
-### What happens to the old SQLite data
-- The restore loads the **committed Postgres snapshot**, not the old SQLite file. Any data that
-  exists *only* in `db.sqlite` and not in the snapshot is **not** carried over. The snapshot is
-  the source of truth for production's starting state.
-- **Uploaded photo files** on disk (`/var/data/gymtracker/photos`) are untouched. (The current
-  snapshot has zero `progress_photos` rows, so there are no photo references to reconcile.)
-- Keep the old `db.sqlite` file as a backup until you've confirmed the Postgres app is healthy;
-  don't delete it as part of cutover.
-
----
-
-## Restore the production data snapshot (overwrite prod with the committed snapshot)
-
-> ⚠️ **Destructive — it `DROP`s and recreates the `gymtracker` database.** Run it (a) at the
-> initial Postgres cutover, or (b) any time you deliberately want production to **mirror the
-> local DB exactly** ("dump local → restore on server"). Everything logged on the server since
-> the last restore is **destroyed** — so this is a manual, intentional act, **not** part of the
-> recurring release flow and **not** in `.github/workflows/deploy.yml`. Never wire it into the
-> deploy pipeline. To resync prod to local: regenerate the snapshot (bottom of this section),
-> commit + push, `git pull` it on the server, then run the recipe below.
-
-The snapshot is `apps/api/db/prod-snapshot.sql` — a plain-SQL `pg_dump` (`--no-owner
---no-privileges`) containing the full schema, the `drizzle` migration journal, and all rows
-including the `vector(768)` coaching-knowledge embeddings. It is restored **as the `postgres`
-superuser** (so the pgvector extension can be created) but with `SET ROLE gymtracker` so every
-restored object ends up **owned by the `gymtracker` app role**.
-
-> **Two operational gotchas before you run this:**
-> - **Stop the API first.** If `pm2 gymtracker` is running it holds open connections, so
->   `DROP DATABASE` fails with `database "gymtracker" is being accessed by other users`.
->   Run `pm2 stop gymtracker` before the drop and `pm2 start ecosystem.config.js --env production`
->   after the restore.
-> - **Run it from a real terminal** (so `sudo` uses cached credentials). The recipe pipes SQL into
->   `sudo -u postgres psql` over stdin; in a non-interactive shell `sudo`'s password prompt and the
->   piped SQL fight over stdin. If sudo isn't pre-authenticated, run `sudo -v` first, or open a
->   `sudo -u postgres psql` session and `\i` the file.
-
+**Back up production data** (run on the server; keep backups outside the repo):
 ```bash
-cd /var/www/gymtracker
-pm2 stop gymtracker 2>/dev/null || true   # release DB connections; DROP fails while the API holds them
-# (Re)create an empty DB owned by the app role. DESTRUCTIVE — only at cutover.
-sudo -u postgres psql -v ON_ERROR_STOP=1 <<'SQL'
-DROP DATABASE IF EXISTS gymtracker;
-CREATE DATABASE gymtracker OWNER gymtracker;
-SQL
-# pgvector must be created by a superuser, before the data loads.
-sudo -u postgres psql -d gymtracker -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS vector;"
-# Restore as superuser, but SET ROLE so tables are owned by gymtracker. ON_ERROR_STOP catches problems.
-( echo "SET ROLE gymtracker;"; cat apps/api/db/prod-snapshot.sql ) \
-  | sudo -u postgres psql -d gymtracker -v ON_ERROR_STOP=1
+sudo -u postgres pg_dump -d gymtracker --no-owner --no-privileges > ~/gymtracker-backup-$(date +%F).sql
 ```
 
-This recipe was validated end-to-end against a scratch DB: it restores with **zero errors**, and
-every table (exercises, templates, schedules, `coaching_knowledge`, the Drizzle journal) ends up
-owned by `gymtracker`. After it completes, skip `db:migrate` and go straight to `pm2 start`.
-
-**Verify the restore** (counts must match the local DB the snapshot was taken from):
-```bash
-sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS exercises FROM exercises;"            # expect 54
-sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS coaching FROM coaching_knowledge;"    # expect 20
-sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS templates FROM workout_templates;"    # expect 3
-sudo -u postgres psql -d gymtracker -c "SELECT count(*) AS sessions FROM workout_sessions;"      # expect 1
-sudo -u postgres psql -d gymtracker -c "SELECT count(*) FROM drizzle.__drizzle_migrations;"      # expect 11 (through 0010) — the next release's db:migrate applies any newer migrations on top
-```
-
-### Regenerating the snapshot (from the dev machine, to push local → prod)
-The snapshot is a point-in-time capture. To refresh it, dump the **live local DB** and **drop the
-single `COMMENT ON EXTENSION` line** (it requires extension ownership and would break the
-`SET ROLE` restore), then commit. Locally the DB runs in the OrbStack compose container
-`gymtracker-postgres-1`, so dump from inside it — this guarantees the dump's `pg_dump` matches the
-server's Postgres 16 (a newer client dumping an older server, or vice-versa, can emit incompatible
-SQL):
-```bash
-# Container must be up: `docker compose up -d` (starts OrbStack's gymtracker-postgres-1).
-docker exec gymtracker-postgres-1 pg_dump -U postgres -d gymtracker --no-owner --no-privileges \
-  | grep -v "^COMMENT ON EXTENSION vector" > apps/api/db/prod-snapshot.sql
-git add apps/api/db/prod-snapshot.sql && git commit -m "chore: refresh prod data snapshot"
-```
-> Not using Docker locally? `pg_dump "$LOCAL_DATABASE_URL" --no-owner --no-privileges | grep -v
-> "^COMMENT ON EXTENSION vector" > apps/api/db/prod-snapshot.sql` does the same, **provided your
-> `pg_dump` is ≥ the server's major version**.
-
-**Validate before you push** (the restore recipe above, against a throwaway DB — proves it loads
-with zero errors and the counts match local):
-```bash
-docker exec -i gymtracker-postgres-1 psql -U postgres -v ON_ERROR_STOP=1 \
-  -c "DROP DATABASE IF EXISTS gymtracker_verify;" -c "CREATE DATABASE gymtracker_verify;"
-docker exec gymtracker-postgres-1 psql -U postgres -d gymtracker_verify -c "CREATE EXTENSION IF NOT EXISTS vector;"
-docker exec -i gymtracker-postgres-1 psql -U postgres -d gymtracker_verify -v ON_ERROR_STOP=1 \
-  < apps/api/db/prod-snapshot.sql            # expect no ERROR lines
-docker exec gymtracker-postgres-1 psql -U postgres -d gymtracker_verify -c "SELECT count(*) FROM exercises;"  # 54
-docker exec gymtracker-postgres-1 psql -U postgres -c "DROP DATABASE gymtracker_verify;"
-```
-Because a refreshed snapshot carries the local schema + journal **and all local rows**, only
-restore it onto a server you intend to overwrite with that exact state — the destructive caveat at
-the top of this section applies every time.
+**Copy production data to a dev machine** (data flows prod → dev, never the other way): take the
+backup above, copy it down, then load it into the local Docker Postgres
+(`docker exec -i gymtracker-postgres-1 psql -U postgres -d gymtracker < backup.sql` after dropping
+and recreating the local `gymtracker` DB and `CREATE EXTENSION vector`).
 
 ---
 
@@ -311,27 +200,18 @@ This mirrors `.github/workflows/deploy.yml`; the workflow does it automatically 
 automatically — adding a migration to the repo needs no extra deploy step. Newest migration:
 
 - **`0010_quick_slayback`** — Session Snapshot model (ADR-0008). Adds the `session_exercises`
-  table and the nullable `sets.removed_at` column. **Additive and safe on the live DB**: existing
-  `sets` backfill to `removed_at = NULL`; no history backfill; stats unaffected.
-  - **Now included in the committed snapshot** (journal at 11). A server brought up via the full
-    restore above already has it, so `db:migrate` is a no-op there; the warning below only applies
-    when `db:migrate` adds 0010 to a pre-0010 live DB (i.e. a release that is *not* a full restore).
-  - ⚠️ **Finish any in-progress Session before deploying this release.** A Session started under
-    the pre-0010 build has no `session_exercises` rows and will render degraded in the logger.
-    New sessions snapshot correctly. (Check: `SELECT id FROM workout_sessions WHERE finished_at
-    IS NULL;` — finish or delete any row before/after migrating.)
-  - Verify after deploy: `SELECT count(*) FROM drizzle.__drizzle_migrations;` is now **11**, and
-    `\d session_exercises` / `\d sets` show the new table and column.
+  table and the nullable `sets.removed_at` column. **Already applied on production** (journal at
+  11), so `db:migrate` is a no-op for it; verify with
+  `SELECT count(*) FROM drizzle.__drizzle_migrations;` → **11**.
 
 ---
 
 ## Personal workout data
 
-Personal data (custom exercises, templates, schedules, body data) is **no longer seeded by a
-script** — it is carried by the committed snapshot and loaded by the one-time restore above
-(**"Restore the production data snapshot"**). The old `npm run db:setup-workout` script still
-exists in the repo but is **stale** (its hard-coded exercise list has diverged from the live data)
-— do **not** run it as part of deploy; the snapshot is the source of truth.
+Personal data (custom exercises, templates, schedules, body data, workout history) lives **only
+in the production database** — no deploy step seeds, restores, or otherwise touches it. The old
+`npm run db:setup-workout` script still exists in the repo but is **stale** (its hard-coded
+exercise list has diverged from the live data) — do **not** run it as part of deploy.
 
 ---
 
@@ -357,8 +237,6 @@ curl -s http://localhost:8095/ | grep -o '<title>.*</title>'  # SPA served
 | `permission denied to create extension "vector"` | Migrating role isn't superuser | Run the `CREATE EXTENSION` once as the `postgres` superuser (step 2); the app role then just uses it |
 | API boots then crashes on DB calls | Runtime read the wrong `DATABASE_URL` | Confirm PM2 `cwd: apps/api` and that no `DATABASE_URL` is set in `ecosystem.config.js` (it must come from `.env`) |
 | API exits immediately on boot, log mentions `GEMINI_API_KEY` / `getOrThrow` | `GEMINI_API_KEY` missing/empty in `apps/api/.env` | Set a real `GEMINI_API_KEY` in `.env` (step 5), then `pm2 reload …` |
-| Restore aborts on `must be owner of extension vector` | Snapshot still has the `COMMENT ON EXTENSION` line | Regenerate the snapshot with the `grep -v "^COMMENT ON EXTENSION vector"` filter (see "Regenerating the snapshot") |
-| `DROP DATABASE` fails: `database "gymtracker" is being accessed by other users` | The API (PM2) still holds connections | `pm2 stop gymtracker` before the drop; `pm2 start ecosystem.config.js --env production` after the restore |
 | `curl http://localhost/...` → 404 / connection refused | Nginx public port is **8095**, not 80 | Use `http://localhost:8095/` (see Architecture → Ports) |
 
 **See the real migrate error** (drizzle-kit hides it). Test the connection directly — this prints
@@ -381,5 +259,6 @@ node -e "const{Pool}=require('pg');const p=new Pool({connectionString:process.en
 | PM2 status | `pm2 status` |
 | Reload Nginx | `sudo systemctl reload nginx` |
 | Open DB shell | `sudo -u postgres psql -d gymtracker` |
+| Back up DB | `sudo -u postgres pg_dump -d gymtracker --no-owner --no-privileges > ~/gymtracker-backup-$(date +%F).sql` |
 | Confirm pgvector | `sudo -u postgres psql -d gymtracker -c "SELECT extname FROM pg_extension WHERE extname='vector';"` |
 | Manual deploy | the **Deploy / start** block above |
