@@ -85,6 +85,13 @@
       "when": 1781772920937,
       "tag": "0011_ordinary_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1781775092961,
+      "tag": "0012_great_guardian",
+      "breakpoints": true
     }
   ]
 }

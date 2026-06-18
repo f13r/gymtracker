@@ -198,26 +198,29 @@ automatically — adding a migration to the repo needs no extra deploy step. New
   11), so `db:migrate` is a no-op for it; verify with
   `SELECT count(*) FROM drizzle.__drizzle_migrations;` → **11**.
 - **`0011_ordinary_electro`** — local Exercise media (ADR-0010). Adds nullable `exercises.image_path`,
-  `thumb_path`, `description`. Applies automatically. The legacy `wger_id` column is intentionally
-  **kept** by this migration — it is the join key the one-time backfill needs (see below).
+  `thumb_path`, `description`. Applies automatically.
+- **`0012_great_guardian`** — drops the legacy `exercises.wger_id` column after the one-time media
+  backfill (below) had used it. Applies automatically.
 
-### One-time: migrate Exercise media off wger.de (ADR-0010)
+### One-time: migrate Exercise media off wger.de (ADR-0010) — DONE on prod 2026-06-18
 
 Demonstration images used to be hot-linked live from wger.de by `wger_id`. They are now stored
-locally (`.webp` under `PHOTOS_DIR`, served by exercise id). The images that existed only as wger
-URLs are preserved by a **one-time backfill**, run on the dev machine, then shipped to prod. Order
-is load-bearing — do **not** add the `wger_id`-drop migration until the very end.
+locally (`.webp` under `PHOTOS_DIR/_defaults`, served by exercise id). The images that existed only
+as wger URLs were preserved by a **one-time, idempotent backfill** run **directly on prod** (the
+server reaches wger.de and owns the live DB + `PHOTOS_DIR`, so no dump/file-copy was needed):
 
-1. Deploy this release normally (adds the `0011` columns to prod; exercise images render blank
-   until step 5 lands their files + paths).
-2. `npm run db:pull-prod` — dev gets current prod data (now with the new columns + populated `wger_id`).
-3. `npm run backfill:exercise-media` — downloads each image (flattened onto white) + description into
-   the **dev** `PHOTOS_DIR/_defaults`, fills `image_path`/`thumb_path`/`description`. Idempotent.
-4. Copy `PHOTOS_DIR/_defaults/*` from dev → prod `PHOTOS_DIR/_defaults/` (scp/rsync over the LAN).
-5. Push the backfilled DB to prod (the dump-to-prod step). Verify images load before continuing.
-6. **Only now**, as a follow-up release: add the generated `wger_id`-drop migration and deploy. It
-   auto-applies on boot — which is exactly why it must be last, after every environment has been
-   backfilled. Until then `wger_id` lingers harmlessly (no code reads it).
+```
+cd /var/www/gymtracker && npm run backfill:exercise-media   # reads apps/api/.env
+```
+
+Result: 45 exercises processed, 43 images + 45 descriptions written (2 had no wger image). The
+`wger_id` column was the backfill's join key, so the order was load-bearing: `0011` added the
+columns and **kept** `wger_id`; the backfill ran; then `0012` dropped `wger_id`. If this ever needs
+re-running on a fresh environment, restore the column and the `wger_id` values first — but on a
+normal `db:pull-prod` the local DB simply mirrors prod's already-migrated state.
+
+> If you ever re-clone into a fresh `PHOTOS_DIR`, the image **files** are not in a DB dump — copy
+> `PHOTOS_DIR/_defaults/` from prod (or re-run the backfill against a DB that still has `wger_id`).
 
 ---
 

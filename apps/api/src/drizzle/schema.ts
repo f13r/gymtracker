@@ -19,9 +19,6 @@ export const exercises = pgTable('exercises', {
   imagePath: text('image_path'),
   thumbPath: text('thumb_path'),
   description: text('description'),
-  // wger.de exercise (base) id — retained only until the one-time media backfill runs; dropped by a
-  // follow-up migration afterwards. No application code reads it anymore.
-  wgerId: integer('wger_id'),
   createdAt: integer('created_at').notNull(),
 })
 
