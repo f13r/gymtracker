@@ -40,7 +40,7 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
       <div className={`bg-card border-border flex items-center overflow-hidden rounded-xl border ${lg ? 'h-16' : 'h-14'}`}>
         {!readOnly && (
           <button
-            className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-14' : 'w-12'}`}
+            className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-12' : 'w-9'}`}
             type="button"
             {...decPress}
           >
@@ -48,11 +48,11 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
           </button>
         )}
 
-        <div className="flex h-full flex-1 items-center justify-center">
+        <div className="flex h-full min-w-0 flex-1 items-center justify-center">
           {!readOnly && editing ? (
             <input
               ref={inputRef}
-              className={`font-display font-700 h-full w-full bg-transparent text-center tracking-wide tabular-nums outline-none ${lg ? 'text-3xl' : 'text-2xl'}`}
+              className={`font-display font-700 h-full w-full bg-transparent text-center tracking-wide tabular-nums outline-none ${lg ? 'text-3xl' : 'text-xl'}`}
               defaultValue={value === 0 ? '' : value}
               type="number"
               autoFocus
@@ -71,7 +71,7 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
               type="button"
               onClick={() => !readOnly && setEditing(true)}
             >
-              <span className={`font-display font-700 tracking-wide tabular-nums ${lg ? 'text-3xl' : 'text-2xl'}`}>
+              <span className={`font-display font-700 tracking-wide tabular-nums ${lg ? 'text-3xl' : 'text-xl'}`}>
                 {value % 1 === 0 ? value : value.toFixed(1)}
               </span>
             </button>
@@ -80,7 +80,7 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
 
         {!readOnly && (
           <button
-            className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-14' : 'w-12'}`}
+            className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-12' : 'w-9'}`}
             type="button"
             {...incPress}
           >
