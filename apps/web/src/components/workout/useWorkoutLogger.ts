@@ -40,6 +40,9 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   const [pendingSelection, setPendingSelection] = useState<PendingSelection | null>(null)
   const [allDoneOpen, setAllDoneOpen] = useState(false)
   const [mediaOpen, setMediaOpen] = useState(false)
+  // "Add to <Template> permanently" — when set, picking an Exercise also appends it to the source
+  // Template (only meaningful when the Session has a templateId).
+  const [permanentAdd, setPermanentAdd] = useState(false)
 
   const { data: session } = useQuery({
     queryKey: queryKeys.session(sessionId),
@@ -65,9 +68,15 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
     return map
   }, [allExercises])
 
-  const wgerIdMap = useMemo(() => {
-    const map: Record<string, number | null> = {}
-    allExercises.forEach((e: Exercise) => { map[e.id] = e.wgerId })
+  const exerciseMediaMap = useMemo(() => {
+    const map: Record<string, { hasImage: boolean; description: string | null }> = {}
+    allExercises.forEach((e: Exercise) => { map[e.id] = { hasImage: e.hasImage, description: e.description } })
+    return map
+  }, [allExercises])
+
+  const equipmentMap = useMemo(() => {
+    const map: Record<string, string | null> = {}
+    allExercises.forEach((e: Exercise) => { map[e.id] = e.equipmentType })
     return map
   }, [allExercises])
 
@@ -101,6 +110,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
     const fromTemplateDefaults = (exId: string) => ({
       id: exId,
       name: exerciseNameMap[exId] ?? 'Exercise',
+      equipmentType: equipmentMap[exId] ?? null,
       defaultSets: templateDefaults[exId]?.defaultSets ?? 0,
       defaultReps: templateDefaults[exId]?.defaultReps ?? 8,
       defaultWeightKg: templateDefaults[exId]?.defaultWeightKg ?? 0,
@@ -244,17 +254,30 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
 
   const canAddSet = isTemplateBased ? !!currentExercise : !!(pendingSelection?.id ?? currentExercise?.id)
 
+  const addToTemplate = useMutation({
+    mutationFn: (exerciseId: string) => workoutsApi.addTemplateExercise(session!.templateId!, exerciseId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.template(session?.templateId) }),
+  })
+
   // Pick from the ExercisePicker: an Exercise already in this Session → pin it;
   // otherwise hold the ephemeral selection until its first Set is logged (it has
-  // no id in the list yet).
+  // no id in the list yet). When "Add permanently" is set and this Session has a
+  // Template, also append the Exercise to that Template.
   const handlePickerSelect = (id: string, name: string) => {
     setShowPicker(false)
+    if (permanentAdd && session?.templateId) {
+      addToTemplate.mutate(id)
+    }
+    setPermanentAdd(false)
     if (exercises.some(e => e.id === id)) {
       goToExercise(id, { replace: true })
     } else {
       setPendingSelection({ id, name })
     }
   }
+
+  // The "Add to <Template> permanently" affordance is offered only when the Session has a Template.
+  const permanentAddTarget = session?.templateId ? (template?.name ?? 'workout') : null
 
   // Show a loader (never a positional fallback) until we can render the exact
   // Exercise the URL names, or until the redirect-to-overview takes effect.
@@ -275,8 +298,11 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
     canAddSet,
     workoutSeconds,
     prevSets,
-    wgerIdMap,
+    exerciseMediaMap,
     pendingSelection,
+    permanentAdd,
+    setPermanentAdd,
+    permanentAddTarget,
     // UI toggles
     showPicker,
     setShowPicker,

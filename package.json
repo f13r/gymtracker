@@ -12,6 +12,7 @@
     "db:studio": "npm run db:studio --workspace=apps/api",
     "db:reset": "npm run build --workspace=apps/api && npm run db:reset --workspace=apps/api",
     "db:pull-prod": "bash scripts/db-pull-prod.sh",
+    "backfill:exercise-media": "npm run backfill:exercise-media --workspace=apps/api",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

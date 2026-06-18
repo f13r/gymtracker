@@ -34,6 +34,13 @@ export class WorkoutsController {
   @Delete('templates/:id') deleteTemplate(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.deleteTemplate(id, req.user.id)
   }
+  @Post('templates/:id/exercises') addTemplateExercise(
+    @Param('id') id: string,
+    @Body() body: { exerciseId: string },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.svc.addTemplateExercise(id, req.user.id, body.exerciseId)
+  }
 
   @Get('sessions') getSessions(@Req() req: AuthenticatedRequest) {
     return this.svc.getSessions(req.user.id)

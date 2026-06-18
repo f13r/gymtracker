@@ -8,7 +8,10 @@ export type Exercise = {
   equipmentType: string | null
   notes: string | null
   isDefault: number | null
-  wgerId: number | null
+  description: string | null
+  // True when the Exercise has a stored image; the bytes are fetched from
+  // GET /exercises/:id/image (and /thumb). File paths are never exposed.
+  hasImage: boolean
   createdAt: number
 }
 

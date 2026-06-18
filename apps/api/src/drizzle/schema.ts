@@ -14,7 +14,13 @@ export const exercises = pgTable('exercises', {
   equipmentType: text('equipment_type'),
   notes: text('notes'),
   isDefault: integer('is_default').default(0),
-  // wger.de exercise (base) id for demonstration media; null for custom exercises with no wger match.
+  // Local demonstration media: relative paths under PHOTOS_DIR (orig + thumb .webp). Null when
+  // the Exercise has no image. `description` is reference/how-to text, distinct from user `notes`.
+  imagePath: text('image_path'),
+  thumbPath: text('thumb_path'),
+  description: text('description'),
+  // wger.de exercise (base) id — retained only until the one-time media backfill runs; dropped by a
+  // follow-up migration afterwards. No application code reads it anymore.
   wgerId: integer('wger_id'),
   createdAt: integer('created_at').notNull(),
 })

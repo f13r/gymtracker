@@ -16,6 +16,8 @@ export const workoutsApi = {
   updateTemplate: (id: string, data: UpdateTemplateDto) =>
     api.patch<WorkoutTemplateWithExercises>(`/templates/${id}`, data),
   deleteTemplate: (id: string) => api.delete(`/templates/${id}`),
+  addTemplateExercise: (id: string, exerciseId: string) =>
+    api.post<WorkoutTemplateWithExercises>(`/templates/${id}/exercises`, { exerciseId }),
   getSessions: () => api.get<WorkoutSession[]>('/sessions'),
   startSession: (data: StartSessionDto) => api.post<SessionWithSets>('/sessions', data),
   getSession: (id: string) => api.get<SessionWithSets>(`/sessions/${id}`),

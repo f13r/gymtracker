@@ -11,17 +11,11 @@ const ExerciseFieldsSchema = z.object({
   category: ExerciseCategorySchema.optional(),
   equipmentType: ExerciseEquipmentSchema.optional(),
   notes: z.string().max(500).optional(),
-  // wger.de exercise (base) id. When set, the server fetches the exercise's metadata
-  // (name/category/equipment) from wger and fills it in; null unlinks it.
-  wgerId: z.number().int().positive().nullable().optional(),
+  // Reference/how-to text, distinct from user `notes`.
+  description: z.string().max(4000).optional(),
 })
 
-// `name` is optional on create only when a wgerId is supplied — the server then derives
-// the name from wger. Either a name or a wgerId must be present.
-export const CreateExerciseSchema = ExerciseFieldsSchema.partial({ name: true }).refine(
-  d => (d.name?.trim().length ?? 0) > 0 || d.wgerId != null,
-  { message: 'Provide an exercise name or a wger ID', path: ['name'] },
-)
+export const CreateExerciseSchema = ExerciseFieldsSchema
 
 export const UpdateExerciseSchema = ExerciseFieldsSchema.partial()
 

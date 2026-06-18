@@ -37,12 +37,14 @@ const fmtDelta = (v: number) => {
 
 function InlineSetRow({
   set,
+  isBodyweight,
   onUpdate,
   onToggleDone,
   onDelete,
   isDeletePending,
 }: {
   set: WorkoutSet
+  isBodyweight: boolean
   onUpdate: (data: { weightKg: number; reps: number }) => void
   onToggleDone: () => void
   onDelete: () => void
@@ -125,20 +127,22 @@ function InlineSetRow({
         onClick={handleRowClick}
         {...swipeHandlers}
       >
-        <div className="grid grid-cols-2 gap-3">
-          <NumericInput
-            bigStep={5}
-            fieldKey={`weight-${set.id}`}
-            highlighted={isDone}
-            label="WEIGHT"
-            max={300}
-            min={0}
-            readOnly={isDone}
-            size="lg"
-            step={2.5}
-            value={weight}
-            onChange={handleWeightChange}
-          />
+        <div className={cn('grid gap-3', isBodyweight ? 'grid-cols-1' : 'grid-cols-2')}>
+          {!isBodyweight && (
+            <NumericInput
+              bigStep={5}
+              fieldKey={`weight-${set.id}`}
+              highlighted={isDone}
+              label="WEIGHT"
+              max={300}
+              min={0}
+              readOnly={isDone}
+              size="lg"
+              step={2.5}
+              value={weight}
+              onChange={handleWeightChange}
+            />
+          )}
           <NumericInput
             bigStep={5}
             fieldKey={`reps-${set.id}`}
@@ -166,26 +170,29 @@ function ExerciseSummaryBar({
   defaultReps,
   defaultWeightKg,
   defaultSets,
+  isBodyweight,
 }: {
   currentSets: WorkoutSet[]
   prevSets: WorkoutSet[]
   defaultReps: number
   defaultWeightKg: number
   defaultSets: number
+  isBodyweight: boolean
 }) {
   const doneSets = getDoneSets(currentSets)
   const nowReps = doneSets.reduce((s, x) => s + (x.reps ?? 0), 0)
   const nowVol = calculateVolume(doneSets)
 
+  const donePrevSets = getDoneSets(prevSets)
   const hasPrev = prevSets.length > 0
   const hasTemplate = defaultSets > 0 && defaultReps > 0
 
   const wasReps: number | null = hasPrev
-    ? prevSets.reduce((s, x) => s + (x.reps ?? 0), 0)
+    ? donePrevSets.reduce((s, x) => s + (x.reps ?? 0), 0)
     : hasTemplate ? defaultSets * defaultReps : null
 
   const wasVol: number | null = hasPrev
-    ? calculateVolume(getDoneSets(prevSets))
+    ? calculateVolume(donePrevSets)
     : hasTemplate && defaultWeightKg > 0 ? defaultSets * defaultReps * defaultWeightKg : null
 
   const compLabel = hasPrev ? 'last time' : hasTemplate ? 'template' : null
@@ -200,26 +207,28 @@ function ExerciseSummaryBar({
           vs {compLabel}
         </p>
       )}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Volume card */}
-        <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-          <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">VOLUME</p>
-          <p className="font-display font-700 text-[26px] leading-none tabular-nums">
-            {nowVol > 0 ? (
-              <>{fmtVol(nowVol)}<span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">kg</span></>
-            ) : '—'}
-          </p>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground tabular-nums">
-              was {wasVol !== null ? `${fmtVol(wasVol)}kg` : '—'}
-            </span>
-            {deltaVol !== null && deltaVol !== 0 && (
-              <span className={cn('text-[10px] font-bold tabular-nums', deltaVol > 0 ? 'text-accent' : 'text-destructive')}>
-                {deltaVol > 0 ? '+' : '−'}{fmtDelta(deltaVol)}
+      <div className={cn('grid gap-3', isBodyweight ? 'grid-cols-1' : 'grid-cols-2')}>
+        {/* Volume card — hidden for bodyweight */}
+        {!isBodyweight && (
+          <div className="bg-muted/30 rounded-xl px-3 py-2.5">
+            <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">VOLUME</p>
+            <p className="font-display font-700 text-[26px] leading-none tabular-nums">
+              {nowVol > 0 ? (
+                <>{fmtVol(nowVol)}<span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">kg</span></>
+              ) : '—'}
+            </p>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                was {wasVol !== null ? `${fmtVol(wasVol)}kg` : '—'}
               </span>
-            )}
+              {deltaVol !== null && deltaVol !== 0 && (
+                <span className={cn('text-[10px] font-bold tabular-nums', deltaVol > 0 ? 'text-accent' : 'text-destructive')}>
+                  {deltaVol > 0 ? '+' : '−'}{fmtDelta(deltaVol)}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Reps card */}
         <div className="bg-muted/30 rounded-xl px-3 py-2.5">
@@ -261,8 +270,11 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
     canAddSet,
     workoutSeconds,
     prevSets,
-    wgerIdMap,
+    exerciseMediaMap,
     pendingSelection,
+    permanentAdd,
+    setPermanentAdd,
+    permanentAddTarget,
     showPicker,
     setShowPicker,
     mediaOpen,
@@ -281,7 +293,17 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
   } = useWorkoutLogger(sessionId, activeExerciseId)
 
   if (showPicker) {
-    return <ExercisePicker onClose={() => setShowPicker(false)} onSelect={handlePickerSelect} />
+    return (
+      <ExercisePicker
+        permanentAdd={
+          permanentAddTarget
+            ? { templateName: permanentAddTarget, checked: permanentAdd, onCheckedChange: setPermanentAdd }
+            : undefined
+        }
+        onClose={() => setShowPicker(false)}
+        onSelect={handlePickerSelect}
+      />
+    )
   }
 
   // No valid Active Exercise once structure has settled → redirect to the
@@ -374,6 +396,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
         {currentExercise?.loggedSets.map((s: WorkoutSet) => (
           <InlineSetRow
             key={s.id}
+            isBodyweight={currentExercise.equipmentType === 'bodyweight'}
             isDeletePending={deleteSet.isPending && deleteSet.variables === s.id}
             set={s}
             onDelete={() => deleteSet.mutate(s.id)}
@@ -412,7 +435,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
         )}
       </div>
 
-      {/* Exercise summary — always visible */}
+      {/* Exercise summary — always visible; volume card hidden for bodyweight */}
       {currentExercise && (
         <div className="shrink-0">
           <ExerciseSummaryBar
@@ -420,6 +443,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
             defaultReps={currentExercise.defaultReps}
             defaultSets={currentExercise.defaultSets}
             defaultWeightKg={currentExercise.defaultWeightKg}
+            isBodyweight={currentExercise.equipmentType === 'bodyweight'}
             prevSets={prevSets}
           />
         </div>
@@ -453,9 +477,11 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
       {/* Exercise media drawer */}
       {isTemplateBased && currentExercise && (
         <ExerciseMediaDrawer
+          description={exerciseMediaMap[currentExercise.id]?.description ?? null}
+          exerciseId={currentExercise.id}
           exerciseName={currentExercise.name}
+          hasImage={exerciseMediaMap[currentExercise.id]?.hasImage ?? false}
           open={mediaOpen}
-          wgerId={wgerIdMap[currentExercise.id] ?? null}
           onOpenChange={setMediaOpen}
         />
       )}

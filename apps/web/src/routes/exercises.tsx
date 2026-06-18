@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 
@@ -6,11 +6,9 @@ import type { Exercise } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EditExerciseDialog } from '@/components/workout/EditExerciseDialog'
+import { ExerciseForm } from '@/components/workout/ExerciseForm'
 
 const CATEGORY_COLORS: Record<string, string> = {
   push: 'text-orange-400',
@@ -59,7 +57,7 @@ export function ExercisesPage() {
             <h1 className="font-display font-700 text-3xl tracking-wide">EXERCISES</h1>
           </div>
           <button
-            aria-label="Add exercise from wger"
+            aria-label="Add exercise"
             className="bg-card border-border active:bg-muted flex size-10 items-center justify-center rounded-xl border transition-colors"
             type="button"
             onClick={() => setCreating(true)}
@@ -145,63 +143,13 @@ function CreateExerciseDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
-      <DialogContent className="max-w-sm rounded-2xl">
-        {/* Only mounted while open, so the field resets between opens. */}
-        {open && <CreateExerciseForm onSaved={onSaved} />}
+      <DialogContent className="max-h-[90dvh] max-w-sm overflow-y-auto rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Add exercise</DialogTitle>
+        </DialogHeader>
+        {/* Only mounted while open, so the fields reset between opens. */}
+        {open && <ExerciseForm onSaved={onSaved} />}
       </DialogContent>
     </Dialog>
-  )
-}
-
-function CreateExerciseForm({ onSaved }: { onSaved: () => void }) {
-  const [wgerId, setWgerId] = useState('')
-
-  const id = Number(wgerId)
-  const valid = wgerId.trim() !== '' && Number.isInteger(id) && id > 0
-
-  const create = useMutation({
-    // Only the wger id is sent — the server fetches the name/category/equipment from wger.
-    mutationFn: () => exercisesApi.create({ wgerId: id }),
-    onSuccess: onSaved,
-  })
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Add exercise from wger</DialogTitle>
-      </DialogHeader>
-
-      <div className="space-y-4 py-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="new-wger-id">wger exercise ID</Label>
-          <Input
-            id="new-wger-id"
-            inputMode="numeric"
-            placeholder="e.g. 73"
-            value={wgerId}
-            autoFocus
-            onChange={e => setWgerId(e.target.value.replace(/[^0-9]/g, ''))}
-          />
-          <p className="text-muted-foreground text-xs">
-            We’ll pull the name, category, equipment and demonstration from wger.de.
-          </p>
-        </div>
-
-        {create.isError && (
-          <p className="text-destructive text-xs">{(create.error as Error).message}</p>
-        )}
-      </div>
-
-      <DialogFooter className="flex-row justify-end gap-2 sm:gap-2">
-        <DialogClose asChild>
-          <Button disabled={create.isPending} variant="outline">
-            Cancel
-          </Button>
-        </DialogClose>
-        <Button disabled={!valid || create.isPending} onClick={() => create.mutate()}>
-          {create.isPending ? 'Fetching…' : 'Add'}
-        </Button>
-      </DialogFooter>
-    </>
   )
 }

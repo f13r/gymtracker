@@ -226,7 +226,7 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    if (!over || active.id === over.id) return
+    if (!over || active.id === over.id) {return}
     setRows(prev => {
       const from = prev.findIndex(r => r.key === active.id)
       const to = prev.findIndex(r => r.key === over.id)
@@ -346,9 +346,11 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
       </div>
 
       <ExerciseMediaDrawer
+        description={mediaExercise?.description ?? null}
+        exerciseId={mediaExercise?.id}
         exerciseName={mediaExercise?.name ?? ''}
+        hasImage={mediaExercise?.hasImage ?? false}
         open={mediaForKey !== null}
-        wgerId={mediaExercise?.wgerId ?? null}
         onOpenChange={open => !open && setMediaForKey(null)}
       />
     </div>

@@ -1,6 +1,32 @@
-import type { WorkoutSet, WorkoutSession, SessionExercise, Equipment, EquipmentWithExercises } from '@gymtracker/shared'
+import type {
+  WorkoutSet,
+  WorkoutSession,
+  SessionExercise,
+  Equipment,
+  EquipmentWithExercises,
+  Exercise,
+} from '@gymtracker/shared'
 
 import * as schema from './schema'
+
+export type DbExercise = typeof schema.exercises.$inferSelect
+
+// Map a stored Exercise to the wire model: expose a `hasImage` flag instead of the on-disk paths
+// (and never leak the legacy wger_id).
+export function toExercise(row: DbExercise): Exercise {
+  return {
+    id: row.id,
+    userId: row.userId,
+    name: row.name,
+    category: row.category,
+    equipmentType: row.equipmentType,
+    notes: row.notes,
+    isDefault: row.isDefault,
+    description: row.description,
+    hasImage: row.imagePath != null,
+    createdAt: row.createdAt,
+  }
+}
 
 export type DbSet = typeof schema.sets.$inferSelect
 export type DbSession = typeof schema.workoutSessions.$inferSelect
@@ -63,9 +89,6 @@ export function toEquipment(row: DbEquipment): Equipment {
   }
 }
 
-export function toEquipmentWithExercises(
-  row: DbEquipment,
-  exercises: (typeof schema.exercises.$inferSelect)[],
-): EquipmentWithExercises {
-  return { ...toEquipment(row), exercises }
+export function toEquipmentWithExercises(row: DbEquipment, exercises: DbExercise[]): EquipmentWithExercises {
+  return { ...toEquipment(row), exercises: exercises.map(toExercise) }
 }

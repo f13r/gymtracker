@@ -100,6 +100,27 @@ export class WorkoutsService {
     return this.getTemplate(id, userId)
   }
 
+  // Append a single Exercise to a Template at the end of its list — the "Add to <Template>
+  // permanently" path from the in-session picker. No-op if it's already in the Template.
+  async addTemplateExercise(templateId: string, userId: string, exerciseId: string) {
+    const tpl = await this.getTemplate(templateId, userId)
+    if (tpl.exercises.some(e => e.exerciseId === exerciseId)) {
+      return tpl
+    }
+    const nextOrder = tpl.exercises.reduce((max, e) => Math.max(max, e.orderIndex + 1), 0)
+    await this.db.insert(schema.templateExercises).values({
+      id: randomUUID(),
+      templateId,
+      exerciseId,
+      orderIndex: nextOrder,
+      defaultSets: null,
+      defaultReps: null,
+      defaultWeightKg: null,
+      equipmentId: null,
+    })
+    return this.getTemplate(templateId, userId)
+  }
+
   async deleteTemplate(id: string, userId: string) {
     await this.getTemplate(id, userId)
     await this.db.delete(schema.programPhaseTemplates).where(eq(schema.programPhaseTemplates.templateId, id))
