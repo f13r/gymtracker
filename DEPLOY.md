@@ -36,10 +36,11 @@ The provisioning sections below were done long ago; a **recurring update** only 
 - **Two checkouts live on this box** — don't confuse them:
   - `/var/www/gymtracker` — the **production** checkout PM2 + Nginx serve. **Deploy here.**
   - `/home/f13r/html/gymtracker` — a dev/working checkout. Not served; never deploy from it.
-- **Already cut over to Postgres + pgvector and seeded** (54 exercises, 20 `coaching_knowledge`,
-  `vector` extension present, journal at 11). So a routine update is **just the Deploy / start
-  block** — `db:migrate` is a no-op until a new migration lands. The prod data is the live source
-  of truth; nothing in a release reads or writes it (see "Production data").
+- **Already cut over to Postgres + pgvector and seeded** (`vector` extension present, journal at
+  11). So a routine update is **just the Deploy / start block** — `db:migrate` is a no-op until a
+  new migration lands. The prod data is the live source of truth; nothing in a release reads or
+  writes it (see "Production data"). Row counts (exercises, etc.) grow as users add data — don't
+  treat them as a fixed sanity figure.
 - **`sudo` is non-interactive here.** For psql/postgres admin from an agent shell, pipe the
   password from the global `~/.claude/CLAUDE.md`:
   `echo Ser38dik | sudo -S -p '' -u postgres psql -d gymtracker -c "…"`.

@@ -1,35 +1,57 @@
 ---
-description: Pull latest main and deploy gymtracker to production (/var/www/gymtracker on this host)
+description: Push main, watch the auto-deploy, then SSH to prod and verify it's healthy
 ---
 
-Deploy gymtracker to production. **This host (Beelink, 192.168.50.69) IS the prod server** — no SSH. Prod checkout: `/var/www/gymtracker`. Authoritative runbook: `DEPLOY.md`. Public URL is nginx on **port 8095** (port 80 is a different app). DB is **PostgreSQL 16 + pgvector**; `apps/api/.env` is the single source of truth for `DATABASE_URL` (must start with `postgresql://`).
+Deploy gymtracker to production **from the dev Mac**. The flow is: push `main` → the
+`deploy.yml` GitHub Action runs the idempotent release on the self-hosted runner (the Beelink)
+→ SSH in and verify. Stop and report if any step fails — don't declare success on a red run.
 
-`sudo` here is non-interactive — pipe the password from the global CLAUDE.md: `echo Ser38dik | sudo -S -p '' …`.
+**Facts.** Prod = Beelink `f13r@192.168.50.69` (hostname `homeserver`), key-based SSH from this
+Mac works. Prod checkout: `/var/www/gymtracker` (never `~/html/gymtracker` — that's a dev
+checkout). Public URL = nginx on **port 8095** (port 80 is a different app). API is internal on
+`:3000`. DB = PostgreSQL 16 + pgvector. Authoritative runbook: `DEPLOY.md`. On-server `sudo` is
+non-interactive — pipe the password from the global `~/.claude/CLAUDE.md`:
+`echo <pw> | sudo -S -p '' …`.
 
-Run the idempotent release flow, then verify. Stop and report if any step fails (don't reload a broken build).
-
-```bash
-cd /var/www/gymtracker
-git fetch origin main && git reset --hard origin/main
-npm ci
-npm run build --workspace=packages/shared   # shared MUST build first (api/web import it)
-npm run build --workspace=apps/api
-npm run build --workspace=apps/web
-npm run db:migrate                           # applies pending Drizzle migrations (no-op if none)
-pm2 reload ecosystem.config.js --env production
-```
-
-Then verify and report the results:
+## 1. Push code
 
 ```bash
-cd /var/www/gymtracker
-ls apps/api/dist/main.js apps/web/dist/index.html        # build artifacts exist
-pm2 status | grep gymtracker                             # "online"
-curl -fsS http://localhost:3000/api/health              # API up (direct)
-curl -fsS http://localhost:8095/api/health              # API up (via nginx)
-curl -s  http://localhost:8095/ | grep -o '<title>.*</title>'   # SPA served
-echo Ser38dik | sudo -S -p '' -u postgres psql -d gymtracker -tAc \
-  "SELECT (SELECT count(*) FROM exercises) ex, (SELECT count(*) FROM coaching_knowledge) ck;"  # sanity: 54 / 20
+git push origin main
 ```
 
-If `db:migrate` exits 1 with no error text, it's almost always (a) `DATABASE_URL` not a real `postgresql://` URL, or (b) pgvector missing — see `DEPLOY.md` Troubleshooting and the verbose `pg` connection probe there. The prod database is the live source of truth — never restore any dump over it as part of a deploy (the old committed snapshot and its restore recipe were removed from the repo).
+If there's nothing unpushed, the push is a no-op — that's fine; continue to verify the latest
+release. If there are uncommitted local changes the user wants shipped, commit them first
+(don't add `Co-Authored-By` lines).
+
+## 2. Watch the auto-deploy
+
+The push to `main` triggers `deploy.yml`. Wait for it to finish and confirm success:
+
+```bash
+gh run watch "$(gh run list --workflow=deploy.yml --branch=main --limit=1 --json databaseId -q '.[0].databaseId')" --exit-status
+```
+
+`--exit-status` makes this exit non-zero on a failed run. If it fails, fetch the logs
+(`gh run view <id> --log-failed`) and report — do **not** proceed to verify.
+
+## 3. Verify on prod (over SSH)
+
+```bash
+ssh f13r@192.168.50.69 'cd /var/www/gymtracker
+echo "=== HEAD ===";       git log --oneline -1
+echo "=== artifacts ===";  ls apps/api/dist/main.js apps/web/dist/index.html
+echo "=== pm2 ===";        pm2 status | grep gymtracker         # "online"
+echo "=== api direct ==="; curl -fsS http://localhost:3000/api/health; echo
+echo "=== api nginx ===";  curl -fsS http://localhost:8095/api/health; echo
+echo "=== spa ===";        curl -s http://localhost:8095/ | grep -o "<title>.*</title>"
+'
+```
+
+Healthy = prod HEAD matches the just-pushed commit, both artifacts exist, PM2 `gymtracker` is
+`online`, both health checks return `{"status":"ok"}`, and the SPA `<title>` renders. The API
+health check exercises the DB, so a green API means Postgres/pgvector are reachable — no row-count
+check needed (counts grow with user data and aren't a sanity figure). For deeper DB diagnostics
+(pgvector probe, migrate failures) see `DEPLOY.md` → Troubleshooting.
+
+Report the table of results. If `deploy.yml` ever can't run (runner down), the fallback is to SSH
+in and run `DEPLOY.md` → **Deploy / start** block manually.
