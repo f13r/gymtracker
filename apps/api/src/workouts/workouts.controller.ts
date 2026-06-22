@@ -51,6 +51,9 @@ export class WorkoutsController {
   @Get('sessions/:id') getSession(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.getSession(id, req.user.id)
   }
+  @Get('sessions/:id/comparison') getSessionComparison(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.svc.getSessionComparison(id, req.user.id)
+  }
   @Post('sessions') startSession(@Body() dto: StartSessionDto, @Req() req: AuthenticatedRequest) {
     return this.svc.startSession(req.user.id, dto)
   }

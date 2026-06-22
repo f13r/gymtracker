@@ -76,6 +76,19 @@ export type SessionWithSets = WorkoutSession & {
   exercises: SessionExercise[]
 }
 
+// One Exercise's last-done aggregate for a Last-Done Comparison: the Done-Set
+// figures from the most recent finished Session strictly earlier than the one
+// being viewed in which the Exercise was done. Absence of an entry for an
+// Exercise means "first time" (no earlier occurrence). topSetKg/volume are null
+// when that occurrence carried no weight (bodyweight). See CONTEXT.md.
+export type ExerciseComparison = {
+  exerciseId: string
+  comparedToStartedAt: number
+  topSetKg: number | null
+  doneSets: number
+  volume: number | null
+}
+
 export type BodyWeight = {
   id: string
   userId: string | null

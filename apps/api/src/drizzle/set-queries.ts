@@ -29,6 +29,36 @@ export const volumeSumExpr = sql<number>`SUM(${schema.sets.reps} * ${schema.sets
 export const volumeSumSql: SQL = sql`SUM(s.reps * s.weight_kg)`
 
 /**
+ * Last-Done Comparison aggregate for one Exercise: the Done-Set figures from the
+ * most recent finished Session **strictly earlier** than `beforeStartedAt` in
+ * which the Exercise was done. Returns at most one row; no row means "first time"
+ * (no earlier occurrence). topSetKg/volume are null when that occurrence carried
+ * no weight — bodyweight Sets store weight 0, so NULLIF(..., 0) collapses a
+ * weightless top set / volume to null. Done Sets only (`done = 1 AND removed_at
+ * IS NULL`). See CONTEXT.md (Last-Done Comparison).
+ */
+export function lastDoneAggregateSql(exerciseId: string, userId: string, beforeStartedAt: number): SQL {
+  return sql`
+    SELECT ws.started_at AS "comparedToStartedAt",
+           NULLIF(MAX(s.weight_kg), 0) AS "topSetKg",
+           COUNT(*)::int AS "doneSets",
+           NULLIF(SUM(s.reps * s.weight_kg), 0) AS "volume"
+    FROM sets s
+    INNER JOIN workout_sessions ws ON ws.id = s.session_id
+    WHERE ws.id = (
+      SELECT ws2.id FROM workout_sessions ws2
+      INNER JOIN sets s2 ON s2.session_id = ws2.id
+      WHERE ws2.user_id = ${userId} AND s2.exercise_id = ${exerciseId}
+        AND s2.done = 1 AND s2.removed_at IS NULL
+        AND ws2.finished_at IS NOT NULL AND ws2.started_at < ${beforeStartedAt}
+      ORDER BY ws2.started_at DESC LIMIT 1
+    )
+    AND s.exercise_id = ${exerciseId} AND s.done = 1 AND s.removed_at IS NULL
+    GROUP BY ws.started_at
+  `
+}
+
+/**
  * Canonical query for the Done + Planned Sets of the last finished Session that
  * contains a given Exercise — the (2) tier of the Set Pre-population Hierarchy.
  * Returns sets ordered by set number. Used by exercises.getLastSets.

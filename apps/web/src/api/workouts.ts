@@ -1,5 +1,6 @@
 import type {
   CreateTemplateDto,
+  ExerciseComparison,
   SessionWithSets,
   StartSessionDto,
   UpdateTemplateDto,
@@ -21,6 +22,7 @@ export const workoutsApi = {
   getSessions: () => api.get<WorkoutSession[]>('/sessions'),
   startSession: (data: StartSessionDto) => api.post<SessionWithSets>('/sessions', data),
   getSession: (id: string) => api.get<SessionWithSets>(`/sessions/${id}`),
+  getSessionComparison: (id: string) => api.get<ExerciseComparison[]>(`/sessions/${id}/comparison`),
   getActiveSession: () => api.get<WorkoutSession | null>('/sessions/active'),
   finishSession: (id: string, notes?: string) => api.post<SessionWithSets>(`/sessions/${id}/finish`, { notes }),
   deleteSession: (id: string) => api.delete(`/sessions/${id}`),

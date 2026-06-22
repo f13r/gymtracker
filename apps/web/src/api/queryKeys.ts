@@ -12,6 +12,7 @@ export const queryKeys = {
   profile: () => ['profile'] as const,
   exercises: () => ['exercises'] as const,
   session: (id: Id) => ['session', id] as const,
+  sessionComparison: (id: Id) => ['session', id, 'comparison'] as const,
   template: (id: Id) => ['template', id] as const,
   exerciseLastSets: (id: Id) => ['exercise-last-sets', id] as const,
   progressionSuggestion: (id: Id) => ['progression-suggestion', id] as const,

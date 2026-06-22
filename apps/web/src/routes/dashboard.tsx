@@ -186,16 +186,14 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
         .map(te => ({
           id: te.exerciseId!,
           name: exerciseNameMap[te.exerciseId!] ?? 'Exercise',
-          defaultSets: te.defaultSets ?? 3,
-          loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId),
+          loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId && s.removedAt == null),
         }))
     }
-    const ids = [...new Set((session.sets ?? []).map((s: WorkoutSet) => s.exerciseId))]
+    const ids = [...new Set((session.sets ?? []).filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId))]
     return ids.map(id => ({
       id,
       name: exerciseNameMap[id] ?? 'Exercise',
-      defaultSets: 0,
-      loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === id),
+      loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === id && s.removedAt == null),
     }))
   }, [template, session, exerciseNameMap])
 
@@ -203,7 +201,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   // that isn't fully done (-1 if all complete). Mirrors the logger's first-not-done
   // resolution so the highlight matches where a tap-through lands (ADR-0009).
   const resumeIndex = exercises.findIndex(ex => {
-    const total = ex.defaultSets > 0 ? ex.defaultSets : ex.loggedSets.length
+    const total = ex.loggedSets.length
     const done = ex.loggedSets.filter((s: WorkoutSet) => s.done).length
     return !(total > 0 && done >= total)
   })
@@ -217,7 +215,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
 
     const prevVolume = prevSets.length > 0 ? sessionPrevVolume : null
 
-    const completedCount = exercises.filter(ex => ex.defaultSets > 0 && ex.loggedSets.length >= ex.defaultSets).length
+    const completedCount = exercises.filter(
+      ex => ex.loggedSets.length > 0 && ex.loggedSets.every((s: WorkoutSet) => s.done),
+    ).length
 
     const exceededExercises = exercises
       .map(ex => {
@@ -292,8 +292,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
           exercises.map((ex, i) => {
             const loggedCount = ex.loggedSets.length
             const doneCount = ex.loggedSets.filter((s: WorkoutSet) => s.done).length
-            const totalSets = ex.defaultSets > 0 ? ex.defaultSets : loggedCount
-            const isComplete = totalSets > 0 && doneCount >= totalSets
+            const isComplete = loggedCount > 0 && doneCount >= loggedCount
             // "Started" means at least one Set marked done — the snapshot
             // materialises all Planned Sets at Start (ADR-0008), so loggedCount
             // is > 0 for every Exercise and says nothing about progress.
@@ -335,7 +334,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                     isComplete ? 'text-accent' : 'text-muted-foreground',
                   )}
                 >
-                  {doneCount}/{totalSets > 0 ? totalSets : '?'}
+                  {doneCount}/{loggedCount > 0 ? loggedCount : '?'}
                 </span>
               </button>
             )

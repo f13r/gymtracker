@@ -172,6 +172,10 @@ _Avoid_: photo log, body photo
 The count of finished Sessions per calendar week. Used to track training consistency over time.
 _Avoid_: sessions per week, training frequency
 
+**Last-Done Comparison**:
+A per-Exercise retrospective shown on a finished Session's detail view: each Exercise's top-set weight, **Done Set** count, and **Volume** compared against the same Exercise's **last-done** occurrence — the most recent finished Session, *strictly earlier* than the one being viewed, in which that Exercise was done, regardless of Template. **Done Sets** only (Planned/Missed and Removed Sets excluded). Degrades to "first time" when no earlier occurrence exists. Reuses the same last-done notion as the **Set Pre-population Hierarchy**, not a same-Template session diff. kg and Volume deltas are omitted for an Exercise whose Sets carry no weight (bodyweight); cardio (duration-based) comparison is not yet defined.
+_Avoid_: progress, last workout, session diff
+
 ## Flagged ambiguities — Program domain
 
 - **"Program update timing"**: Adaptation is evaluated on Session finish. Resolved: at most one Program Update is pending at a time. When multiple signals coincide (several Adaptive Resistance flags, a phase-level plateau, phase completion), the evaluation surfaces only the single highest-priority action. The pending update is shown before the next Session can start.

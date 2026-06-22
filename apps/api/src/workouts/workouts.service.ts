@@ -2,12 +2,18 @@ import { Injectable, Inject, NotFoundException, BadRequestException, Logger } fr
 import { eq, and, asc, desc } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-import { CreateTemplateDto, FinishSessionDto, StartSessionDto, UpdateTemplateDto } from '@gymtracker/shared'
+import {
+  CreateTemplateDto,
+  ExerciseComparison,
+  FinishSessionDto,
+  StartSessionDto,
+  UpdateTemplateDto,
+} from '@gymtracker/shared'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import { toWorkoutSession, toWorkoutSet, toSessionExercise } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
-import { lastFinishedSessionSetsSql } from '../drizzle/set-queries'
+import { lastDoneAggregateSql, lastFinishedSessionSetsSql } from '../drizzle/set-queries'
 import { ProgramService } from '../program/program.service'
 import { ProgressionService } from '../progression/progression.service'
 import { SessionRepository } from '../sessions/session.repository'
@@ -168,6 +174,60 @@ export class WorkoutsService {
       sets: sessionSets.map(toWorkoutSet),
       exercises: exercises.map(toSessionExercise),
     }
+  }
+
+  /**
+   * Last-Done Comparison for a finished Session: for each Exercise in the
+   * Session, the Done-Set aggregate of its most recent earlier occurrence (see
+   * lastDoneAggregateSql). Exercises with no earlier occurrence are omitted —
+   * the client renders those as "first time". Anchored to *this* Session's
+   * startedAt so viewing an old Session compares against what was actually
+   * previous at that time, never a later Session.
+   */
+  async getSessionComparison(id: string, userId: string): Promise<ExerciseComparison[]> {
+    const [s] = await this.db
+      .select({ startedAt: schema.workoutSessions.startedAt })
+      .from(schema.workoutSessions)
+      .where(and(eq(schema.workoutSessions.id, id), eq(schema.workoutSessions.userId, userId)))
+      .limit(1)
+    if (!s) {
+      throw new NotFoundException('Session not found')
+    }
+
+    // Every Exercise shown on the detail page: the snapshot's session_exercises
+    // plus any Exercise that has Sets but no session_exercises row (freeform
+    // Sessions and mid-Session adds), matching the page's render set.
+    const exerciseRows = await this.db
+      .select({ exerciseId: schema.sessionExercises.exerciseId })
+      .from(schema.sessionExercises)
+      .where(eq(schema.sessionExercises.sessionId, id))
+    const setExerciseRows = await this.db
+      .selectDistinct({ exerciseId: schema.sets.exerciseId })
+      .from(schema.sets)
+      .where(eq(schema.sets.sessionId, id))
+    const exerciseIds = [
+      ...new Set([...exerciseRows, ...setExerciseRows].map(r => r.exerciseId).filter((id): id is string => id != null)),
+    ]
+
+    const comparisons = await Promise.all(
+      exerciseIds.map(async exerciseId => {
+        const res = await this.db.execute(lastDoneAggregateSql(exerciseId, userId, s.startedAt))
+        const row = res.rows[0] as
+          | { comparedToStartedAt: number; topSetKg: number | null; doneSets: number; volume: number | null }
+          | undefined
+        if (!row) {
+          return null
+        }
+        return {
+          exerciseId,
+          comparedToStartedAt: Number(row.comparedToStartedAt),
+          topSetKg: row.topSetKg == null ? null : Number(row.topSetKg),
+          doneSets: Number(row.doneSets),
+          volume: row.volume == null ? null : Number(row.volume),
+        } satisfies ExerciseComparison
+      }),
+    )
+    return comparisons.filter((c): c is ExerciseComparison => c !== null)
   }
 
   async getActiveSession(userId: string) {

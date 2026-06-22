@@ -182,6 +182,8 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
     mutationFn: ({ setId, done }: { setId: string; done: boolean }) =>
       setsApi.updateSet(sessionId, setId, { done }),
     onMutate: async ({ setId, done }) => {
+      // Haptic tick on every done/undone tap (no-op on devices without the API).
+      if ('vibrate' in navigator) { navigator.vibrate(30) }
       await queryClient.cancelQueries({ queryKey: queryKeys.session(sessionId) })
       const previous = queryClient.getQueryData<SessionWithSets>(queryKeys.session(sessionId))
       queryClient.setQueryData<SessionWithSets>(queryKeys.session(sessionId), old =>

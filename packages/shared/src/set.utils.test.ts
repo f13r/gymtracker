@@ -36,6 +36,23 @@ describe('set.utils', () => {
       }
       expect(isDoneSet(set)).toBe(false)
     })
+
+    it('returns false for a done Set that was later Removed', () => {
+      const set: WorkoutSet = {
+        id: '3',
+        sessionId: 'session1',
+        exerciseId: 'exercise1',
+        setNumber: 3,
+        reps: 10,
+        weightKg: 50,
+        durationSec: null,
+        rpe: null,
+        completedAt: 1000,
+        done: true,
+        removedAt: 2000,
+      }
+      expect(isDoneSet(set)).toBe(false)
+    })
   })
 
   describe('getDoneSets', () => {
