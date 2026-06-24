@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .env
+
+# Ralph-loop branch-local scratch (qa-transcript, etc.) — never committed.
+.ralph/scratch/
 data/sqlite/
 data/photos/
 *.db
