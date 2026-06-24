@@ -182,8 +182,8 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
     mutationFn: ({ setId, done }: { setId: string; done: boolean }) =>
       setsApi.updateSet(sessionId, setId, { done }),
     onMutate: async ({ setId, done }) => {
-      // Haptic tick on every done/undone tap (no-op on devices without the API).
-      if ('vibrate' in navigator) { navigator.vibrate(30) }
+      // Haptic feedback is fired synchronously from the tap handler, not here —
+      // Android blocks navigator.vibrate() in async callbacks. See lib/haptics.
       await queryClient.cancelQueries({ queryKey: queryKeys.session(sessionId) })
       const previous = queryClient.getQueryData<SessionWithSets>(queryKeys.session(sessionId))
       queryClient.setQueryData<SessionWithSets>(queryKeys.session(sessionId), old =>
@@ -230,7 +230,6 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
     },
     onSuccess: exId => {
       queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
-      if ('vibrate' in navigator) { navigator.vibrate(50) }
       setPendingSelection(null)
       // A brand-new freeform Exercise now has an id — pin it to the URL.
       if (exId && exId !== activeExerciseId) { goToExercise(exId, { replace: true }) }

@@ -11,6 +11,7 @@ import { ExerciseMediaDrawer } from '@/components/workout/ExerciseMediaDrawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
 import { useSwipeReveal } from '@/components/workout/useSwipeReveal'
 import { useWorkoutLogger } from '@/components/workout/useWorkoutLogger'
+import { haptic } from '@/lib/haptics'
 import { cn, formatElapsed } from '@/lib/utils'
 
 interface WorkoutLoggerProps {
@@ -96,6 +97,9 @@ function InlineSetRow({
     if ((e.target as HTMLElement).closest('button, input')) { return }
     if (consumeDrag()) { return }
     if (revealed) { close(); return }
+    // Fire the buzz synchronously in the gesture handler — Android ignores it
+    // from the mutation's async onMutate.
+    haptic(30)
     onToggleDone()
   }
 
@@ -426,7 +430,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
               className="text-muted-foreground border-border active:bg-muted/50 flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-base font-medium transition-colors disabled:opacity-40"
               disabled={addSet.isPending}
               type="button"
-              onClick={() => addSet.mutate()}
+              onClick={() => { haptic(50); addSet.mutate() }}
             >
               <Plus size={18} strokeWidth={2.5} />
               Add set
