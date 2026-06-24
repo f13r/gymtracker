@@ -13,7 +13,7 @@ export const DAY_SHORT: Record<number, string> = {
   6: 'Sat',
 }
 
-export const DAY_FULL: Record<number, string> = {
+const DAY_FULL: Record<number, string> = {
   0: 'Sunday',
   1: 'Monday',
   2: 'Tuesday',
@@ -78,10 +78,13 @@ export function workoutsForDate(date: Date, schedules: WorkoutSchedule[]): Sched
   const ymd = toYMD(date)
   const out: ScheduledWorkout[] = []
   for (const s of schedules) {
-    if (s.templateId == null) {continue}
-    const matches =
-      (s.type === 'weekly' && s.dayOfWeek === dow) || (s.type === 'once' && s.scheduledDate === ymd)
-    if (matches) {out.push({ schedule: s, templateId: s.templateId })}
+    if (s.templateId == null) {
+      continue
+    }
+    const matches = (s.type === 'weekly' && s.dayOfWeek === dow) || (s.type === 'once' && s.scheduledDate === ymd)
+    if (matches) {
+      out.push({ schedule: s, templateId: s.templateId })
+    }
   }
   return out
 }
@@ -101,7 +104,9 @@ export function dayLabelByTemplate(program: Program | null | undefined): Map<str
   const map = new Map<string, string>()
   const phase = program?.phases.find(p => p.status === 'active') ?? program?.phases[0]
   for (const t of phase?.templates ?? []) {
-    if (t.templateId) {map.set(t.templateId, t.dayLabel)}
+    if (t.templateId) {
+      map.set(t.templateId, t.dayLabel)
+    }
   }
   return map
 }

@@ -28,6 +28,11 @@ function getGreeting() {
 
 const SKIP_KEY = 'skipped_today_schedule'
 
+const fmtVol = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`)
+const fmtDelta = (v: number) => {
+  const abs = Math.abs(v)
+  return abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : Math.round(abs).toString()
+}
 
 function WorkoutSummaryCard({
   currentVolume,
@@ -44,12 +49,6 @@ function WorkoutSummaryCard({
   exceededExercises: { id: string; name: string; delta: number }[]
   hasTemplate: boolean
 }) {
-  const fmtVol = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`)
-  const fmtDelta = (v: number) => {
-    const abs = Math.abs(v)
-    return abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : Math.round(abs).toString()
-  }
-
   const deltaVol = prevVolume !== null ? currentVolume - prevVolume : null
   const hasPrev = prevVolume !== null
 
@@ -153,11 +152,13 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     if (!templateId) {
       return null
     }
-    return (
-      allSessions
-        .filter((s: WorkoutSession) => s.templateId === templateId && s.finishedAt && s.id !== sessionId)
-        .sort((a: WorkoutSession, b: WorkoutSession) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0] ?? null
-    )
+    // Single O(n) pass for the most-recently-finished prior session — no full sort.
+    return allSessions
+      .filter((s: WorkoutSession) => s.templateId === templateId && s.finishedAt && s.id !== sessionId)
+      .reduce<WorkoutSession | null>(
+        (latest, s) => (!latest || (s.finishedAt ?? 0) > (latest.finishedAt ?? 0) ? s : latest),
+        null,
+      )
   }, [allSessions, templateId, sessionId])
 
   const { data: prevSessionData } = useQuery({
@@ -186,10 +187,16 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
         .map(te => ({
           id: te.exerciseId!,
           name: exerciseNameMap[te.exerciseId!] ?? 'Exercise',
-          loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId && s.removedAt == null),
+          loggedSets: (session.sets ?? []).filter(
+            (s: WorkoutSet) => s.exerciseId === te.exerciseId && s.removedAt == null,
+          ),
         }))
     }
-    const ids = [...new Set((session.sets ?? []).filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId))]
+    const ids = [
+      ...new Set(
+        (session.sets ?? []).filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId),
+      ),
+    ]
     return ids.map(id => ({
       id,
       name: exerciseNameMap[id] ?? 'Exercise',
@@ -309,7 +316,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                   isCurrent && !isComplete && 'bg-primary/5',
                 )}
                 type="button"
-                onClick={() => navigate({ to: '/workout/$sessionId', params: { sessionId }, search: { exercise: ex.id } })}
+                onClick={() =>
+                  navigate({ to: '/workout/$sessionId', params: { sessionId }, search: { exercise: ex.id } })
+                }
               >
                 <div className="flex items-center gap-3">
                   {isComplete ? (
@@ -402,7 +411,8 @@ export function DashboardPage() {
     setPromptDismissed(true)
   }
 
-  const isSkipped = todaySchedule && localStorage.getItem(`${SKIP_KEY}:${todaySchedule.schedule.templateId!}:${todayStr}`) === '1'
+  const isSkipped =
+    todaySchedule && localStorage.getItem(`${SKIP_KEY}:${todaySchedule.schedule.templateId!}:${todayStr}`) === '1'
 
   const showPrompt = !!todaySchedule && !promptDismissed && !isSkipped && !active
 

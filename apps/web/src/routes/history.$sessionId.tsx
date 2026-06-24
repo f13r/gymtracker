@@ -221,6 +221,9 @@ export function HistoryDetailPage() {
   )
 }
 
+const deltaTone = (d: number) => (d > 0 ? 'text-accent' : d < 0 ? 'text-destructive' : 'text-muted-foreground')
+const deltaSign = (d: number) => (d === 0 ? '—' : d > 0 ? `+${d}` : `${d}`)
+
 /**
  * Last-Done Comparison line under an exercise name: top-set kg, Done-Set count,
  * and Volume vs the same exercise's most recent earlier occurrence. Renders
@@ -238,8 +241,6 @@ function ExerciseDeltas({
     return <span className="text-muted-foreground mt-1 block text-[11px]">First time</span>
   }
   const date = new Date(prev.comparedToStartedAt * 1000).toLocaleDateString('en', { month: 'short', day: 'numeric' })
-  const tone = (d: number) => (d > 0 ? 'text-accent' : d < 0 ? 'text-destructive' : 'text-muted-foreground')
-  const sign = (d: number) => (d === 0 ? '—' : d > 0 ? `+${d}` : `${d}`)
 
   const setsDelta = current.doneSets - prev.doneSets
   const showWeight = current.topSetKg != null && prev.topSetKg != null
@@ -253,17 +254,18 @@ function ExerciseDeltas({
       {showWeight && (
         <span className="text-[11px] tabular-nums">
           <span className="text-muted-foreground">top </span>
-          {current.topSetKg}kg <span className={`font-semibold ${tone(weightDelta)}`}>{sign(weightDelta)}</span>
+          {current.topSetKg}kg{' '}
+          <span className={`font-semibold ${deltaTone(weightDelta)}`}>{deltaSign(weightDelta)}</span>
         </span>
       )}
       <span className="text-[11px] tabular-nums">
         <span className="text-muted-foreground">sets </span>
-        {current.doneSets} <span className={`font-semibold ${tone(setsDelta)}`}>{sign(setsDelta)}</span>
+        {current.doneSets} <span className={`font-semibold ${deltaTone(setsDelta)}`}>{deltaSign(setsDelta)}</span>
       </span>
       {showVol && (
         <span className="text-[11px] tabular-nums">
           <span className="text-muted-foreground">vol </span>
-          <span className={`font-semibold ${tone(volPct)}`}>{volPct > 0 ? `+${volPct}%` : `${volPct}%`}</span>
+          <span className={`font-semibold ${deltaTone(volPct)}`}>{volPct > 0 ? `+${volPct}%` : `${volPct}%`}</span>
         </span>
       )}
     </div>
