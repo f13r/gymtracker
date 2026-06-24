@@ -74,6 +74,8 @@ interface SortableExerciseRowProps {
   row: ExerciseRow
   idx: number
   displayName: string
+  /** Bodyweight exercises (e.g. Pull-ups) track only sets/reps — no weight field. */
+  isBodyweight: boolean
   canRemove: boolean
   onUpdate: (key: number, patch: Partial<ExerciseRow>) => void
   onRemove: (key: number) => void
@@ -85,6 +87,7 @@ function SortableExerciseRow({
   row,
   idx,
   displayName,
+  isBodyweight,
   canRemove,
   onUpdate,
   onRemove,
@@ -147,8 +150,8 @@ function SortableExerciseRow({
         </div>
       </div>
 
-      {/* Sets / Reps / Weight */}
-      <div className="border-border/50 grid grid-cols-3 gap-3 border-t px-4 py-3">
+      {/* Sets / Reps / Weight — bodyweight exercises drop the KG field. */}
+      <div className={`border-border/50 grid gap-3 border-t px-4 py-3 ${isBodyweight ? 'grid-cols-2' : 'grid-cols-3'}`}>
         <NumericInput
           fieldKey={`sets-${row.key}`}
           label="SETS"
@@ -167,15 +170,17 @@ function SortableExerciseRow({
           value={row.defaultReps}
           onChange={v => onUpdate(row.key, { defaultReps: v })}
         />
-        <NumericInput
-          fieldKey={`weight-${row.key}`}
-          label="KG"
-          max={300}
-          min={0}
-          step={2.5}
-          value={row.defaultWeightKg}
-          onChange={v => onUpdate(row.key, { defaultWeightKg: v })}
-        />
+        {!isBodyweight && (
+          <NumericInput
+            fieldKey={`weight-${row.key}`}
+            label="KG"
+            max={300}
+            min={0}
+            step={2.5}
+            value={row.defaultWeightKg}
+            onChange={v => onUpdate(row.key, { defaultWeightKg: v })}
+          />
+        )}
       </div>
     </div>
   )
@@ -202,10 +207,7 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
     queryKey: queryKeys.exercises(),
     queryFn: exercisesApi.getAll,
   })
-  const exerciseMap = useMemo(
-    () => new Map(allExercises.map((e: Exercise) => [e.id, e])),
-    [allExercises],
-  )
+  const exerciseMap = useMemo(() => new Map(allExercises.map((e: Exercise) => [e.id, e])), [allExercises])
 
   // Whole card is draggable: touch needs a long-press (so swipes still scroll the list),
   // mouse needs 8px of movement (so clicks on the card don't lift it). Buttons/inputs
@@ -226,7 +228,9 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    if (!over || active.id === over.id) {return}
+    if (!over || active.id === over.id) {
+      return
+    }
     setRows(prev => {
       const from = prev.findIndex(r => r.key === active.id)
       const to = prev.findIndex(r => r.key === over.id)
@@ -244,14 +248,18 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
       name,
       exercises: rows
         .filter(r => r.exerciseId)
-        .map((r, i) => ({
-          exerciseId: r.exerciseId,
-          orderIndex: i,
-          defaultSets: r.defaultSets,
-          defaultReps: r.defaultReps,
-          defaultWeightKg: r.defaultWeightKg || undefined,
-          equipmentId: r.equipmentId ?? undefined,
-        })),
+        .map((r, i) => {
+          // Bodyweight exercises never carry a weight, even if one was stored before.
+          const isBodyweight = exerciseMap.get(r.exerciseId)?.equipmentType === 'bodyweight'
+          return {
+            exerciseId: r.exerciseId,
+            orderIndex: i,
+            defaultSets: r.defaultSets,
+            defaultReps: r.defaultReps,
+            defaultWeightKg: isBodyweight ? undefined : r.defaultWeightKg || undefined,
+            equipmentId: r.equipmentId ?? undefined,
+          }
+        }),
     })
   }
 
@@ -272,11 +280,7 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
   return (
     <div className="flex h-full flex-col">
       <div className="border-border border-b px-4 pt-4 pb-3">
-        <button
-          className="text-muted-foreground mb-3 -ml-1 flex items-center gap-1"
-          type="button"
-          onClick={onBack}
-        >
+        <button className="text-muted-foreground mb-3 -ml-1 flex items-center gap-1" type="button" onClick={onBack}>
           <ChevronLeft size={18} />
           <span className="text-sm">Workouts</span>
         </button>
@@ -311,6 +315,7 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
                   canRemove={rows.length > 1}
                   displayName={exerciseMap.get(row.exerciseId)?.name ?? row.exerciseName}
                   idx={idx}
+                  isBodyweight={exerciseMap.get(row.exerciseId)?.equipmentType === 'bodyweight'}
                   row={row}
                   onPickExercise={setPickerForKey}
                   onRemove={removeRow}
