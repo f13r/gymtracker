@@ -84,7 +84,7 @@ function WorkoutSummaryCard({
                 '—'
               )}
             </span>
-            {deltaVol !== null && deltaVol !== 0 && (
+            {currentVolume > 0 && deltaVol !== null && deltaVol !== 0 && (
               <span
                 className={cn('text-[10px] font-bold tabular-nums', deltaVol > 0 ? 'text-accent' : 'text-destructive')}
               >

@@ -125,12 +125,18 @@ The current value is gated on `currentVolume > 0` (renders `—` otherwise,
 (`dashboard.tsx:79`) — so the card shows a concrete delta against a value
 displayed as `—` (a difference from "nothing").
 
-- [ ] Extend the delta condition at `dashboard.tsx:79` to also require
+- [x] Extend the delta condition at `dashboard.tsx:79` to also require
       `currentVolume > 0`, so the delta block is hidden whenever the current
-      value renders `—`.
-- [ ] Do NOT force current to show `0` instead of `—`, and do NOT clamp negative
+      value renders `—`. (Condition now reads `currentVolume > 0 && deltaVol !== null && deltaVol !== 0`.)
+- [x] Do NOT force current to show `0` instead of `—`, and do NOT clamp negative
       deltas — those encode a bodyweight-Volume stance that belongs to the
-      separate issue. The only change is gating the delta's visibility.
-- [ ] Verify: an all-bodyweight current session (currentVolume 0, prevVolume
+      separate issue. The only change is gating the delta's visibility. (Only the
+      delta-visibility guard changed; the `—` fallback and `deltaVol` math are untouched.)
+- [x] Verify: an all-bodyweight current session (currentVolume 0, prevVolume
       9600) shows `—` with no delta; a weighted current session (currentVolume
-      > 0) still shows its delta exactly as before.
+      > 0) still shows its delta exactly as before. [manual visual test skipped -
+      not automatable; verified by code: with currentVolume 0 the current value
+      renders `—` (line 66) AND the delta guard's `currentVolume > 0` is false so
+      the delta block is not rendered; with currentVolume > 0 the guard reduces to
+      the original `deltaVol !== null && deltaVol !== 0` condition, so the delta
+      renders exactly as before.]
