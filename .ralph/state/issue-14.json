@@ -1,0 +1,16 @@
+{
+  "issue": 14,
+  "title": "Bodyweight exercise issues",
+  "branch": "ralph/issue-14",
+  "mode": "auto",
+  "phase": "plan",
+  "step": "writing docs/plans/issue-N.md",
+  "status": "done",
+  "startedAt": "2026-06-24T14:02:55.767Z",
+  "updatedAt": "2026-06-24T14:20:46.812Z",
+  "route": "grill",
+  "grill": {
+    "round": 4,
+    "max": 15
+  }
+}

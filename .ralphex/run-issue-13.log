@@ -1,0 +1,247 @@
+ralphex v1.5.1-3e2fc5e-20260608T194602
+starting ralphex loop (max 50 iterations)
+plan: docs/plans/issue-13.md
+branch: ralph/issue-13
+progress log: .ralphex/progress/progress-issue-13.txt
+
+starting task execution phase
+
+--- task iteration 1 ---
+[26-06-24 13:19:33] Picking Task 1: [tdd] Volume counts weighted Done Sets
+[26-06-24 13:19:33] only, headline reconciles with per-Exercise.
+[26-06-24 13:19:33] This task centralizes the Volume definition in
+[26-06-24 13:19:33] packages/shared so it counts only Done Sets with weightKg
+[26-06-24 13:19:33] > 0 (bodyweight/cardio excluded, not silently 0), and
+[26-06-24 13:19:33] makes the finished-session headline equal the sum of
+[26-06-24 13:19:33] per-Exercise weighted volumes — with bodyweight
+[26-06-24 13:19:33] rendering "—" consistently. Then it routes the
+[26-06-24 13:19:33] live-logger total and dashboard through the same shared
+[26-06-24 13:19:33] function.
+[26-06-24 13:19:33] Key files: packages/shared/src/stats.utils.ts (+ its
+[26-06-24 13:19:33] vitest test), apps/web/src/routes/history.$sessionId.tsx,
+[26-06-24 13:19:33] apps/web/src/hooks/useSessionVolume.ts,
+[26-06-24 13:19:33] apps/web/src/routes/dashboard.tsx.
+[26-06-24 13:19:33] Starting test-first.
+[26-06-24 13:21:27] This is TDD. I'll write tests first, then implement. Let
+[26-06-24 13:21:27] me start with the shared package: add an explicit
+[26-06-24 13:21:27] `isWeightedSet` predicate and make `calculateVolume` count
+[26-06-24 13:21:27] only weighted Done Sets.
+[26-06-24 13:21:37] Now update `calculateVolume` to count only weighted Done
+[26-06-24 13:21:37] Sets:
+[26-06-24 13:21:51] Now add the weighted-only test cases:
+[26-06-24 13:22:18] Tests green. Now restructure the history headline to be
+[26-06-24 13:22:18] the sum of per-Exercise weighted volumes and render "—"
+[26-06-24 13:22:18] consistently.
+[26-06-24 13:22:29] Now update the headline render and the per-Exercise card
+[26-06-24 13:22:29] to use `volumeByExercise`:
+[26-06-24 13:22:45] The third checkbox: `useSessionVolume.ts` and
+[26-06-24 13:22:45] `dashboard.tsx` already call
+[26-06-24 13:22:45] `calculateVolume(getDoneSets(...))`, which now embodies
+[26-06-24 13:22:45] the shared weighted-only rule — so they use the same
+[26-06-24 13:22:45] shared function by construction. Let me verify dashboard's
+[26-06-24 13:22:45] `currentVolume`/`sessionPrevVolume` derive from it too.
+[26-06-24 13:22:50] Both call sites route through the shared
+[26-06-24 13:22:50] `calculateVolume`. All three checkboxes are addressed.
+[26-06-24 13:22:50] Running the validation gate.
+[26-06-24 13:23:15] Lint passes (the single warning is pre-existing in
+[26-06-24 13:23:15] `useWorkoutLogger.ts:139`, untouched by Task 1). The
+[26-06-24 13:23:15] format:check lists 104 files — this looks like a
+[26-06-24 13:23:15] pre-existing baseline. Let me confirm whether format was
+[26-06-24 13:23:15] already failing before my changes and format only my
+[26-06-24 13:23:15] touched files.
+[26-06-24 13:23:24] CONTEXT.md is in the failing list yet I never touched it
+[26-06-24 13:23:24] (last changed in 61ce299) — so format:check was already
+[26-06-24 13:23:24] red at baseline; reformatting 104 unrelated files (docs,
+[26-06-24 13:23:24] migrations, API) is out of scope for this task. Let me at
+[26-06-24 13:23:24] least ensure my own changed files are clean.
+[26-06-24 13:23:38] At baseline `stats.utils.ts` was clean — my edit
+[26-06-24 13:23:38] introduced the issue. Fixing it:
+[26-06-24 13:23:45] My files are now clean; the remaining format failures are
+[26-06-24 13:23:45] pre-existing baseline (untouched files like CONTEXT.md).
+[26-06-24 13:23:45] Continuing the gate with build and doctor.
+[26-06-24 13:24:02] Web builds against shared's compiled `dist`, which is
+[26-06-24 13:24:02] stale. Build shared first, then re-run:
+[26-06-24 13:24:22] Build passes. Now the hard-blocking doctor step:
+[26-06-24 13:24:33] Doctor reports 36 findings app-wide. Per its own guidance,
+[26-06-24 13:24:33] I should scope to what I changed and not mass-fix
+[26-06-24 13:24:33] pre-existing unrelated code. Let me run the changed-scope
+[26-06-24 13:24:33] check.
+[26-06-24 13:24:43] Scoped to my changes: one finding —
+[26-06-24 13:24:43] `js-combine-iterations` at `history.$sessionId.tsx:171`.
+[26-06-24 13:24:43] Let me look.
+[26-06-24 13:24:52] I introduced this two-pass chain. I only need `weights`
+[26-06-24 13:24:52] for `topSetKg` (the max), so I'll compute it in a single
+[26-06-24 13:24:52] pass:
+[26-06-24 13:25:14] Scoped doctor is clean (100/100). Let me re-verify lint,
+[26-06-24 13:25:14] format on my files, build, and the test suite after the
+[26-06-24 13:25:14] last edit.
+[26-06-24 13:25:21] Working directory drifted into apps/web. Resetting to repo
+[26-06-24 13:25:21] root for the gate:
+[26-06-24 13:25:39] Lint clean (the single warning is pre-existing in a Bug-3
+[26-06-24 13:25:39] file, untouched). Final test run and build confirmation:
+[26-06-24 13:26:04] All gates green: tests 55/55, build passes, lint clean
+[26-06-24 13:26:04] (only pre-existing warning), format clean on my files,
+[26-06-24 13:26:04] scoped doctor 100/100. Marking Task 1 checkboxes complete.
+[26-06-24 13:26:26] The commit succeeded; the hook printed a warning. Let me
+[26-06-24 13:26:26] confirm the branch diff is genuinely clean post-commit:
+[26-06-24 13:26:43] Task 1 complete and committed (6933a24). The working tree
+[26-06-24 13:26:43] is clean (only the untracked Ralphex log remains).
+[26-06-24 13:26:43] Summary of what landed:
+[26-06-24 13:26:43]   - packages/shared: added `isWeightedSet` predicate and
+[26-06-24 13:26:43] made `calculateVolume` count only weighted Done Sets
+[26-06-24 13:26:43] (`weightKg > 0`), so bodyweight/cardio are excluded rather
+[26-06-24 13:26:43] than silently counted as 0 kg. Added vitest cases
+[26-06-24 13:26:43] (weighted-only sum, bodyweight contributes nothing, mixed
+[26-06-24 13:26:43] session, no-weighted ⇒ 0). 55/55 tests pass.
+[26-06-24 13:26:43]   - history.$sessionId.tsx: headline volume is now the sum
+[26-06-24 13:26:43] of per-Exercise weighted volumes (single-pass per-exercise
+[26-06-24 13:26:43] computation) and renders "—" when there is no weighted
+[26-06-24 13:26:43] volume, consistent with the per-Exercise cards.
+[26-06-24 13:26:43]   - useSessionVolume.ts and dashboard.tsx already route
+[26-06-24 13:26:43] through the shared `calculateVolume`, so centralizing the
+[26-06-24 13:26:43] rule covers them with no further change.
+[26-06-24 13:26:43] Gate green: lint (one pre-existing warning in a Bug-3
+[26-06-24 13:26:43] file, untouched), format clean on changed files, build
+[26-06-24 13:26:43] passes, react-doctor branch-vs-main scope 100/100 with no
+[26-06-24 13:26:43] issues.
+[26-06-24 13:26:43] Tasks 2 and 3 still have open checkboxes — stopping here
+[26-06-24 13:26:43] for the loop to pick up the next section.
+
+--- task iteration 2 ---
+[26-06-24 13:26:59] Task 2: [direct] One canonical Last-Done selection rule
+[26-06-24 13:26:59] for both surfaces.
+[26-06-24 13:26:59] This makes the live logger "vs last time" and the history
+[26-06-24 13:26:59] page select the same prior session. I'll extract a shared
+[26-06-24 13:26:59] SQL predicate in apps/api/src/drizzle/set-queries.ts (most
+[26-06-24 13:26:59] recent finished Session with a Done Set, ORDER BY
+[26-06-24 13:26:59] started_at DESC, id DESC LIMIT 1), reuse it in both
+[26-06-24 13:26:59] lastDoneAggregateSql and lastFinishedSessionSetsSql,
+[26-06-24 13:26:59] switch the live query's ordering and gate it on done=1 AND
+[26-06-24 13:26:59] removed_at IS NULL, and add the id tiebreaker to the
+[26-06-24 13:26:59] aggregate query while preserving the history-only
+[26-06-24 13:26:59] started_at bound. The manual db:studio verification isn't
+[26-06-24 13:26:59] automatable, so I'll note it as skipped. Key file:
+[26-06-24 13:26:59] apps/api/src/drizzle/set-queries.ts.
+[26-06-24 13:27:07] I'll extract a canonical session-selection predicate and
+[26-06-24 13:27:07] reuse it in both queries.
+[26-06-24 13:27:35] Now let me run the validation gate.
+[26-06-24 13:28:14] The lint warning (useWorkoutLogger.ts — Task 3
+[26-06-24 13:28:14] territory) and the 103 format-check failures are all in
+[26-06-24 13:28:14] files I didn't touch. My edited file (set-queries.ts) is
+[26-06-24 13:28:14] not in the format list. Let me confirm these are
+[26-06-24 13:28:14] pre-existing, not introduced by my change.
+[26-06-24 13:28:26] Confirmed — 103 files fail format:check both with and
+[26-06-24 13:28:26] without my change, and the lint warning is pre-existing
+[26-06-24 13:28:26] (in useWorkoutLogger.ts, Task 3's file). My change
+[26-06-24 13:28:26] introduces zero new lint/format failures. Fixing the
+[26-06-24 13:28:26] repo-wide pre-existing formatting would create a 103-file
+[26-06-24 13:28:26] diff burying the actual fix, so that's out of scope (the
+[26-06-24 13:28:26] prior Task 1 commit shipped against the same state). Now
+[26-06-24 13:28:26] let me verify build and doctor pass with my change.
+[26-06-24 13:28:46] Build passes. Now doctor:
+[26-06-24 13:28:59] Doctor reports findings, but my change touched only
+[26-06-24 13:28:59] apps/api (zero web files). The doctor instructions
+[26-06-24 13:28:59] explicitly say to ignore unrelated pre-existing code and
+[26-06-24 13:28:59] to scope to changed files. Let me confirm there are no
+[26-06-24 13:28:59] findings attributable to my change.
+[26-06-24 13:29:13] Changed-scope doctor is 100/100 — my api-only change
+[26-06-24 13:29:13] introduces zero web findings. The branch-wide 58/100 is
+[26-06-24 13:29:13] pre-existing code the doctor instructions explicitly say
+[26-06-24 13:29:13] to ignore. Gate is green for my change.
+[26-06-24 13:29:13] Now I'll mark Task 2 complete in the plan.
+[26-06-24 13:29:30] Commit went through. The hook warned about staged
+[26-06-24 13:29:30] regressions — let me inspect, since I should confirm
+[26-06-24 13:29:30] none are from my change.
+[26-06-24 13:29:44] No staged source files remain (commit completed). My
+[26-06-24 13:29:44] changed-scope doctor was 100/100 clean; the only staged
+[26-06-24 13:29:44] source file was the api file, which react-doctor
+[26-06-24 13:29:44] (web-scoped) doesn't gate on. Commit succeeded.
+[26-06-24 13:29:44] Task 2 done and committed. Summary:
+[26-06-24 13:29:44]   - Extracted a shared `lastDoneSessionIdSql` predicate in
+[26-06-24 13:29:44] set-queries.ts — most recent finished Session with a
+[26-06-24 13:29:44] Done Set for the Exercise, `ORDER BY started_at DESC, id
+[26-06-24 13:29:44] DESC LIMIT 1`, with an optional `started_at <
+[26-06-24 13:29:44] beforeStartedAt` bound.
+[26-06-24 13:29:44]   - `lastDoneAggregateSql` now builds on it (gaining the
+[26-06-24 13:29:44] `id` tiebreaker, keeping the history-only before-bound).
+[26-06-24 13:29:44]   - `lastFinishedSessionSetsSql` now builds on it too —
+[26-06-24 13:29:44] switched from `finished_at DESC` to `started_at DESC, id
+[26-06-24 13:29:44] DESC` and gated on `done = 1 AND removed_at IS NULL`, so
+[26-06-24 13:29:44] both surfaces resolve to the same prior session by
+[26-06-24 13:29:44] construction.
+[26-06-24 13:29:44]   - Manual db:studio verification marked skipped (not
+[26-06-24 13:29:44] automatable — api specs mock the DB).
+[26-06-24 13:29:44] Gate verified green for my change (build passes;
+[26-06-24 13:29:44] changed-scope doctor 100/100; the lint warning and 103
+[26-06-24 13:29:44] format-check failures are pre-existing and unrelated).
+[26-06-24 13:29:44] Task 3 still has uncompleted checkboxes — stopping here
+[26-06-24 13:29:44] for the loop to pick it up.
+
+--- task iteration 3 ---
+[26-06-24 13:29:57] Picking Task 3: [direct] Optimistic set mutations, no
+[26-06-24 13:29:57] flicker.
+[26-06-24 13:29:57] This task eliminates the set-toggle/edit flicker in the
+[26-06-24 13:29:57] live logger. I'll give updateSet and addSet optimistic
+[26-06-24 13:29:57] onMutate handlers (cancelQueries → snapshot →
+[26-06-24 13:29:57] setQueryData → rollback) mirroring the already-shipped
+[26-06-24 13:29:57] toggleDone, drop the eager per-edit/per-toggle session
+[26-06-24 13:29:57] invalidations (keeping addSet's targeted merge for the
+[26-06-24 13:29:57] server-assigned id and the finish/navigation
+[26-06-24 13:29:57] invalidations), and remove InlineSetRow's local
+[26-06-24 13:29:57] weight/reps mirror so the row derives its values from the
+[26-06-24 13:29:57] cached Set per ADR-0009.
+[26-06-24 13:29:57] Key files:
+[26-06-24 13:29:57] apps/web/src/components/workout/useWorkoutLogger.ts and
+[26-06-24 13:29:57] apps/web/src/components/workout/WorkoutLogger.tsx. Since
+[26-06-24 13:29:57] apps/web has no test runner, this is [direct]; I'll verify
+[26-06-24 13:29:57] via the validation gate (lint, format, build,
+[26-06-24 13:29:57] react-doctor).
+[26-06-24 13:29:57] Let me read the relevant files.
+[26-06-24 13:30:01] Now let me read WorkoutLogger.tsx, focusing on
+[26-06-24 13:30:01] InlineSetRow.
+[26-06-24 13:30:10] Let me look at the sets API and queryKeys.
+[26-06-24 13:33:07] Now I understand the full picture. Key insight:
+[26-06-24 13:33:07] NumericInput commits via `onChange` only on blur or
+[26-06-24 13:33:07] stepper press (text typing uses uncommitted
+[26-06-24 13:33:07] `defaultValue`), so removing the row's local mirror plus
+[26-06-24 13:33:07] making `updateSet` optimistic gives instant feedback
+[26-06-24 13:33:07] through the cache without a debounce.
+[26-06-24 13:33:07] Let me make the controller-hook changes first.
+[26-06-24 13:33:32] Now the InlineSetRow changes — remove the local mirror,
+[26-06-24 13:33:32] isDirtyRef resync, and debounce.
+[26-06-24 13:33:44] Now remove the unused React imports in WorkoutLogger.tsx.
+[26-06-24 13:33:48] Now run the validation gate.
+[26-06-24 13:34:43] The format:check fails on 100+ files I didn't touch. Let
+[26-06-24 13:34:43] me check whether this is pre-existing on HEAD.
+[26-06-24 13:35:14] Pre-existing repo-wide drift (103 files at HEAD, unchanged
+[26-06-24 13:35:14] by me). The convention (per prior Task commits, whose
+[26-06-24 13:35:14] touched files are prettier-clean) is to format the files I
+[26-06-24 13:35:14] touch. Let me format only my two files and check the diff.
+[26-06-24 13:35:33] That reformatted the entire file (141 lines) — far
+[26-06-24 13:35:33] beyond my logical change. Let me see what prettier is
+[26-06-24 13:35:33] actually changing to decide whether to keep it.
+[26-06-24 13:35:50] This confirms a prettier-config mismatch with the existing
+[26-06-24 13:35:50] code style — `prettier --write` rewrites the whole file
+[26-06-24 13:35:50] (delete button, summary bar, JSX) far beyond my task.
+[26-06-24 13:35:50] That's pre-existing drift, out of scope, and would make
+[26-06-24 13:35:50] the diff unreviewable. I'll revert to HEAD and re-apply
+[26-06-24 13:35:50] only my logical edits.
+[26-06-24 13:35:56] Now re-apply the logical edits to the HEAD versions.
+[26-06-24 13:36:06] Good, the file is back at HEAD. Re-applying my edits:
+[26-06-24 13:36:29] Now WorkoutLogger.tsx:
+[26-06-24 13:37:23] Lint and build pass (the lone warning at line 139 is the
+[26-06-24 13:37:23] pre-existing `equipmentMap` dep in code I didn't touch).
+[26-06-24 13:37:23] Now the doctor gate.
+[26-06-24 13:37:35] 32 warnings repo-wide (pre-existing). The relevant
+[26-06-24 13:37:35] question is whether my change introduced any. Let me scope
+[26-06-24 13:37:35] to changed files.
+[26-06-24 13:38:04] Scoped to my branch diff, doctor reports "No issues found"
+[26-06-24 13:38:04] — my changes introduce no regressions; the 60/100 is
+[26-06-24 13:38:04] pre-existing repo-wide debt. Now the format question: let
+[26-06-24 13:38:04] me verify whether prior Task commits formatted their
+[26-06-24 13:38:04] touched files (the convention to follow).
+[26-06-24 13:38:08] You've hit your session limit · resets 3:30pm
+[26-06-24 13:38:08] (Europe/Kiev)
+[26-06-24 13:38:09] error: detected "You've hit your session limit" in claude output
+[26-06-24 13:38:09] run 'claude /usage' for more information
+error: runner: task phase: claude pattern handling: detected limit pattern: "You've hit your session limit"
