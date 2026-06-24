@@ -74,7 +74,15 @@ function WorkoutSummaryCard({
           </p>
           <div className="mt-1.5 flex items-center gap-1.5">
             <span className="text-muted-foreground text-[11px] tabular-nums">
-              was {hasPrev ? `${fmtVol(prevVolume!)}kg` : '—'}
+              was{' '}
+              {hasPrev ? (
+                <>
+                  {fmtVol(prevVolume!)}
+                  <span className="ml-0.5 font-sans font-normal">kg</span>
+                </>
+              ) : (
+                '—'
+              )}
             </span>
             {deltaVol !== null && deltaVol !== 0 && (
               <span
@@ -110,7 +118,10 @@ function WorkoutSummaryCard({
             {exceededExercises.map(ex => (
               <div key={ex.id} className="flex items-center justify-between">
                 <span className="text-muted-foreground text-xs font-medium">{ex.name}</span>
-                <span className="text-accent text-[10px] font-bold tabular-nums">+{fmtVol(ex.delta)}kg</span>
+                <span className="text-accent text-[10px] font-bold tabular-nums">
+                  +{fmtVol(ex.delta)}
+                  <span className="ml-0.5 font-normal">kg</span>
+                </span>
               </div>
             ))}
           </div>

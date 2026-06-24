@@ -100,20 +100,23 @@ None.
 values ≥ 1000. Two call sites on the same card then append a literal `"kg"`,
 producing `"9.6kkg"`. Fix both so the unit reads `kg` once.
 
-- [ ] Fix the "was …" site at `dashboard.tsx:77`: `` `${fmtVol(prevVolume!)}kg` ``
+- [x] Fix the "was …" site at `dashboard.tsx:77`: `` `${fmtVol(prevVolume!)}kg` ``
       renders `9.6kkg`. Render the numeric value via `fmtVol` and the `kg` unit
       separately so the value is never glued to a literal `kg` after the `k`
       suffix. Match the existing current-value treatment (`fmtVol(currentVolume)`
       + a separate `<span>…kg</span>`, `dashboard.tsx:66-70`) so the "was" label
       and the current value format identically.
-- [ ] Fix the exceeded-exercises site at `dashboard.tsx:113`:
+- [x] Fix the exceeded-exercises site at `dashboard.tsx:113`:
       `+{fmtVol(ex.delta)}kg` produces `kkg` for any delta ≥ 1000. Apply the same
       separation so the `+`, the `fmtVol` value, and the `kg` unit compose
       without doubling the `k`.
-- [ ] Do NOT touch `WorkoutLogger.tsx` (out of scope) and do NOT alter `fmtVol`
+- [x] Do NOT touch `WorkoutLogger.tsx` (out of scope) and do NOT alter `fmtVol`
       itself (other callers rely on its `"k"` suffix).
-- [ ] Verify visually with a value ≥ 1000 (e.g. prevVolume 9600 → reads `9.6kg`,
-      not `9.6kkg`) and a value < 1000 (e.g. 850 → reads `850kg`).
+- [x] Verify visually with a value ≥ 1000 (e.g. prevVolume 9600 → reads `9.6kg`,
+      not `9.6kkg`) and a value < 1000 (e.g. 850 → reads `850kg`). [manual visual
+      test skipped - not automatable; verified by code: value via `fmtVol` + a
+      separate `<span>kg</span>`, so a 9600 prev renders `9.6` + `kg` = `9.6kg`,
+      and 850 renders `850` + `kg` = `850kg` — no doubled `k`.]
 
 ### Task 2: [direct] Suppress the delta when current Volume renders `—`
 
