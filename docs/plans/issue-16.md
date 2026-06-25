@@ -249,26 +249,26 @@ Extract the cycle's decision into a pure, exhaustively-testable selector placed 
 group, Removed-only member, standalone) are nailed down test-first before any
 React wiring.
 
-- [ ] **Red:** add a test file in `packages/shared/src` for a pure
+- [x] **Red:** add a test file in `packages/shared/src` for a pure
 `nextSupersetExercise(...)` (name to match repo conventions). Given the
 Session's exercises (each with `exerciseId`, `supersetGroup`, `orderIndex`)
 plus per-exercise Planned-Set info (a `!done && removedAt == null` remaining
 flag) and the current `exerciseId`, it returns the next `exerciseId` to focus
 or a terminal signal. Cover:
-- [ ] advance to the next member by `orderIndex` that has a remaining Planned Set;
-- [ ] wrap to the first member with a remaining Planned Set when at the last;
-- [ ] never advance to / wrap onto a member with no remaining Planned Set
+- [x] advance to the next member by `orderIndex` that has a remaining Planned Set;
+- [x] wrap to the first member with a remaining Planned Set when at the last;
+- [x] never advance to / wrap onto a member with no remaining Planned Set
   (Done or all-Removed — drops out of rotation);
-- [ ] return the terminal/Overview signal when the whole group has zero remaining
+- [x] return the terminal/Overview signal when the whole group has zero remaining
   Planned Sets;
-- [ ] return null/no-op when the current exercise's `supersetGroup` is null
+- [x] return null/no-op when the current exercise's `supersetGroup` is null
   (standalone — caller does nothing new);
-- [ ] two-member group: A done → B; B done with A still owing → back to A.
-- [ ] Implement the pure selector to make the tests pass. Predicate is strictly
+- [x] two-member group: A done → B; B done with A still owing → back to A.
+- [x] Implement the pure selector to make the tests pass. Predicate is strictly
 **Planned Set remaining** (`done=0 AND removedAt IS NULL`); membership is "same
 `supersetGroup`," ordering is `orderIndex` (Decisions: cycle predicate;
 order). No DOM, no navigation, no persistence in this function.
-- [ ] **Green:** run `packages/shared` vitest; all cases pass.
+- [x] **Green:** run `packages/shared` vitest; all cases pass.
 
 ### Task 4: [direct] Wire the selector into the logger and make `allDone` superset-aware
 
