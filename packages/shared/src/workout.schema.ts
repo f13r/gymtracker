@@ -12,6 +12,9 @@ export const CreateTemplateSchema = z.object({
       defaultWeightKg: z.number().min(0).optional(),
       // Round-tripped on edit so a coach-prescribed Equipment reference survives a full-replace save.
       equipmentId: z.string().uuid().optional(),
+      // Superset grouping marker; shared value = same Superset. Optional so existing callers and
+      // Program-generated Templates omit it (the column stays null).
+      supersetGroup: z.string().optional(),
     }),
   ),
 })

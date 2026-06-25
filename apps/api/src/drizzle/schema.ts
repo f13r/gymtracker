@@ -39,6 +39,9 @@ export const templateExercises = pgTable('template_exercises', {
   defaultReps: integer('default_reps'),
   defaultWeightKg: real('default_weight_kg'),
   equipmentId: text('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
+  // Superset grouping marker: a stable opaque id shared by the members of one Superset;
+  // null = standalone. Structure, not an entity — order within the group is orderIndex.
+  supersetGroup: text('superset_group'),
 })
 
 export const workoutSessions = pgTable('workout_sessions', {
@@ -79,6 +82,8 @@ export const sessionExercises = pgTable('session_exercises', {
   exerciseId: text('exercise_id').references(() => exercises.id),
   orderIndex: integer('order_index').notNull(),
   equipmentId: text('equipment_id').references(() => equipment.id, { onDelete: 'set null' }),
+  // Superset grouping, copied verbatim from the Template at Start (ADR-0008); null = standalone.
+  supersetGroup: text('superset_group'),
 })
 
 export const bodyWeights = pgTable('body_weights', {

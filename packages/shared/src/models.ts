@@ -32,6 +32,8 @@ export type TemplateExercise = {
   defaultReps: number | null
   defaultWeightKg: number | null
   equipmentId: string | null
+  // Superset grouping marker: shared id = same Superset, null = standalone. Structure only.
+  supersetGroup: string | null
 }
 
 export type WorkoutTemplateWithExercises = WorkoutTemplate & { exercises: TemplateExercise[] }
@@ -69,6 +71,8 @@ export type SessionExercise = {
   exerciseId: string
   orderIndex: number
   equipmentId: string | null
+  // Superset grouping, snapshotted from the Template at Start; null = standalone.
+  supersetGroup: string | null
 }
 
 export type SessionWithSets = WorkoutSession & {

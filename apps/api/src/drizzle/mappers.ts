@@ -57,6 +57,7 @@ export function toSessionExercise(row: DbSessionExercise): SessionExercise {
     exerciseId: row.exerciseId!,
     orderIndex: row.orderIndex,
     equipmentId: row.equipmentId,
+    supersetGroup: row.supersetGroup,
   }
 }
 
