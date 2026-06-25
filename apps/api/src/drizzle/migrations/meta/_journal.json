@@ -92,6 +92,13 @@
       "when": 1781775092961,
       "tag": "0012_great_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1782378036475,
+      "tag": "0013_lazy_warstar",
+      "breakpoints": true
     }
   ]
 }

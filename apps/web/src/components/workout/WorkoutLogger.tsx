@@ -1,6 +1,6 @@
 import { Navigate } from '@tanstack/react-router'
 import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon, Trash2, Loader2 } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 import type { WorkoutSet } from '@gymtracker/shared'
 import { calculateVolume, getDoneSets } from '@gymtracker/shared'
@@ -9,6 +9,7 @@ import { NumericInput } from '@/components/inputs/NumericInput'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { ExerciseMediaDrawer } from '@/components/workout/ExerciseMediaDrawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
+import { buildSupersetMeta } from '@/components/workout/superset-display'
 import { useSwipeReveal } from '@/components/workout/useSwipeReveal'
 import { useWorkoutLogger } from '@/components/workout/useWorkoutLogger'
 import { haptic } from '@/lib/haptics'
@@ -296,6 +297,11 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
     finishWorkout,
   } = useWorkoutLogger(sessionId, activeExerciseId)
 
+  // Superset accent/letter for the current Exercise — same assignment as the
+  // overview and template editor, so a group keeps one color across all views.
+  const supersetMeta = useMemo(() => buildSupersetMeta(exercises.map(e => e.supersetGroup)), [exercises])
+  const currentGroup = currentExercise?.supersetGroup ? supersetMeta.get(currentExercise.supersetGroup) : undefined
+
   if (showPicker) {
     return (
       <ExercisePicker
@@ -356,12 +362,26 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
 
       {/* Exercise header */}
       {isTemplateBased && currentExercise ? (
-        <div className="border-border shrink-0 border-b px-4 py-3">
-          <p className="text-muted-foreground mb-0.5 text-xs font-semibold tracking-widest uppercase">
-            Exercise {activeExerciseIndex + 1} of {exercises.length}
-            {' · '}
-            {doneCount}/{loggedCount} sets
-          </p>
+        <div
+          className="border-border shrink-0 border-b px-4 py-3"
+          style={currentGroup ? { borderLeftColor: currentGroup.color, borderLeftWidth: 4 } : undefined}
+        >
+          <div className="mb-0.5 flex items-center gap-2">
+            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+              Exercise {activeExerciseIndex + 1} of {exercises.length}
+              {' · '}
+              {doneCount}/{loggedCount} sets
+            </p>
+            {currentGroup && (
+              <span
+                className="flex items-center gap-1 text-xs font-semibold tracking-wide uppercase"
+                style={{ color: currentGroup.color }}
+              >
+                <span className="size-2 rounded-full" style={{ backgroundColor: currentGroup.color }} />
+                Superset {currentGroup.label}
+              </span>
+            )}
+          </div>
           <div className="flex items-start justify-between gap-2">
             <p className="font-display font-700 text-3xl leading-tight tracking-wide">
               {currentExercise.name.toUpperCase()}

@@ -12,6 +12,7 @@ import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { Button } from '@/components/ui/button'
 import { ThisWeekCard } from '@/components/workout/ThisWeekCard'
+import { buildSupersetMeta } from '@/components/workout/superset-display'
 import { useSessionVolume } from '@/hooks/useSessionVolume'
 import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
 
@@ -190,6 +191,11 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     if (!session) {
       return []
     }
+    // Superset grouping comes from the start-time snapshot (ADR-0008), the same
+    // authoritative source the round-robin logger reads — not the live template.
+    const supersetByExerciseId = new Map<string, string | null>(
+      (session.exercises ?? []).map(se => [se.exerciseId, se.supersetGroup]),
+    )
     if (template) {
       return template.exercises
         .slice()
@@ -198,6 +204,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
         .map(te => ({
           id: te.exerciseId!,
           name: exerciseNameMap[te.exerciseId!] ?? 'Exercise',
+          supersetGroup: supersetByExerciseId.get(te.exerciseId!) ?? null,
           loggedSets: (session.sets ?? []).filter(
             (s: WorkoutSet) => s.exerciseId === te.exerciseId && s.removedAt == null,
           ),
@@ -211,9 +218,12 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     return ids.map(id => ({
       id,
       name: exerciseNameMap[id] ?? 'Exercise',
+      supersetGroup: supersetByExerciseId.get(id) ?? null,
       loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === id && s.removedAt == null),
     }))
   }, [template, session, exerciseNameMap])
+
+  const supersetMeta = useMemo(() => buildSupersetMeta(exercises.map(e => e.supersetGroup)), [exercises])
 
   // The resume target shown as "current" in the overview: the first Exercise
   // that isn't fully done (-1 if all complete). Mirrors the logger's first-not-done
@@ -318,6 +328,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
             // Highlight the resume target: the first not-complete Exercise. Mirrors
             // the logger's first-not-done resolution (ADR-0009).
             const isCurrent = i === resumeIndex
+            // Members of a Superset share a colored left accent (matches the template editor),
+            // so contiguous runs read as one group. Standalone exercises stay neutral.
+            const groupColor = ex.supersetGroup ? supersetMeta.get(ex.supersetGroup)?.color : undefined
 
             return (
               <button
@@ -326,6 +339,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                   'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors last:border-b-0',
                   isCurrent && !isComplete && 'bg-primary/5',
                 )}
+                style={groupColor ? { borderLeftColor: groupColor, borderLeftWidth: 4 } : undefined}
                 type="button"
                 onClick={() =>
                   navigate({ to: '/workout/$sessionId', params: { sessionId }, search: { exercise: ex.id } })

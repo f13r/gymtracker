@@ -18,8 +18,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ChevronLeft, Eye, Link2, Pencil, Plus, Trash2, Unlink } from 'lucide-react'
+import { Fragment, useMemo, useState } from 'react'
 
 import type { CreateTemplateDto, Exercise, WorkoutTemplateWithExercises } from '@gymtracker/shared'
 
@@ -29,6 +29,7 @@ import { NumericInput } from '@/components/inputs/NumericInput'
 import { Input } from '@/components/ui/input'
 import { ExerciseMediaDrawer } from '@/components/workout/ExerciseMediaDrawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
+import { buildSupersetMeta } from '@/components/workout/superset-display'
 
 interface ExerciseRow {
   key: number
@@ -39,6 +40,9 @@ interface ExerciseRow {
   defaultWeightKg: number
   // Carried through untouched so a coach-prescribed Equipment reference survives an edit save.
   equipmentId: string | null
+  // Superset grouping: shared id = same Superset, null = standalone. Members are kept contiguous
+  // (GATE #1: v1 requires contiguity) — see normalizeGroups.
+  supersetGroup: string | null
 }
 
 let keyCounter = 0
@@ -52,22 +56,63 @@ function makeRow(): ExerciseRow {
     defaultReps: 10,
     defaultWeightKg: 0,
     equipmentId: null,
+    supersetGroup: null,
   }
 }
 
+function makeGroupId(): string {
+  return crypto.randomUUID()
+}
+
+// Enforce the contiguity invariant on a row list: a Superset is a *maximal contiguous run* of rows
+// sharing an id, with ≥2 members. A lone row carrying an id (e.g. after a reorder splits a group)
+// drops to standalone; if the same id resurfaces in a separate run, the later run is re-issued a
+// fresh id so two visually-distinct groups never collide.
+function normalizeGroups(rows: ExerciseRow[]): ExerciseRow[] {
+  const next = rows.map(r => ({ ...r }))
+  const seen = new Set<string>()
+  let i = 0
+  while (i < next.length) {
+    const id = next[i].supersetGroup
+    if (id == null) {
+      i++
+      continue
+    }
+    let j = i
+    while (j + 1 < next.length && next[j + 1].supersetGroup === id) {
+      j++
+    }
+    const runLength = j - i + 1
+    if (runLength < 2) {
+      next[i].supersetGroup = null
+    } else {
+      const finalId = seen.has(id) ? makeGroupId() : id
+      seen.add(finalId)
+      for (let k = i; k <= j; k++) {
+        next[k].supersetGroup = finalId
+      }
+    }
+    i = j + 1
+  }
+  return next
+}
+
 function rowsFromTemplate(template: WorkoutTemplateWithExercises): ExerciseRow[] {
-  return [...template.exercises]
-    .sort((a, b) => a.orderIndex - b.orderIndex)
-    .map(ex => ({
-      key: keyCounter++,
-      exerciseId: ex.exerciseId ?? '',
-      // Display name is resolved at render from the exercise catalog, so leave it blank here.
-      exerciseName: '',
-      defaultSets: ex.defaultSets ?? 3,
-      defaultReps: ex.defaultReps ?? 10,
-      defaultWeightKg: ex.defaultWeightKg ?? 0,
-      equipmentId: ex.equipmentId,
-    }))
+  return normalizeGroups(
+    [...template.exercises]
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map(ex => ({
+        key: keyCounter++,
+        exerciseId: ex.exerciseId ?? '',
+        // Display name is resolved at render from the exercise catalog, so leave it blank here.
+        exerciseName: '',
+        defaultSets: ex.defaultSets ?? 3,
+        defaultReps: ex.defaultReps ?? 10,
+        defaultWeightKg: ex.defaultWeightKg ?? 0,
+        equipmentId: ex.equipmentId,
+        supersetGroup: ex.supersetGroup ?? null,
+      })),
+  )
 }
 
 interface SortableExerciseRowProps {
@@ -77,6 +122,10 @@ interface SortableExerciseRowProps {
   /** Bodyweight exercises (e.g. Pull-ups) track only sets/reps — no weight field. */
   isBodyweight: boolean
   canRemove: boolean
+  /** Accent for this row's Superset, or null when standalone. */
+  groupColor: string | null
+  /** Letter label (A, B, …) shown alongside the Superset accent, or null when standalone. */
+  groupLabel: string | null
   onUpdate: (key: number, patch: Partial<ExerciseRow>) => void
   onRemove: (key: number) => void
   onPickExercise: (key: number) => void
@@ -89,6 +138,8 @@ function SortableExerciseRow({
   displayName,
   isBodyweight,
   canRemove,
+  groupColor,
+  groupLabel,
   onUpdate,
   onRemove,
   onPickExercise,
@@ -104,7 +155,11 @@ function SortableExerciseRow({
       className={`bg-card border-border touch-manipulation overflow-hidden rounded-2xl border select-none ${
         isDragging ? 'border-primary/50 relative z-10 shadow-lg' : ''
       }`}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        ...(groupColor ? { borderLeftColor: groupColor, borderLeftWidth: 4 } : {}),
+      }}
       {...attributes}
       {...listeners}
     >
@@ -116,7 +171,18 @@ function SortableExerciseRow({
           ) : (
             <p className="text-muted-foreground text-sm">No exercise selected</p>
           )}
-          <p className="text-muted-foreground mt-0.5 text-xs">Exercise {idx + 1}</p>
+          <div className="mt-0.5 flex items-center gap-2">
+            <p className="text-muted-foreground text-xs">Exercise {idx + 1}</p>
+            {groupColor && (
+              <span
+                className="flex items-center gap-1 text-xs font-semibold tracking-wide uppercase"
+                style={{ color: groupColor }}
+              >
+                <span className="size-2 rounded-full" style={{ backgroundColor: groupColor }} />
+                Superset {groupLabel}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1">
           {row.exerciseId && (
@@ -186,6 +252,49 @@ function SortableExerciseRow({
   )
 }
 
+interface SupersetConnectorProps {
+  /** True when the rows above and below already share a Superset. */
+  linked: boolean
+  /** Accent of the shared Superset when linked. */
+  color: string | null
+  onLink: () => void
+  onUnlink: () => void
+}
+
+// The grouping control between two adjacent rows. Linking joins the rows into one Superset; because
+// it only ever acts on neighbours, Supersets stay contiguous by construction (GATE #1).
+function SupersetConnector({ linked, color, onLink, onUnlink }: SupersetConnectorProps) {
+  if (linked) {
+    return (
+      <div className="flex justify-center">
+        <button
+          aria-label="Break this superset"
+          className="flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold tracking-wide uppercase"
+          style={{ color: color ?? undefined, backgroundColor: color ? `${color}1f` : undefined }}
+          type="button"
+          onClick={onUnlink}
+        >
+          <Unlink size={12} strokeWidth={2} />
+          Superset
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div className="flex justify-center">
+      <button
+        aria-label="Group with next exercise into a superset"
+        className="text-muted-foreground/50 active:text-primary border-border flex items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs font-medium transition-colors"
+        type="button"
+        onClick={onLink}
+      >
+        <Link2 size={12} strokeWidth={2} />
+        Superset
+      </button>
+    </div>
+  )
+}
+
 interface TemplateFormProps {
   mode: 'create' | 'edit'
   /** Pre-fill values when editing an existing Workout Template. */
@@ -209,6 +318,10 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
   })
   const exerciseMap = useMemo(() => new Map(allExercises.map((e: Exercise) => [e.id, e])), [allExercises])
 
+  // Assign each Superset an accent + letter label by order of first appearance, so two distinct
+  // groups in one Template are visually separable and stable across re-renders.
+  const groupMeta = useMemo(() => buildSupersetMeta(rows.map(r => r.supersetGroup)), [rows])
+
   // Whole card is draggable: touch needs a long-press (so swipes still scroll the list),
   // mouse needs 8px of movement (so clicks on the card don't lift it). Buttons/inputs
   // inside the card never start a drag — dnd-kit sensors skip interactive elements.
@@ -223,7 +336,8 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
   }
 
   function removeRow(key: number) {
-    setRows(prev => prev.filter(r => r.key !== key))
+    // Removing a row can leave a lone Superset member — normalize drops it back to standalone.
+    setRows(prev => normalizeGroups(prev.filter(r => r.key !== key)))
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -234,7 +348,40 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
     setRows(prev => {
       const from = prev.findIndex(r => r.key === active.id)
       const to = prev.findIndex(r => r.key === over.id)
-      return arrayMove(prev, from, to)
+      // Reorder may split a contiguous group; normalize re-derives valid contiguous Supersets.
+      return normalizeGroups(arrayMove(prev, from, to))
+    })
+  }
+
+  // Join the rows at idx and idx+1 into one Superset, merging any groups they already belong to.
+  function linkAt(idx: number) {
+    setRows(prev => {
+      const next = prev.map(r => ({ ...r }))
+      const a = next[idx].supersetGroup
+      const b = next[idx + 1].supersetGroup
+      const target = a ?? b ?? makeGroupId()
+      const merging = new Set([a, b].filter((x): x is string => x != null))
+      for (const r of next) {
+        if (merging.has(r.supersetGroup ?? '')) {
+          r.supersetGroup = target
+        }
+      }
+      next[idx].supersetGroup = target
+      next[idx + 1].supersetGroup = target
+      return normalizeGroups(next)
+    })
+  }
+
+  // Split the shared Superset at the idx / idx+1 boundary; normalize drops any singletons left over.
+  function unlinkAt(idx: number) {
+    setRows(prev => {
+      const next = prev.map(r => ({ ...r }))
+      const group = next[idx].supersetGroup
+      const newId = makeGroupId()
+      for (let k = idx + 1; k < next.length && next[k].supersetGroup === group; k++) {
+        next[k].supersetGroup = newId
+      }
+      return normalizeGroups(next)
     })
   }
 
@@ -244,22 +391,25 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
   const mediaExercise = mediaRow ? exerciseMap.get(mediaRow.exerciseId) : undefined
 
   function handleSave() {
+    // Drop empty rows first, then re-normalize: an unselected row between two members would otherwise
+    // leave a stranded singleton once it's filtered out.
+    const saved = normalizeGroups(rows.filter(r => r.exerciseId))
     onSave({
       name,
-      exercises: rows
-        .filter(r => r.exerciseId)
-        .map((r, i) => {
-          // Bodyweight exercises never carry a weight, even if one was stored before.
-          const isBodyweight = exerciseMap.get(r.exerciseId)?.equipmentType === 'bodyweight'
-          return {
-            exerciseId: r.exerciseId,
-            orderIndex: i,
-            defaultSets: r.defaultSets,
-            defaultReps: r.defaultReps,
-            defaultWeightKg: isBodyweight ? undefined : r.defaultWeightKg || undefined,
-            equipmentId: r.equipmentId ?? undefined,
-          }
-        }),
+      exercises: saved.map((r, i) => {
+        // Bodyweight exercises never carry a weight, even if one was stored before.
+        const isBodyweight = exerciseMap.get(r.exerciseId)?.equipmentType === 'bodyweight'
+        return {
+          exerciseId: r.exerciseId,
+          orderIndex: i,
+          defaultSets: r.defaultSets,
+          defaultReps: r.defaultReps,
+          defaultWeightKg: isBodyweight ? undefined : r.defaultWeightKg || undefined,
+          equipmentId: r.equipmentId ?? undefined,
+          // null/standalone is sent as undefined; the service stores it as null (full-replace).
+          supersetGroup: r.supersetGroup ?? undefined,
+        }
+      }),
     })
   }
 
@@ -308,21 +458,39 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={rows.map(r => r.key)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {rows.map((row, idx) => (
-                <SortableExerciseRow
-                  key={row.key}
-                  canRemove={rows.length > 1}
-                  displayName={exerciseMap.get(row.exerciseId)?.name ?? row.exerciseName}
-                  idx={idx}
-                  isBodyweight={exerciseMap.get(row.exerciseId)?.equipmentType === 'bodyweight'}
-                  row={row}
-                  onPickExercise={setPickerForKey}
-                  onRemove={removeRow}
-                  onShowMedia={setMediaForKey}
-                  onUpdate={updateRow}
-                />
-              ))}
+            <div className="space-y-2">
+              {rows.map((row, idx) => {
+                const meta = row.supersetGroup ? groupMeta.get(row.supersetGroup) : undefined
+                const linked =
+                  idx < rows.length - 1 &&
+                  row.supersetGroup != null &&
+                  row.supersetGroup === rows[idx + 1].supersetGroup
+                return (
+                  <Fragment key={row.key}>
+                    <SortableExerciseRow
+                      canRemove={rows.length > 1}
+                      displayName={exerciseMap.get(row.exerciseId)?.name ?? row.exerciseName}
+                      groupColor={meta?.color ?? null}
+                      groupLabel={meta?.label ?? null}
+                      idx={idx}
+                      isBodyweight={exerciseMap.get(row.exerciseId)?.equipmentType === 'bodyweight'}
+                      row={row}
+                      onPickExercise={setPickerForKey}
+                      onRemove={removeRow}
+                      onShowMedia={setMediaForKey}
+                      onUpdate={updateRow}
+                    />
+                    {idx < rows.length - 1 && (
+                      <SupersetConnector
+                        color={linked ? (meta?.color ?? null) : null}
+                        linked={linked}
+                        onLink={() => linkAt(idx)}
+                        onUnlink={() => unlinkAt(idx)}
+                      />
+                    )}
+                  </Fragment>
+                )
+              })}
             </div>
           </SortableContext>
         </DndContext>

@@ -1,0 +1,17 @@
+{
+  "issue": 16,
+  "title": "Create superset functionality",
+  "branch": "ralph/issue-16",
+  "mode": "auto",
+  "phase": "loop",
+  "step": "ralphex task execution + native review",
+  "status": "running",
+  "startedAt": "2026-06-24T18:34:05.940Z",
+  "updatedAt": "2026-06-25T08:57:15.013Z",
+  "route": "grill",
+  "grill": {
+    "round": 6,
+    "max": 15
+  },
+  "gate": null
+}

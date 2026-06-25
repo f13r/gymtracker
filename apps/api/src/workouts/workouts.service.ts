@@ -77,6 +77,7 @@ export class WorkoutsService {
         defaultWeightKg: ex.defaultWeightKg ?? null,
         defaultSets: ex.defaultSets ?? null,
         defaultReps: ex.defaultReps ?? null,
+        supersetGroup: ex.supersetGroup ?? null,
       })
     }
     return this.getTemplate(id, userId)
@@ -101,6 +102,7 @@ export class WorkoutsService {
         defaultReps: ex.defaultReps ?? null,
         defaultWeightKg: ex.defaultWeightKg ?? null,
         equipmentId: ex.equipmentId ?? null,
+        supersetGroup: ex.supersetGroup ?? null,
       })
     }
     return this.getTemplate(id, userId)
@@ -123,6 +125,7 @@ export class WorkoutsService {
       defaultReps: null,
       defaultWeightKg: null,
       equipmentId: null,
+      supersetGroup: null,
     })
     return this.getTemplate(templateId, userId)
   }
@@ -316,6 +319,7 @@ export class WorkoutsService {
         exerciseId: te.exerciseId,
         orderIndex: te.orderIndex,
         equipmentId: te.equipmentId ?? null,
+        supersetGroup: te.supersetGroup ?? null,
       })
 
       const setCount = te.defaultSets ?? 3
