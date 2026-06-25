@@ -29,6 +29,7 @@ import { NumericInput } from '@/components/inputs/NumericInput'
 import { Input } from '@/components/ui/input'
 import { ExerciseMediaDrawer } from '@/components/workout/ExerciseMediaDrawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
+import { buildSupersetMeta } from '@/components/workout/superset-display'
 
 interface ExerciseRow {
   key: number
@@ -58,9 +59,6 @@ function makeRow(): ExerciseRow {
     supersetGroup: null,
   }
 }
-
-// Distinct accents per Superset, cycled by order of first appearance. Standalone rows stay neutral.
-const SUPERSET_PALETTE = ['#818cf8', '#2dd4bf', '#fbbf24', '#f472b6', '#34d399', '#c084fc']
 
 function makeGroupId(): string {
   return crypto.randomUUID()
@@ -322,18 +320,7 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
 
   // Assign each Superset an accent + letter label by order of first appearance, so two distinct
   // groups in one Template are visually separable and stable across re-renders.
-  const groupMeta = useMemo(() => {
-    const meta = new Map<string, { color: string; label: string }>()
-    for (const r of rows) {
-      if (r.supersetGroup != null && !meta.has(r.supersetGroup)) {
-        meta.set(r.supersetGroup, {
-          color: SUPERSET_PALETTE[meta.size % SUPERSET_PALETTE.length],
-          label: String.fromCharCode(65 + meta.size),
-        })
-      }
-    }
-    return meta
-  }, [rows])
+  const groupMeta = useMemo(() => buildSupersetMeta(rows.map(r => r.supersetGroup)), [rows])
 
   // Whole card is draggable: touch needs a long-press (so swipes still scroll the list),
   // mouse needs 8px of movement (so clicks on the card don't lift it). Buttons/inputs
