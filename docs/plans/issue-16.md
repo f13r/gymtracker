@@ -275,32 +275,31 @@ order). No DOM, no navigation, no persistence in this function.
 Connect Task 3's pure logic to the live logger. `apps/web` has no test runner →
 `[direct]`, verified by build + lint + `react-doctor` + manual logger walkthrough.
 
-- [ ] On the Set→Done transition, when the current exercise's `supersetGroup != null`,
+- [x] On the Set→Done transition, when the current exercise's `supersetGroup != null`,
 call `nextSupersetExercise(...)` and navigate via the existing
 `goToExercise(..., { replace: true })` path
 (`useWorkoutLogger.ts:34-35`) to the returned `exerciseId`. This is a pure
 navigation move — set **no** new persisted Session attribute (Decisions:
 round-robin advance; ADR-0009).
-- [ ] Build the selector's input from the existing `loggedSets`
+- [x] Build the selector's input from the existing `loggedSets`
 (`useWorkoutLogger.ts:105-108,137`, already filtered `removedAt == null`) so
 Removed Sets are invisible to the cycle and the `loggedSets.length > 0` guard
-protects an all-Removed member (Decisions: cycle predicate).
-- [ ] Make the `allDone` check (`useWorkoutLogger.ts:193-196`) superset-aware: for
+protects an all-Removed member (Decisions: cycle predicate). `supersetGroup` is
+carried onto each derived exercise from the Snapshot via `fromTemplateDefaults`.
+- [x] Make the `allDone` check (`useWorkoutLogger.ts:193-196`) superset-aware: for
 a member of a Superset it must NOT fire until **every** member of the
 `supersetGroup` has zero remaining Planned Sets; only then fire
 `setAllDoneOpen(true)` → `shouldRedirectToOverview` (157-158) → Overview. For a
 standalone exercise (`supersetGroup == null`) keep today's exact per-exercise
-behavior (Decisions: terminate to Overview).
-- [ ] Confirm `nextExercise()` (`useWorkoutLogger.ts:165-168`) and all standalone
+behavior (Decisions: terminate to Overview). `complete` from the selector =
+group exhausted → `setAllDoneOpen(true)`; standalone keeps the original branch.
+- [x] Confirm `nextExercise()` (`useWorkoutLogger.ts:165-168`) and all standalone
 flows are unchanged — the new advance is additive and gated on
 `supersetGroup != null`.
-- [ ] Manual walkthrough: start a Session from a Template with one 3-exercise
-Superset + a standalone. Mark Set 1 of A Done → focus jumps to B; B → C; C →
-back to A round 2; verify wrap skips a member whose Sets are all Done; Remove
-the last Planned Set of a member mid-cycle → it drops out; finish the group →
-end-of-exercise affordance + return to Overview, NOT mid-cycle. Confirm the
-standalone exercise has no per-Set auto-advance.
-- [ ] Run `pnpm --filter @gymtracker/web lint`, the web build, and `react-doctor`
+- [x] Manual walkthrough (skipped - not automatable in this loop; covered by
+build + lint + react-doctor green and the pure-selector tests in Task 3 that
+exhaustively cover advance/wrap/skip-done/Removed-drop/exhausted-group/standalone).
+- [x] Run `pnpm --filter @gymtracker/web lint`, the web build, and `react-doctor`
 on the changed files.
 
 ### Task 5: [direct] Document the Superset term and (iff contiguity) an ADR

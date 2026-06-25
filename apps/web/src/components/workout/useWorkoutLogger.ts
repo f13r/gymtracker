@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
-import type { Exercise, SessionWithSets, WorkoutSet } from '@gymtracker/shared'
+import { nextSupersetExercise, type Exercise, type SessionWithSets, type SupersetMember, type WorkoutSet } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
@@ -107,7 +107,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
         .filter((s: WorkoutSet) => s.exerciseId === exId && s.removedAt == null)
         .sort((a, b) => a.setNumber - b.setNumber || a.id.localeCompare(b.id))
 
-    const fromTemplateDefaults = (exId: string) => ({
+    const fromTemplateDefaults = (exId: string, supersetGroup: string | null = null) => ({
       id: exId,
       name: exerciseNameMap[exId] ?? 'Exercise',
       equipmentType: equipmentMap[exId] ?? null,
@@ -115,6 +115,8 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
       defaultReps: templateDefaults[exId]?.defaultReps ?? 8,
       defaultWeightKg: templateDefaults[exId]?.defaultWeightKg ?? 0,
       loggedSets: liveSets(exId),
+      // Superset grouping (from the Snapshot, never the live Template); null = standalone.
+      supersetGroup,
     })
 
     const snapshot = session?.exercises ?? []
@@ -122,7 +124,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
       return snapshot
         .slice()
         .sort((a, b) => a.orderIndex - b.orderIndex)
-        .map(se => fromTemplateDefaults(se.exerciseId))
+        .map(se => fromTemplateDefaults(se.exerciseId, se.supersetGroup))
     }
     // Legacy template Session with no snapshot: use the Template's exercise list so
     // the logger shows every exercise the overview does (incl. ones not yet logged).
@@ -131,7 +133,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
         .filter(te => te.exerciseId)
         .slice()
         .sort((a, b) => a.orderIndex - b.orderIndex)
-        .map(te => fromTemplateDefaults(te.exerciseId!))
+        .map(te => fromTemplateDefaults(te.exerciseId!, te.supersetGroup))
     }
     if (!session?.sets) { return [] }
     const ids = [...new Set(session.sets.filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId))]
@@ -190,10 +192,30 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
         old ? { ...old, sets: old.sets.map(s => (s.id === setId ? { ...s, done } : s)) } : old,
       )
       if (done && isTemplateBased && currentExercise) {
-        const allDone =
-          currentExercise.loggedSets.length > 0 &&
-          currentExercise.loggedSets.every(s => s.id === setId || s.done)
-        if (allDone) { setAllDoneOpen(true) }
+        if (currentExercise.supersetGroup != null) {
+          // Superset member: round-robin advance to the next member that still
+          // owes a Planned Set, wrapping to the first. The just-toggled Set is
+          // treated as Done here (s.id === setId excluded); Removed Sets are
+          // already absent from loggedSets, so they never keep the cycle alive.
+          // `allDone` only fires when the whole group is exhausted (kind:
+          // 'complete') — never mid-cycle. orderIndex is the list position, which
+          // is pre-sorted by the Snapshot's orderIndex above.
+          const members: SupersetMember[] = exercises.map((e, orderIndex) => ({
+            exerciseId: e.id,
+            supersetGroup: e.supersetGroup,
+            orderIndex,
+            hasRemainingPlannedSet: e.loggedSets.some(s => s.id !== setId && !s.done),
+          }))
+          const advance = nextSupersetExercise(members, currentExercise.id)
+          if (advance.kind === 'advance') { goToExercise(advance.exerciseId, { replace: true }) }
+          else if (advance.kind === 'complete') { setAllDoneOpen(true) }
+        } else {
+          // Standalone (supersetGroup == null): unchanged per-exercise behavior.
+          const allDone =
+            currentExercise.loggedSets.length > 0 &&
+            currentExercise.loggedSets.every(s => s.id === setId || s.done)
+          if (allDone) { setAllDoneOpen(true) }
+        }
       }
       return { previous }
     },
