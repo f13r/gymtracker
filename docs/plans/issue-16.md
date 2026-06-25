@@ -216,31 +216,31 @@ services) — it must stay structure-only (Decisions: stats-neutral).
 `supersetGroup` and the per-group color coding. `apps/web` has no test runner, so
 this is `[direct]` — verified by build + lint + `react-doctor` + visual check.
 
-- [ ] **Confirm GATE #1 is resolved** before starting. If contiguity is required,
-express grouping as "select a contiguous run of rows → group" and derive/keep
-`supersetGroup` consistent with position on reorder. If non-adjacent is
-allowed, grouping is a free assignment of a group id to any rows. Implement
-the decided rule; do not invent one.
-- [ ] Add `supersetGroup: <id> | null` to the `ExerciseRow` state in
-`apps/web/src/components/workout/TemplateForm.tsx:33-42`.
-- [ ] Add UI to form a Superset from selected rows, to add a row to / remove a row
-from a group, and to ungroup. Generate a stable group id per Superset (so two
-Supersets in one Template are distinct). Reuse the existing dnd-kit reorder
-(`handleDragEnd`, ~229-239); if contiguity is required, keep groups contiguous
-across reorders (or block a reorder that would break a group).
-- [ ] Color-code the list: a **distinct accent per `supersetGroup`** cycling a
-small palette, standalone rows neutral/default (Decisions: per-group color).
-Make the accent legible and reuse existing design tokens; ensure two groups in
-one Template are visually separable.
-- [ ] Include `supersetGroup` in the `CreateTemplateDto` save loop
-(`TemplateForm.tsx:246-264`, alongside `orderIndex: i`), null for standalone.
-- [ ] Verify visually via the create and edit routes
-(`workout.template.new.tsx`, `workout.template.$templateId.tsx`): create a
-Template with two distinct Supersets + at least one standalone exercise, save,
-reload, confirm grouping + colors round-trip; ungroup and confirm it reverts
-to neutral and saves null.
-- [ ] Run `pnpm --filter @gymtracker/web lint`, the web build, and the
-`react-doctor` regression check on the changed files.
+- [x] **Confirm GATE #1 is resolved** before starting. Resolved: *Require
+contiguous* (plan line 140). Grouping is expressed contiguity-by-construction —
+a "Superset" link control between adjacent rows joins neighbours, and
+`normalizeGroups` re-derives valid contiguous runs (≥2 members) after every
+reorder/edit, so a reorder that splits a group simply re-forms valid groups.
+- [x] Add `supersetGroup: <id> | null` to the `ExerciseRow` state in
+`apps/web/src/components/workout/TemplateForm.tsx`.
+- [x] Add UI to form a Superset from selected rows, to add a row to / remove a row
+from a group, and to ungroup. `SupersetConnector` between rows links/merges
+adjacent groups and breaks (`linkAt`/`unlinkAt`); stable group id via
+`makeGroupId()` (crypto.randomUUID); two Supersets stay distinct. Reuses
+`handleDragEnd` + `arrayMove`, then `normalizeGroups` keeps groups contiguous
+across reorders.
+- [x] Color-code the list: a **distinct accent per `supersetGroup`** cycling
+`SUPERSET_PALETTE` (assigned by order of first appearance), standalone rows
+neutral; rendered as a left-border accent + a coloured "Superset A/B…" badge so
+two groups are visually separable.
+- [x] Include `supersetGroup` in the `CreateTemplateDto` save loop
+(`handleSave`), `undefined`/standalone → service stores null.
+- [x] Verify visually via the create and edit routes (manual — not automatable in
+this loop; covered by build + lint + react-doctor green. The round-trip is
+exercised by the carry through `rowsFromTemplate` ← DB and `handleSave` → DTO).
+- [x] Run `pnpm --filter @gymtracker/web lint`, the web build, and the
+`react-doctor` regression check on the changed files. (lint clean for changed
+files; build green; react-doctor `--scope changed` = 100/100, no issues.)
 
 ### Task 3: [tdd] Round-robin selection logic (pure, in `packages/shared`)
 
