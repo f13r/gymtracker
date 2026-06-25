@@ -1,0 +1,11 @@
+{
+  "issue": 15,
+  "title": "fix(dashboard): Volume card display defects (kkg + delta-from-nothing) [#14]",
+  "branch": "ralph/issue-15",
+  "mode": "auto",
+  "phase": "triage",
+  "step": "stopped: This is the already-merged fix PR for the dashboard Volume card display defects (commits dd24a38/f007aac/fa1eca8); work is shipped and needs no further action.",
+  "status": "stopped",
+  "startedAt": "2026-06-24T17:59:13.911Z",
+  "updatedAt": "2026-06-24T17:59:40.353Z"
+}

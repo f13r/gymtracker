@@ -3,14 +3,16 @@
   "title": "Bodyweight exercise issues",
   "branch": "ralph/issue-14",
   "mode": "auto",
-  "phase": "plan",
-  "step": "writing docs/plans/issue-N.md",
+  "phase": "done",
+  "step": "shipped",
   "status": "done",
   "startedAt": "2026-06-24T14:02:55.767Z",
-  "updatedAt": "2026-06-24T14:20:46.812Z",
+  "updatedAt": "2026-06-24T17:57:53.602Z",
   "route": "grill",
   "grill": {
     "round": 4,
     "max": 15
-  }
+  },
+  "gate": null,
+  "lastError": "ralphex exited 1 — resumable via `ralph loop 14`"
 }

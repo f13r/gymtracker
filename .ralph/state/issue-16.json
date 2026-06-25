@@ -1,0 +1,17 @@
+{
+  "issue": 16,
+  "title": "Create superset functionality",
+  "branch": "ralph/issue-16",
+  "mode": "auto",
+  "phase": "plan",
+  "step": "writing docs/plans/issue-N.md",
+  "status": "stopped",
+  "startedAt": "2026-06-24T18:34:05.940Z",
+  "updatedAt": "2026-06-25T06:26:00.492Z",
+  "route": "grill",
+  "grill": {
+    "round": 6,
+    "max": 15
+  },
+  "gate": null
+}
