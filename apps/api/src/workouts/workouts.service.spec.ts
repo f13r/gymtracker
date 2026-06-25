@@ -112,6 +112,35 @@ describe('WorkoutsService.updateTemplate', () => {
 
     expect(insertedValues.map(v => v.supersetGroup)).toEqual(['g1', 'g1', null])
   })
+
+  // createTemplate builds its insert via spread (...ex) with an explicit supersetGroup override,
+  // a distinct code path from updateTemplate's field-by-field insert — cover it independently.
+  it('persists supersetGroup from the DTO on createTemplate (null for standalone)', async () => {
+    const insertedValues: any[] = []
+    mockDb.insert = vi.fn((table: unknown) => {
+      insertedTables.push(table)
+      return {
+        values: vi.fn((v: unknown) => {
+          if (table === schema.templateExercises) {
+            insertedValues.push(v)
+          }
+          return Promise.resolve()
+        }),
+      }
+    })
+    const svc = new WorkoutsService(mockDb, {} as any, {} as any, {} as any)
+
+    await svc.createTemplate('u1', {
+      name: 'Superset day',
+      exercises: [
+        { exerciseId: 'e1', orderIndex: 0, supersetGroup: 'g1' },
+        { exerciseId: 'e2', orderIndex: 1, supersetGroup: 'g1' },
+        { exerciseId: 'e3', orderIndex: 2 },
+      ],
+    })
+
+    expect(insertedValues.map(v => v.supersetGroup)).toEqual(['g1', 'g1', null])
+  })
 })
 
 // snapshotPlan() must carry the Template's structural grouping into the
