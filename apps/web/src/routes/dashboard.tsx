@@ -4,7 +4,7 @@ import { Dumbbell, Clock, Zap, CheckCircle2, Circle, Loader2 } from 'lucide-reac
 import { useState, useEffect, useMemo } from 'react'
 
 import type { WorkoutSession, WorkoutSet } from '@gymtracker/shared'
-import { calculateVolume, getDoneSets } from '@gymtracker/shared'
+import { computeExceededExercises } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
@@ -247,20 +247,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
       ex => ex.loggedSets.length > 0 && ex.loggedSets.every((s: WorkoutSet) => s.done),
     ).length
 
-    const exceededExercises = exercises
-      .map(ex => {
-        const currentExVol = calculateVolume(getDoneSets(ex.loggedSets))
-        const prevExVol =
-          prevSets.length > 0
-            ? calculateVolume(getDoneSets(prevSets.filter((s: WorkoutSet) => s.exerciseId === ex.id)))
-            : null
-        const delta = prevExVol !== null ? currentExVol - prevExVol : null
-        return { id: ex.id, name: ex.name, delta, currentVol: currentExVol }
-      })
-      .filter(
-        (ex): ex is { id: string; name: string; delta: number; currentVol: number } =>
-          ex.delta !== null && ex.delta > 0 && ex.currentVol > 0,
-      )
+    const exceededExercises = computeExceededExercises(exercises, prevSets)
 
     return { currentVolume, prevVolume, completedCount, exceededExercises }
   }, [sessionPrevVolume, prevSessionDataSets, exercises, currentVolume])

@@ -177,9 +177,7 @@ describe('computeExceededExercises', () => {
   })
 
   it('excludes an exercise with no current done sets (currentVol === 0)', () => {
-    const exercises = [
-      { id: 'A', name: 'Bench', loggedSets: [set960({ exerciseId: 'A', done: false })] },
-    ]
+    const exercises = [{ id: 'A', name: 'Bench', loggedSets: [set960({ exerciseId: 'A', done: false })] }]
     const prevSets = [set720({ exerciseId: 'A' })]
     expect(computeExceededExercises(exercises, prevSets)).toEqual([])
   })
