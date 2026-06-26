@@ -71,13 +71,17 @@ function InlineSetRow({
 
   useEffect(() => {
     return () => {
-      if (debounceRef.current) { clearTimeout(debounceRef.current) }
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
     }
   }, [])
 
   const scheduleUpdate = (w: number, r: number) => {
     isDirtyRef.current = true
-    if (debounceRef.current) { clearTimeout(debounceRef.current) }
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
     debounceRef.current = setTimeout(() => {
       onUpdate({ weightKg: w, reps: r })
       isDirtyRef.current = false
@@ -95,9 +99,16 @@ function InlineSetRow({
   }
 
   const handleRowClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button, input')) { return }
-    if (consumeDrag()) { return }
-    if (revealed) { close(); return }
+    if ((e.target as HTMLElement).closest('button, input')) {
+      return
+    }
+    if (consumeDrag()) {
+      return
+    }
+    if (revealed) {
+      close()
+      return
+    }
     // Fire the buzz synchronously in the gesture handler — Android ignores it
     // from the mutation's async onMutate.
     haptic(30)
@@ -115,19 +126,25 @@ function InlineSetRow({
           disabled={isDeletePending}
           style={{ width: SWIPE_OPEN }}
           type="button"
-          onClick={(e) => { e.stopPropagation(); onDelete() }}
+          onClick={e => {
+            e.stopPropagation()
+            onDelete()
+          }}
         >
-          {isDeletePending ? '…' : <><Trash2 size={18} />Remove</>}
+          {isDeletePending ? (
+            '…'
+          ) : (
+            <>
+              <Trash2 size={18} />
+              Remove
+            </>
+          )}
         </button>
       </div>
 
       {/* Swipeable foreground */}
       <div
-        className={cn(
-          'px-4 pt-4 pb-5',
-          isDone ? 'bg-primary' : 'bg-background',
-          !dragging && 'transition-transform',
-        )}
+        className={cn('px-4 pt-4 pb-5', isDone ? 'bg-primary' : 'bg-background', !dragging && 'transition-transform')}
         style={{ touchAction: 'pan-y', transform: `translateX(${dragX}px)` }}
         onClick={handleRowClick}
         {...swipeHandlers}
@@ -194,11 +211,15 @@ function ExerciseSummaryBar({
 
   const wasReps: number | null = hasPrev
     ? donePrevSets.reduce((s, x) => s + (x.reps ?? 0), 0)
-    : hasTemplate ? defaultSets * defaultReps : null
+    : hasTemplate
+      ? defaultSets * defaultReps
+      : null
 
   const wasVol: number | null = hasPrev
     ? calculateVolume(donePrevSets)
-    : hasTemplate && defaultWeightKg > 0 ? defaultSets * defaultReps * defaultWeightKg : null
+    : hasTemplate && defaultWeightKg > 0
+      ? defaultSets * defaultReps * defaultWeightKg
+      : null
 
   const compLabel = hasPrev ? 'last time' : hasTemplate ? 'template' : null
 
@@ -208,7 +229,7 @@ function ExerciseSummaryBar({
   return (
     <div className="border-border/30 border-t px-4 pt-3 pb-4">
       {compLabel && (
-        <p className="mb-2.5 text-[9px] font-semibold tracking-widest text-muted-foreground/50 uppercase">
+        <p className="text-muted-foreground/50 mb-2.5 text-[9px] font-semibold tracking-widest uppercase">
           vs {compLabel}
         </p>
       )}
@@ -216,19 +237,30 @@ function ExerciseSummaryBar({
         {/* Volume card — hidden for bodyweight */}
         {!isBodyweight && (
           <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-            <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">VOLUME</p>
+            <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">VOLUME</p>
             <p className="font-display font-700 text-[26px] leading-none tabular-nums">
               {nowVol > 0 ? (
-                <>{fmtVol(nowVol)}<span className="ml-0.5 font-sans text-[11px] font-normal text-muted-foreground">kg</span></>
-              ) : '—'}
+                <>
+                  {fmtVol(nowVol)}
+                  <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">kg</span>
+                </>
+              ) : (
+                '—'
+              )}
             </p>
             <div className="mt-1.5 flex items-center gap-1.5">
-              <span className="text-[11px] text-muted-foreground tabular-nums">
+              <span className="text-muted-foreground text-[11px] tabular-nums">
                 was {wasVol !== null ? `${fmtVol(wasVol)}kg` : '—'}
               </span>
               {deltaVol !== null && deltaVol !== 0 && (
-                <span className={cn('text-[10px] font-bold tabular-nums', deltaVol > 0 ? 'text-accent' : 'text-destructive')}>
-                  {deltaVol > 0 ? '+' : '−'}{fmtDelta(deltaVol)}
+                <span
+                  className={cn(
+                    'text-[10px] font-bold tabular-nums',
+                    deltaVol > 0 ? 'text-accent' : 'text-destructive',
+                  )}
+                >
+                  {deltaVol > 0 ? '+' : '−'}
+                  {fmtDelta(deltaVol)}
                 </span>
               )}
             </div>
@@ -237,15 +269,16 @@ function ExerciseSummaryBar({
 
         {/* Reps card */}
         <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-          <p className="mb-1 text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">REPS</p>
-          <p className="font-display font-700 text-[26px] leading-none tabular-nums">
-            {nowReps > 0 ? nowReps : '—'}
-          </p>
+          <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">REPS</p>
+          <p className="font-display font-700 text-[26px] leading-none tabular-nums">{nowReps > 0 ? nowReps : '—'}</p>
           <div className="mt-1.5 flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground tabular-nums">was {wasReps ?? '—'}</span>
+            <span className="text-muted-foreground text-[11px] tabular-nums">was {wasReps ?? '—'}</span>
             {deltaReps !== null && deltaReps !== 0 && (
-              <span className={cn('text-[10px] font-bold tabular-nums', deltaReps > 0 ? 'text-accent' : 'text-destructive')}>
-                {deltaReps > 0 ? '+' : '−'}{fmtDelta(deltaReps)}
+              <span
+                className={cn('text-[10px] font-bold tabular-nums', deltaReps > 0 ? 'text-accent' : 'text-destructive')}
+              >
+                {deltaReps > 0 ? '+' : '−'}
+                {fmtDelta(deltaReps)}
               </span>
             )}
           </div>
@@ -386,32 +419,68 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
             <p className="font-display font-700 text-3xl leading-tight tracking-wide">
               {currentExercise.name.toUpperCase()}
             </p>
-            <button
-              aria-label="Show exercise demonstration"
-              className="text-muted-foreground mt-1 shrink-0 active:opacity-60"
-              type="button"
-              onClick={() => setMediaOpen(true)}
-            >
-              <ImageIcon size={20} />
-            </button>
+            <div className="flex shrink-0 items-center gap-3">
+              {canAddSet && (
+                <button
+                  className="text-muted-foreground border-border active:bg-muted/50 mt-1 flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
+                  disabled={addSet.isPending}
+                  type="button"
+                  onClick={() => {
+                    haptic(50)
+                    addSet.mutate()
+                  }}
+                >
+                  <Plus size={16} strokeWidth={2.5} />
+                  Add set
+                </button>
+              )}
+              <button
+                aria-label="Show exercise demonstration"
+                className="text-muted-foreground mt-1 shrink-0 active:opacity-60"
+                type="button"
+                onClick={() => setMediaOpen(true)}
+              >
+                <ImageIcon size={20} />
+              </button>
+            </div>
           </div>
         </div>
       ) : !isTemplateBased ? (
         <div className="border-border shrink-0 border-b px-4 py-3">
-          <button className="group flex w-full items-center justify-between" type="button" onClick={() => setShowPicker(true)}>
-            <div>
-              <p className="text-muted-foreground mb-0.5 text-xs font-semibold tracking-widest uppercase">
-                {exercises.length > 0 ? `Exercise ${activeExerciseIndex + 1} of ${exercises.length}` : 'Exercise'}
-              </p>
-              <p className="font-display font-700 text-3xl leading-tight tracking-wide">
-                {(pendingSelection?.name ?? currentExercise?.name ?? 'Select Exercise').toUpperCase()}
-              </p>
-            </div>
-            <div className="text-primary flex items-center gap-1.5">
-              <Plus size={18} strokeWidth={2.5} />
-              <span className="text-xs font-semibold tracking-wide uppercase">Add</span>
-            </div>
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              className="group flex min-w-0 flex-1 items-center justify-between"
+              type="button"
+              onClick={() => setShowPicker(true)}
+            >
+              <div className="min-w-0">
+                <p className="text-muted-foreground mb-0.5 text-xs font-semibold tracking-widest uppercase">
+                  {exercises.length > 0 ? `Exercise ${activeExerciseIndex + 1} of ${exercises.length}` : 'Exercise'}
+                </p>
+                <p className="font-display font-700 truncate text-3xl leading-tight tracking-wide">
+                  {(pendingSelection?.name ?? currentExercise?.name ?? 'Select Exercise').toUpperCase()}
+                </p>
+              </div>
+              <div className="text-primary flex items-center gap-1.5">
+                <Plus size={18} strokeWidth={2.5} />
+                <span className="text-xs font-semibold tracking-wide uppercase">Add</span>
+              </div>
+            </button>
+            {canAddSet && (
+              <button
+                className="text-muted-foreground border-border active:bg-muted/50 flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
+                disabled={addSet.isPending}
+                type="button"
+                onClick={() => {
+                  haptic(50)
+                  addSet.mutate()
+                }}
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                Add set
+              </button>
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -425,7 +494,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
             set={s}
             onDelete={() => deleteSet.mutate(s.id)}
             onToggleDone={() => toggleDone.mutate({ setId: s.id, done: !s.done })}
-            onUpdate={(data) => updateSet.mutate({ setId: s.id, data })}
+            onUpdate={data => updateSet.mutate({ setId: s.id, data })}
           />
         ))}
 
@@ -440,21 +509,6 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
             ) : (
               <p className="text-muted-foreground text-sm">Log your first set</p>
             )}
-          </div>
-        )}
-
-        {/* Add set link */}
-        {canAddSet && (
-          <div className="flex justify-center py-2">
-            <button
-              className="text-muted-foreground border-border active:bg-muted/50 flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-base font-medium transition-colors disabled:opacity-40"
-              disabled={addSet.isPending}
-              type="button"
-              onClick={() => { haptic(50); addSet.mutate() }}
-            >
-              <Plus size={18} strokeWidth={2.5} />
-              Add set
-            </button>
           </div>
         )}
       </div>
