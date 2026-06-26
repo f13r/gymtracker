@@ -386,32 +386,58 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
             <p className="font-display font-700 text-3xl leading-tight tracking-wide">
               {currentExercise.name.toUpperCase()}
             </p>
-            <button
-              aria-label="Show exercise demonstration"
-              className="text-muted-foreground mt-1 shrink-0 active:opacity-60"
-              type="button"
-              onClick={() => setMediaOpen(true)}
-            >
-              <ImageIcon size={20} />
-            </button>
+            <div className="flex shrink-0 items-center gap-3">
+              {canAddSet && (
+                <button
+                  className="text-muted-foreground border-border active:bg-muted/50 mt-1 flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
+                  disabled={addSet.isPending}
+                  type="button"
+                  onClick={() => { haptic(50); addSet.mutate() }}
+                >
+                  <Plus size={16} strokeWidth={2.5} />
+                  Add set
+                </button>
+              )}
+              <button
+                aria-label="Show exercise demonstration"
+                className="text-muted-foreground mt-1 shrink-0 active:opacity-60"
+                type="button"
+                onClick={() => setMediaOpen(true)}
+              >
+                <ImageIcon size={20} />
+              </button>
+            </div>
           </div>
         </div>
       ) : !isTemplateBased ? (
         <div className="border-border shrink-0 border-b px-4 py-3">
-          <button className="group flex w-full items-center justify-between" type="button" onClick={() => setShowPicker(true)}>
-            <div>
-              <p className="text-muted-foreground mb-0.5 text-xs font-semibold tracking-widest uppercase">
-                {exercises.length > 0 ? `Exercise ${activeExerciseIndex + 1} of ${exercises.length}` : 'Exercise'}
-              </p>
-              <p className="font-display font-700 text-3xl leading-tight tracking-wide">
-                {(pendingSelection?.name ?? currentExercise?.name ?? 'Select Exercise').toUpperCase()}
-              </p>
-            </div>
-            <div className="text-primary flex items-center gap-1.5">
-              <Plus size={18} strokeWidth={2.5} />
-              <span className="text-xs font-semibold tracking-wide uppercase">Add</span>
-            </div>
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button className="group flex min-w-0 flex-1 items-center justify-between" type="button" onClick={() => setShowPicker(true)}>
+              <div className="min-w-0">
+                <p className="text-muted-foreground mb-0.5 text-xs font-semibold tracking-widest uppercase">
+                  {exercises.length > 0 ? `Exercise ${activeExerciseIndex + 1} of ${exercises.length}` : 'Exercise'}
+                </p>
+                <p className="font-display font-700 truncate text-3xl leading-tight tracking-wide">
+                  {(pendingSelection?.name ?? currentExercise?.name ?? 'Select Exercise').toUpperCase()}
+                </p>
+              </div>
+              <div className="text-primary flex items-center gap-1.5">
+                <Plus size={18} strokeWidth={2.5} />
+                <span className="text-xs font-semibold tracking-wide uppercase">Add</span>
+              </div>
+            </button>
+            {canAddSet && (
+              <button
+                className="text-muted-foreground border-border active:bg-muted/50 flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
+                disabled={addSet.isPending}
+                type="button"
+                onClick={() => { haptic(50); addSet.mutate() }}
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                Add set
+              </button>
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -443,20 +469,6 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
           </div>
         )}
 
-        {/* Add set link */}
-        {canAddSet && (
-          <div className="flex justify-center py-2">
-            <button
-              className="text-muted-foreground border-border active:bg-muted/50 flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-base font-medium transition-colors disabled:opacity-40"
-              disabled={addSet.isPending}
-              type="button"
-              onClick={() => { haptic(50); addSet.mutate() }}
-            >
-              <Plus size={18} strokeWidth={2.5} />
-              Add set
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Exercise summary — always visible; volume card hidden for bodyweight */}
