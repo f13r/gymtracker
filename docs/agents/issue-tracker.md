@@ -11,7 +11,7 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
 
-Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
+Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone. When you must pass `--repo` explicitly, always use the `owner/repo` slug (`f13r/gymtracker`), never a worktree path. See [auto-merge.md](./auto-merge.md) for the `error connecting to main` merge failure caused by passing a worktree path to `--repo`.
 
 ## When a skill says "publish to the issue tracker"
 
