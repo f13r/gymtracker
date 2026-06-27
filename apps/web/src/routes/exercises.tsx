@@ -125,15 +125,7 @@ export function ExercisesPage() {
   )
 }
 
-function CreateExerciseDialog({
-  open,
-  onClose,
-  onSaved,
-}: {
-  open: boolean
-  onClose: () => void
-  onSaved: () => void
-}) {
+function CreateExerciseDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: () => void }) {
   const { t } = useTranslation('exercises')
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>

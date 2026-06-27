@@ -64,9 +64,7 @@ function WorkoutSummaryCard({
       )}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-          <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">
-            {t('volume')}
-          </p>
+          <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">{t('volume')}</p>
           <p className="font-display font-700 text-[26px] leading-none tabular-nums">
             {currentVolume > 0 ? (
               <>
@@ -102,9 +100,7 @@ function WorkoutSummaryCard({
 
         {hasTemplate && (
           <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-            <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">
-              {t('done')}
-            </p>
+            <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">{t('done')}</p>
             <p className="font-display font-700 text-[26px] leading-none tabular-nums">
               {completedCount}
               <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">/{totalExercises}</span>
@@ -295,9 +291,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
       {/* Session header */}
       <div className="flex items-start justify-between pt-2">
         <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-            {t('activeWorkout')}
-          </p>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('activeWorkout')}</p>
           <h1 className="font-display font-700 mt-0.5 text-3xl leading-tight tracking-wide">
             {session.name.toUpperCase()}
           </h1>
@@ -404,10 +398,7 @@ export function DashboardPage() {
   const [promptDismissed, setPromptDismissed] = useState(false)
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const greetingKey = useMemo(() => getGreetingKey(), [])
-  const dayName = useMemo(
-    () => new Date().toLocaleDateString(i18n.language, { weekday: 'long' }),
-    [i18n.language],
-  )
+  const dayName = useMemo(() => new Date().toLocaleDateString(i18n.language, { weekday: 'long' }), [i18n.language])
 
   const { data: active } = useQuery({ queryKey: queryKeys.activeSession(), queryFn: workoutsApi.getActiveSession })
   const { data: sessions = [] } = useQuery({ queryKey: queryKeys.sessions(), queryFn: workoutsApi.getSessions })

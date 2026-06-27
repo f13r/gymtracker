@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-
 import { describe, expect, it } from 'vitest'
 
 import enBody from './en/body.json'
@@ -13,6 +10,8 @@ import ukDashboard from './uk/dashboard.json'
 import ukExercises from './uk/exercises.json'
 import ukPhotos from './uk/photos.json'
 import ukStats from './uk/stats.json'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 type Json = Record<string, unknown>
 
@@ -61,9 +60,7 @@ describe('overview namespace key parity (uk ↔ en)', () => {
   }
 
   it('dashboard: pluralized key carries the required variants per language', () => {
-    expect(Object.keys(enDashboard)).toEqual(
-      expect.arrayContaining(['exercisesPlanned_one', 'exercisesPlanned_other']),
-    )
+    expect(Object.keys(enDashboard)).toEqual(expect.arrayContaining(['exercisesPlanned_one', 'exercisesPlanned_other']))
     expect(Object.keys(ukDashboard)).toEqual(
       expect.arrayContaining([
         'exercisesPlanned_one',
@@ -100,15 +97,9 @@ describe('overview routes have no hardcoded user-facing literals', () => {
       const source = readFileSync(join(routeDir, file), 'utf8')
       expect(source).toContain('useTranslation')
       for (const literal of literals) {
-        expect(source, `"${literal}" should no longer be a hardcoded literal in ${file}`).not.toContain(
-          `'${literal}'`,
-        )
-        expect(source, `"${literal}" should no longer be a hardcoded literal in ${file}`).not.toContain(
-          `"${literal}"`,
-        )
-        expect(source, `"${literal}" should no longer be a hardcoded literal in ${file}`).not.toContain(
-          `>${literal}<`,
-        )
+        expect(source, `"${literal}" should no longer be a hardcoded literal in ${file}`).not.toContain(`'${literal}'`)
+        expect(source, `"${literal}" should no longer be a hardcoded literal in ${file}`).not.toContain(`"${literal}"`)
+        expect(source, `"${literal}" should no longer be a hardcoded literal in ${file}`).not.toContain(`>${literal}<`)
       }
     })
   }

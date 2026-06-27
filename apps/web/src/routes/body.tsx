@@ -62,9 +62,7 @@ export function BodyPage() {
             <Scale className="text-accent" size={22} />
           </div>
           <div>
-            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-              {t('latestWeight')}
-            </p>
+            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('latestWeight')}</p>
             <p className="font-display font-700 text-accent text-4xl leading-tight">
               {latest.weightKg} <span className="text-muted-foreground text-lg font-normal">{t('kg')}</span>
             </p>
@@ -121,9 +119,7 @@ export function BodyPage() {
 
       {weights.length > 0 && (
         <div className="space-y-1">
-          <p className="text-muted-foreground pb-1 text-xs font-semibold tracking-widest uppercase">
-            {t('weightLog')}
-          </p>
+          <p className="text-muted-foreground pb-1 text-xs font-semibold tracking-widest uppercase">{t('weightLog')}</p>
           <div className="bg-card border-border divide-border/50 divide-y overflow-hidden rounded-xl border">
             {weights.slice(0, 10).map(w => (
               <div key={w.id} className="flex items-center justify-between px-4 py-3">
@@ -311,9 +307,7 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
         </Select>
       </div>
 
-      {save.isError && (
-        <p className="text-destructive text-xs">{t('saveError')}</p>
-      )}
+      {save.isError && <p className="text-destructive text-xs">{t('saveError')}</p>}
 
       <Button className="w-full" disabled={save.isPending} onClick={() => save.mutate()}>
         {save.isPending ? t('saving') : save.isSuccess ? t('saved') : t('saveProfile')}
