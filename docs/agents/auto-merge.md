@@ -62,10 +62,10 @@ occurs when a worktree **path** is passed as `--repo`; never do that.
 
 ## Failing vs. correct form
 
-| | Command | Result |
-| --- | --- | --- |
-| ❌ Do not use | `gh pr view 18 --repo main/fusion/fn-002` | `error connecting to main` |
-| ✅ Correct | `gh pr view 18 --repo f13r/gymtracker --json number,state` | returns valid JSON |
+|               | Command                                                    | Result                     |
+| ------------- | ---------------------------------------------------------- | -------------------------- |
+| ❌ Do not use | `gh pr view 18 --repo main/fusion/fn-002`                  | `error connecting to main` |
+| ✅ Correct    | `gh pr view 18 --repo f13r/gymtracker --json number,state` | returns valid JSON         |
 
 ## Verification evidence (FN-005)
 
