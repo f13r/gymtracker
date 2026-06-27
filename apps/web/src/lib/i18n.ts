@@ -53,9 +53,7 @@ void i18n.use(initReactI18next).init({
 
 // Mirror language changes back into the single persistence mechanism (store).
 i18n.on('languageChanged', lng => {
-  const next = (SUPPORTED_LANGUAGES as readonly string[]).includes(lng)
-    ? (lng as Language)
-    : FALLBACK_LANGUAGE
+  const next = (SUPPORTED_LANGUAGES as readonly string[]).includes(lng) ? (lng as Language) : FALLBACK_LANGUAGE
   if (usePreferencesStore.getState().language !== next) {
     usePreferencesStore.getState().setLanguage(next)
   }

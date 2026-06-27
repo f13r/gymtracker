@@ -10,8 +10,13 @@ import { usePreferencesStore } from '@/stores/preferences.store'
 const REST_PRESETS = [60, 90, 120, 180]
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
 const DAY_KEYS: Record<string, string> = {
-  monday: 'mon', tuesday: 'tue', wednesday: 'wed', thursday: 'thu',
-  friday: 'fri', saturday: 'sat', sunday: 'sun',
+  monday: 'mon',
+  tuesday: 'tue',
+  wednesday: 'wed',
+  thursday: 'thu',
+  friday: 'fri',
+  saturday: 'sat',
+  sunday: 'sun',
 }
 const DURATION_OPTIONS = [30, 45, 60, 75, 90]
 
@@ -34,9 +39,7 @@ export function SettingsPage() {
   const currentDuration = profile?.sessionDurationMinutes ?? 60
 
   const toggleDay = (day: string) => {
-    const days = currentDays.includes(day)
-      ? currentDays.filter(d => d !== day)
-      : [...currentDays, day]
+    const days = currentDays.includes(day) ? currentDays.filter(d => d !== day) : [...currentDays, day]
     updateProfile.mutate({ trainingDays: days })
   }
 
@@ -124,9 +127,7 @@ export function SettingsPage() {
               key={day}
               className={cn(
                 'flex h-10 flex-col items-center justify-center rounded-lg text-xs font-semibold transition-all',
-                currentDays.includes(day)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground',
+                currentDays.includes(day) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
               )}
               type="button"
               onClick={() => toggleDay(day)}
@@ -139,7 +140,9 @@ export function SettingsPage() {
 
       <div className="bg-card border-border overflow-hidden rounded-xl border">
         <div className="border-border border-b px-4 py-3">
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('sessionDuration')}</p>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+            {t('sessionDuration')}
+          </p>
         </div>
         <div className="grid grid-cols-5 gap-2 p-3">
           {DURATION_OPTIONS.map(min => (

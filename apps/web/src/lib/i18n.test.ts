@@ -38,10 +38,7 @@ describe('i18n foundation', () => {
   })
 
   it('restores a previously persisted language on a fresh init', async () => {
-    localStorage.setItem(
-      PREFERENCES_KEY,
-      JSON.stringify({ state: { language: 'en' }, version: 0 }),
-    )
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify({ state: { language: 'en' }, version: 0 }))
     const i18n = await loadFreshI18n()
     expect(i18n.language).not.toBe('uk')
     expect(i18n.language).toBe('en')
