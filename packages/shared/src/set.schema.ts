@@ -10,8 +10,7 @@ export const CreateSetSchema = z.object({
   done: z.boolean().optional(),
 })
 
-export const UpdateSetSchema = CreateSetSchema
-  .omit({ exerciseId: true, setNumber: true })
+export const UpdateSetSchema = CreateSetSchema.omit({ exerciseId: true, setNumber: true })
   .extend({ done: z.boolean().optional() })
   .partial()
 

@@ -163,14 +163,14 @@ Triggered after the human merges:
 
 ## 7. Artifacts & where they live
 
-| Artifact           | Path                                         | Lifetime                  |
-| ------------------ | -------------------------------------------- | ------------------------- |
-| Q&A transcript     | branch-local scratch (NOT committed)         | checked on the fly        |
-| Plan               | `docs/plans/issue-N.md`                      | committed                 |
-| Review comparison  | `comparison.md` (PR-attached)                | reviewed at gate #2       |
-| Live doc edits     | `CONTEXT.md`, `docs/adr/**`                  | committed on branch       |
-| Per-project config | `.ralph/config`                              | committed, the reuse seam |
-| Ralphex config     | `.ralphex/` (agent prompts, plan settings)   | committed                 |
+| Artifact           | Path                                       | Lifetime                  |
+| ------------------ | ------------------------------------------ | ------------------------- |
+| Q&A transcript     | branch-local scratch (NOT committed)       | checked on the fly        |
+| Plan               | `docs/plans/issue-N.md`                    | committed                 |
+| Review comparison  | `comparison.md` (PR-attached)              | reviewed at gate #2       |
+| Live doc edits     | `CONTEXT.md`, `docs/adr/**`                | committed on branch       |
+| Per-project config | `.ralph/config`                            | committed, the reuse seam |
+| Ralphex config     | `.ralphex/` (agent prompts, plan settings) | committed                 |
 
 ---
 

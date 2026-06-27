@@ -20,6 +20,7 @@
 ### Task 1: Improve Gemini prompt for body-position accuracy
 
 **Files:**
+
 - Modify: `apps/api/src/equipment/equipment.service.ts`
 
 - [ ] **Step 1: Open the file and locate the prompt string**
@@ -63,6 +64,7 @@ git commit -m "fix: instruct Gemini to describe exercise body position accuratel
 ### Task 2: Add `exerciseNames` to Step2State
 
 **Files:**
+
 - Modify: `apps/web/src/components/equipment/AddEquipmentWizard.tsx`
 
 - [ ] **Step 1: Add `exerciseNames` to the type**
@@ -157,6 +159,7 @@ git commit -m "feat: add exerciseNames to Step2State for editable exercise names
 ### Task 3: Restructure exercise rows — split-target layout with editable name
 
 **Files:**
+
 - Modify: `apps/web/src/components/equipment/AddEquipmentWizard.tsx`
 
 - [ ] **Step 1: Replace the exercise row render in Step2**
@@ -164,68 +167,18 @@ git commit -m "feat: add exerciseNames to Step2State for editable exercise names
 Find this block inside the `Step2` function's return, inside the `{/* Exercises */}` section:
 
 ```tsx
-{s2.suggestion.exercises.map((ex: SuggestedExercise, i: number) => (
-  <button
-    key={i}
-    className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors ${
-      s2.selectedExercises.has(i)
-        ? 'border-primary bg-primary/5'
-        : 'border-border opacity-50'
-    }`}
-    onClick={() => toggleExercise(i)}
-  >
-    <div
-      className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 ${
-        s2.selectedExercises.has(i)
-          ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-muted-foreground'
-      }`}
-    >
-      {s2.selectedExercises.has(i) && (
-        <svg fill="none" height="10" viewBox="0 0 12 10" width="12">
-          <path
-            d="M1 5l3.5 3.5L11 1"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          />
-        </svg>
-      )}
-    </div>
-    <div className="min-w-0 flex-1">
-      <p className="text-sm font-medium">{ex.name}</p>
-      <p className="text-muted-foreground text-xs">
-        {ex.category} · {ex.equipmentType}
-        {ex.existingId ? ' · already in library' : ' · will be created'}
-      </p>
-    </div>
-  </button>
-))}
-```
-
-Replace with:
-
-```tsx
-{s2.suggestion.exercises.map((ex: SuggestedExercise, i: number) => (
-  <div
-    key={i}
-    className={`flex w-full items-center gap-1 rounded-xl border transition-colors ${
-      s2.selectedExercises.has(i)
-        ? 'border-primary bg-primary/5'
-        : 'border-border opacity-50'
-    }`}
-  >
+{
+  s2.suggestion.exercises.map((ex: SuggestedExercise, i: number) => (
     <button
-      className="flex flex-shrink-0 items-center justify-center p-3"
-      type="button"
+      key={i}
+      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors ${
+        s2.selectedExercises.has(i) ? 'border-primary bg-primary/5' : 'border-border opacity-50'
+      }`}
       onClick={() => toggleExercise(i)}
     >
       <div
-        className={`flex h-5 w-5 items-center justify-center rounded border-2 ${
-          s2.selectedExercises.has(i)
-            ? 'border-primary bg-primary text-primary-foreground'
-            : 'border-muted-foreground'
+        className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 ${
+          s2.selectedExercises.has(i) ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'
         }`}
       >
         {s2.selectedExercises.has(i) && (
@@ -240,27 +193,75 @@ Replace with:
           </svg>
         )}
       </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{ex.name}</p>
+        <p className="text-muted-foreground text-xs">
+          {ex.category} · {ex.equipmentType}
+          {ex.existingId ? ' · already in library' : ' · will be created'}
+        </p>
+      </div>
     </button>
-    <div className="min-w-0 flex-1 py-3 pr-3">
-      <input
-        className="w-full bg-transparent text-sm font-medium outline-none"
-        value={s2.exerciseNames[i]}
-        onChange={e =>
-          setS2(prev => {
-            if (!prev) return prev
-            const names = [...prev.exerciseNames]
-            names[i] = e.target.value
-            return { ...prev, exerciseNames: names }
-          })
-        }
-      />
-      <p className="text-muted-foreground text-xs">
-        {ex.category} · {ex.equipmentType}
-        {ex.existingId ? ' · already in library' : ' · will be created'}
-      </p>
+  ))
+}
+```
+
+Replace with:
+
+```tsx
+{
+  s2.suggestion.exercises.map((ex: SuggestedExercise, i: number) => (
+    <div
+      key={i}
+      className={`flex w-full items-center gap-1 rounded-xl border transition-colors ${
+        s2.selectedExercises.has(i) ? 'border-primary bg-primary/5' : 'border-border opacity-50'
+      }`}
+    >
+      <button
+        className="flex flex-shrink-0 items-center justify-center p-3"
+        type="button"
+        onClick={() => toggleExercise(i)}
+      >
+        <div
+          className={`flex h-5 w-5 items-center justify-center rounded border-2 ${
+            s2.selectedExercises.has(i)
+              ? 'border-primary bg-primary text-primary-foreground'
+              : 'border-muted-foreground'
+          }`}
+        >
+          {s2.selectedExercises.has(i) && (
+            <svg fill="none" height="10" viewBox="0 0 12 10" width="12">
+              <path
+                d="M1 5l3.5 3.5L11 1"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
+          )}
+        </div>
+      </button>
+      <div className="min-w-0 flex-1 py-3 pr-3">
+        <input
+          className="w-full bg-transparent text-sm font-medium outline-none"
+          value={s2.exerciseNames[i]}
+          onChange={e =>
+            setS2(prev => {
+              if (!prev) return prev
+              const names = [...prev.exerciseNames]
+              names[i] = e.target.value
+              return { ...prev, exerciseNames: names }
+            })
+          }
+        />
+        <p className="text-muted-foreground text-xs">
+          {ex.category} · {ex.equipmentType}
+          {ex.existingId ? ' · already in library' : ' · will be created'}
+        </p>
+      </div>
     </div>
-  </div>
-))}
+  ))
+}
 ```
 
 - [ ] **Step 2: Update the save mutation to use `exerciseNames`**
@@ -277,14 +278,7 @@ const save = useMutation({
       category: ex.category,
       equipmentType: ex.equipmentType,
     }))
-    return equipmentApi.create(
-      s2.file,
-      s2.name,
-      s2.equipmentType,
-      s2.description,
-      s2.tags,
-      exercises,
-    )
+    return equipmentApi.create(s2.file, s2.name, s2.equipmentType, s2.description, s2.tags, exercises)
   },
   onSuccess: onSaved,
 })
@@ -297,22 +291,17 @@ const save = useMutation({
   mutationFn: () => {
     const exercises: SaveExerciseInput[] = s2.suggestion.exercises.flatMap((ex: SuggestedExercise, i: number) =>
       s2.selectedExercises.has(i)
-        ? [{
-            existingId: ex.existingId ?? undefined,
-            name: s2.exerciseNames[i].trim() || ex.name,
-            category: ex.category,
-            equipmentType: ex.equipmentType,
-          }]
-        : []
+        ? [
+            {
+              existingId: ex.existingId ?? undefined,
+              name: s2.exerciseNames[i].trim() || ex.name,
+              category: ex.category,
+              equipmentType: ex.equipmentType,
+            },
+          ]
+        : [],
     )
-    return equipmentApi.create(
-      s2.file,
-      s2.name,
-      s2.equipmentType,
-      s2.description,
-      s2.tags,
-      exercises,
-    )
+    return equipmentApi.create(s2.file, s2.name, s2.equipmentType, s2.description, s2.tags, exercises)
   },
   onSuccess: onSaved,
 })
@@ -333,6 +322,7 @@ cd apps/web && npm run dev
 ```
 
 Open the app, go to /gym, tap "Add Equipment", take/pick a photo, tap "Analyze Photo". On Step 2:
+
 - Exercise names should appear as editable inputs.
 - Tapping the checkbox area on the left should toggle selection.
 - Tapping/typing in the name area should not toggle selection.
@@ -350,6 +340,7 @@ git commit -m "feat: make exercise names editable in Step 2 of Add Equipment wiz
 ### Task 4: Add rename confirmation dialog at save time
 
 **Files:**
+
 - Modify: `apps/web/src/components/equipment/AddEquipmentWizard.tsx`
 
 - [ ] **Step 1: Add `renameConfirm` state to Step2**
@@ -369,10 +360,8 @@ Add this directly below the `renameConfirm` state line:
 ```ts
 const pendingRenames = s2.suggestion.exercises
   .map((ex: SuggestedExercise, i: number) => ({ ex, i }))
-  .filter(({ ex, i }) =>
-    s2.selectedExercises.has(i) &&
-    ex.existingId !== null &&
-    s2.exerciseNames[i].trim() !== ex.name
+  .filter(
+    ({ ex, i }) => s2.selectedExercises.has(i) && ex.existingId !== null && s2.exerciseNames[i].trim() !== ex.name,
   )
   .map(({ ex, i }) => ({ from: ex.name, to: s2.exerciseNames[i].trim() }))
 ```
@@ -382,11 +371,7 @@ const pendingRenames = s2.suggestion.exercises
 Find the Save button's `onClick` at the bottom of Step2:
 
 ```tsx
-<Button
-  className="w-full"
-  disabled={save.isPending}
-  onClick={() => save.mutate()}
->
+<Button className="w-full" disabled={save.isPending} onClick={() => save.mutate()}>
   {save.isPending ? 'Saving…' : `Save Equipment`}
 </Button>
 ```
@@ -414,51 +399,49 @@ Replace with:
 Inside the `Step2` return, add this block immediately before the closing `</div>` of the outer fixed container (the one with `className="bg-background fixed inset-0 z-50 flex flex-col"`):
 
 ```tsx
-{renameConfirm && (
-  <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-6">
-    <div className="bg-background w-full max-w-sm space-y-4 rounded-2xl p-6">
-      <h3 className="font-semibold">Rename exercises in your library?</h3>
-      <ul className="space-y-1">
-        {renameConfirm.map(({ from, to }, idx) => (
-          <li key={idx} className="text-muted-foreground text-sm">
-            "{from}" → "{to}"
-          </li>
-        ))}
-      </ul>
-      <p className="text-muted-foreground text-xs">
-        These exercises will be renamed everywhere they appear.
-      </p>
-      <div className="flex gap-2">
-        <Button
-          className="flex-1"
-          variant="outline"
-          onClick={() => setRenameConfirm(null)}
-        >
-          Cancel
-        </Button>
-        <Button
-          className="flex-1"
-          onClick={() => {
-            setRenameConfirm(null)
-            save.mutate()
-          }}
-        >
-          Rename & Save
-        </Button>
+{
+  renameConfirm && (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-6">
+      <div className="bg-background w-full max-w-sm space-y-4 rounded-2xl p-6">
+        <h3 className="font-semibold">Rename exercises in your library?</h3>
+        <ul className="space-y-1">
+          {renameConfirm.map(({ from, to }, idx) => (
+            <li key={idx} className="text-muted-foreground text-sm">
+              "{from}" → "{to}"
+            </li>
+          ))}
+        </ul>
+        <p className="text-muted-foreground text-xs">These exercises will be renamed everywhere they appear.</p>
+        <div className="flex gap-2">
+          <Button className="flex-1" variant="outline" onClick={() => setRenameConfirm(null)}>
+            Cancel
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={() => {
+              setRenameConfirm(null)
+              save.mutate()
+            }}
+          >
+            Rename & Save
+          </Button>
+        </div>
       </div>
     </div>
-  </div>
-)}
+  )
+}
 ```
 
 Note: the outer `fixed` container needs `relative` or `position: relative` for the overlay's `absolute` to be scoped correctly. Add `relative` to the outer div's className:
 
 Find:
+
 ```tsx
 <div className="bg-background fixed inset-0 z-50 flex flex-col">
 ```
 
 Replace with:
+
 ```tsx
 <div className="bg-background fixed inset-0 z-50 flex flex-col relative">
 ```
@@ -478,12 +461,14 @@ cd apps/web && npm run dev
 ```
 
 Scenario: add equipment where Gemini suggests an exercise that matches one already in your library (the `· already in library` badge appears). Edit that exercise's name. Tap Save Equipment:
+
 - Confirmation dialog must appear, listing `"old name" → "new name"`.
 - Tap Cancel → dialog dismisses, you are back in Step 2 with no save triggered.
 - Tap Save Equipment again → dialog appears again.
 - Tap "Rename & Save" → equipment saves and wizard closes.
 
 Scenario: all exercises are new (no `· already in library`). Rename one. Tap Save Equipment:
+
 - No confirmation dialog — save fires immediately.
 
 - [ ] **Step 7: Commit**
@@ -498,6 +483,7 @@ git commit -m "feat: confirm before renaming existing library exercises via Equi
 ### Task 5: Backend — rename exercise when existingId is provided
 
 **Files:**
+
 - Modify: `apps/api/src/equipment/equipment.service.ts`
 
 - [ ] **Step 1: Locate the exercise-linking loop in `create`**
@@ -577,6 +563,7 @@ Expected: exits 0.
 - [ ] **Step 4: End-to-end manual verify**
 
 Start both servers:
+
 ```bash
 # terminal 1
 cd apps/api && npm run dev

@@ -6,7 +6,7 @@ Source: cursor-team-kit `thermo-nuclear-code-quality-review` skill. Bundled here
 
 ## Baseline question
 
-For the changes in the diff, ask: *"How could this be restructured to meaningfully improve code quality **without changing behavior**?"* Prefer the cleaner structure over merely-working code.
+For the changes in the diff, ask: _"How could this be restructured to meaningfully improve code quality **without changing behavior**?"_ Prefer the cleaner structure over merely-working code.
 
 ## Seven non-negotiable standards
 

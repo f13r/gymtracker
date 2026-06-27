@@ -56,7 +56,9 @@ export class EquipmentController {
     let tags: string[] = []
     let exercises: Array<{ existingId?: string; name: string; category: string; equipmentType: string }> = []
     try {
-      if (fields.tags?.value) { tags = JSON.parse(fields.tags.value) as string[] }
+      if (fields.tags?.value) {
+        tags = JSON.parse(fields.tags.value) as string[]
+      }
       if (fields.exercises?.value) {
         exercises = JSON.parse(fields.exercises.value) as Array<{
           existingId?: string

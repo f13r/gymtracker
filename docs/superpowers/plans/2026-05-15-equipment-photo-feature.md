@@ -13,6 +13,7 @@
 ## File Map
 
 **Create:**
+
 - `packages/shared/src/equipment.schema.ts` — `AnalyzeSuggestion`, `SuggestedExercise`, `SaveExerciseInput` types
 - `apps/api/src/gym/gym.service.ts` — `getOrCreateForUser(userId)` auto-creates implicit Gym
 - `apps/api/src/gym/gym.module.ts` — exports `GymService`
@@ -24,6 +25,7 @@
 - `apps/web/src/components/equipment/AddEquipmentWizard.tsx` — two-step wizard
 
 **Modify:**
+
 - `packages/shared/src/exercise.schema.ts` — rename `equipment` field → `equipmentType`
 - `packages/shared/src/models.ts` — rename `Exercise.equipment` → `equipmentType`; add `Gym`, `Equipment`, `EquipmentWithExercises`
 - `packages/shared/src/index.ts` — export `equipment.schema`
@@ -43,6 +45,7 @@
 ### Task 1: Commit pre-existing planned-sets changes
 
 **Files:**
+
 - Commit: `packages/shared/src/models.ts`, `packages/shared/src/set.utils.ts`, `packages/shared/src/stats.utils.ts`, `apps/web/src/components/workout/WorkoutLogger.tsx`, `apps/web/vite.config.ts`
 
 - [ ] **Step 1: Stage and commit**
@@ -59,6 +62,7 @@ Expected: commit created, `git status` shows clean working tree (except any unre
 ### Task 2: Rename `exercises.equipment` → `exercises.equipment_type`
 
 **Files:**
+
 - Modify: `packages/shared/src/exercise.schema.ts`
 - Modify: `packages/shared/src/models.ts`
 - Modify: `apps/api/src/drizzle/schema.ts`
@@ -98,7 +102,7 @@ export type Exercise = {
   userId: string | null
   name: string
   category: string | null
-  equipmentType: string | null   // was: equipment
+  equipmentType: string | null // was: equipment
   notes: string | null
   isDefault: number | null
   createdAt: number
@@ -173,15 +177,15 @@ const DEFAULT_EXERCISES = [
 And in `seedExercises`, change the insert:
 
 ```typescript
-      await this.db.insert(schema.exercises).values({
-        id: randomUUID(),
-        userId: 'default-user',
-        name: ex.name,
-        category: ex.category,
-        equipmentType: ex.equipmentType,
-        isDefault: 1,
-        createdAt: now,
-      })
+await this.db.insert(schema.exercises).values({
+  id: randomUUID(),
+  userId: 'default-user',
+  name: ex.name,
+  category: ex.category,
+  equipmentType: ex.equipmentType,
+  isDefault: 1,
+  createdAt: now,
+})
 ```
 
 - [ ] **Step 6: Generate migration**
@@ -195,6 +199,7 @@ Expected: creates `apps/api/src/drizzle/migrations/0001_<name>.sql`.
 - [ ] **Step 7: Verify migration is a RENAME, not drop+add**
 
 Open the generated `.sql` file. It must contain:
+
 ```sql
 ALTER TABLE "exercises" RENAME COLUMN "equipment" TO "equipment_type";
 ```
@@ -229,6 +234,7 @@ git commit -m "refactor: rename exercises.equipment column to equipment_type"
 ### Task 3: Add Gym + Equipment schema tables + migration
 
 **Files:**
+
 - Modify: `apps/api/src/drizzle/schema.ts`
 
 - [ ] **Step 1: Add `primaryKey` import and new tables to schema**
@@ -250,7 +256,7 @@ export const templateExercises = pgTable('template_exercises', {
   defaultSets: integer('default_sets'),
   defaultReps: integer('default_reps'),
   defaultWeightKg: real('default_weight_kg'),
-  equipmentId: text('equipment_id'),  // FK added below after equipment table defined
+  equipmentId: text('equipment_id'), // FK added below after equipment table defined
 })
 ```
 
@@ -268,7 +274,7 @@ export const sets = pgTable('sets', {
   rpe: real('rpe'),
   completedAt: integer('completed_at'),
   done: integer('done').default(0),
-  equipmentId: text('equipment_id'),  // FK added below after equipment table defined
+  equipmentId: text('equipment_id'), // FK added below after equipment table defined
 })
 ```
 
@@ -294,12 +300,20 @@ export const equipment = pgTable('equipment', {
   createdAt: integer('created_at').notNull(),
 })
 
-export const equipmentExercises = pgTable('equipment_exercises', {
-  equipmentId: text('equipment_id').notNull().references(() => equipment.id, { onDelete: 'cascade' }),
-  exerciseId: text('exercise_id').notNull().references(() => exercises.id),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.equipmentId, t.exerciseId] }),
-}))
+export const equipmentExercises = pgTable(
+  'equipment_exercises',
+  {
+    equipmentId: text('equipment_id')
+      .notNull()
+      .references(() => equipment.id, { onDelete: 'cascade' }),
+    exerciseId: text('exercise_id')
+      .notNull()
+      .references(() => exercises.id),
+  },
+  t => ({
+    pk: primaryKey({ columns: [t.equipmentId, t.exerciseId] }),
+  }),
+)
 ```
 
 Now add the `equipment` FK references to `sets` and `templateExercises`. Because of circular reference limitations in Drizzle's column-level `.references()`, use a table-level constraint by adding a second argument to their `pgTable` calls:
@@ -371,6 +385,7 @@ git commit -m "feat: add gyms, equipment, equipment_exercises tables to schema"
 ### Task 4: Equipment types in shared package
 
 **Files:**
+
 - Create: `packages/shared/src/equipment.schema.ts`
 - Modify: `packages/shared/src/models.ts`
 - Modify: `packages/shared/src/index.ts`
@@ -456,6 +471,7 @@ git commit -m "feat: add Equipment, Gym, and AI suggestion types to shared packa
 ### Task 5: GymService — implicit Gym creation
 
 **Files:**
+
 - Create: `apps/api/src/gym/gym.service.ts`
 - Create: `apps/api/src/gym/gym.module.ts`
 
@@ -476,11 +492,7 @@ export class GymService {
   constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
 
   async getOrCreateForUser(userId: string): Promise<typeof schema.gyms.$inferSelect> {
-    const [existing] = await this.db
-      .select()
-      .from(schema.gyms)
-      .where(eq(schema.gyms.userId, userId))
-      .limit(1)
+    const [existing] = await this.db.select().from(schema.gyms).where(eq(schema.gyms.userId, userId)).limit(1)
     if (existing) return existing
     const [gym] = await this.db
       .insert(schema.gyms)
@@ -522,6 +534,7 @@ git commit -m "feat: add GymService with implicit gym creation"
 ### Task 6: EquipmentService — Gemini analysis
 
 **Files:**
+
 - Create: `apps/api/src/equipment/equipment.service.ts`
 - Modify: `apps/api/.env`
 - Modify: `apps/api/.env.example`
@@ -529,11 +542,13 @@ git commit -m "feat: add GymService with implicit gym creation"
 - [ ] **Step 1: Add `GEMINI_API_KEY` to `.env` and `.env.example`**
 
 In `apps/api/.env`, add:
+
 ```
 GEMINI_API_KEY=<your-google-ai-studio-key>
 ```
 
 In `apps/api/.env.example`, add:
+
 ```
 GEMINI_API_KEY=your_google_ai_studio_key_here
 ```
@@ -558,8 +573,7 @@ import * as schema from '../drizzle/schema'
 import { toEquipmentWithExercises } from '../drizzle/mappers'
 import { GymService } from '../gym/gym.service'
 
-const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 
 type GeminiRaw = {
   candidates: Array<{ content: { parts: Array<{ text: string }> } }>
@@ -705,6 +719,7 @@ git commit -m "feat: EquipmentService.analyze — Gemini 2.0 Flash integration"
 ### Task 7: EquipmentService — create / findAll / delete + mapper
 
 **Files:**
+
 - Modify: `apps/api/src/equipment/equipment.service.ts`
 - Modify: `apps/api/src/drizzle/mappers.ts`
 
@@ -733,7 +748,7 @@ export function toEquipment(row: DbEquipment): Equipment {
 
 export function toEquipmentWithExercises(
   row: DbEquipment,
-  exercises: typeof schema.exercises.$inferSelect[],
+  exercises: (typeof schema.exercises.$inferSelect)[],
 ): EquipmentWithExercises {
   return { ...toEquipment(row), exercises }
 }
@@ -893,6 +908,7 @@ git commit -m "feat: EquipmentService.create/findAll/delete + Equipment mapper"
 ### Task 8: EquipmentController + Module + wire into AppModule
 
 **Files:**
+
 - Create: `apps/api/src/equipment/equipment.controller.ts`
 - Create: `apps/api/src/equipment/equipment.module.ts`
 - Modify: `apps/api/src/app.module.ts`
@@ -901,9 +917,7 @@ git commit -m "feat: EquipmentService.create/findAll/delete + Equipment mapper"
 
 ```typescript
 // apps/api/src/equipment/equipment.controller.ts
-import {
-  Controller, Get, Post, Delete, Param, Req, Res, PayloadTooLargeException,
-} from '@nestjs/common'
+import { Controller, Get, Post, Delete, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common'
 import { createReadStream } from 'fs'
 import { join } from 'path'
 import type { FastifyReply } from 'fastify'
@@ -974,11 +988,7 @@ export class EquipmentController {
   }
 
   @Get('photo/:filename')
-  servePhoto(
-    @Param('filename') filename: string,
-    @Req() req: AuthenticatedRequest,
-    @Res() res: FastifyReply,
-  ) {
+  servePhoto(@Param('filename') filename: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
     const filePath = join(this.svc.getPhotosDir(), req.user.id, 'equipment', filename)
     const stream = createReadStream(filePath)
     return res.type('image/webp').send(stream)
@@ -1041,12 +1051,14 @@ Expected: no TypeScript errors.
 - [ ] **Step 5: Smoke test the API**
 
 Start the API (ensure Docker PostgreSQL is running first):
+
 ```bash
 docker compose up -d
 cd apps/api && npm run dev
 ```
 
 In a separate terminal:
+
 ```bash
 curl -s http://localhost:3000/api/equipment -H "x-user-id: default-user" | cat
 ```
@@ -1067,6 +1079,7 @@ git commit -m "feat: EquipmentController + Module, wire into AppModule"
 ### Task 9: Web equipment API client
 
 **Files:**
+
 - Create: `apps/web/src/api/equipment.ts`
 
 - [ ] **Step 1: Create `equipment.ts`**
@@ -1082,11 +1095,7 @@ export const equipmentApi = {
     return res.json() as Promise<EquipmentWithExercises[]>
   },
 
-  analyze: async (
-    file: File,
-    equipmentType: string,
-    description: string,
-  ): Promise<AnalyzeSuggestion> => {
+  analyze: async (file: File, equipmentType: string, description: string): Promise<AnalyzeSuggestion> => {
     const form = new FormData()
     form.append('file', file)
     form.append('equipmentType', equipmentType)
@@ -1140,6 +1149,7 @@ git commit -m "feat: equipment API client"
 ### Task 10: /gym route — Equipment list with delete
 
 **Files:**
+
 - Create: `apps/web/src/routes/gym.tsx`
 
 - [ ] **Step 1: Create `gym.tsx`**
@@ -1189,9 +1199,7 @@ export function GymPage() {
     <div className="flex h-full flex-col">
       <div className="border-border flex items-start justify-between border-b px-4 pt-4 pb-3">
         <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-            Equipment
-          </p>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Equipment</p>
           <h1 className="font-display font-700 text-3xl tracking-wide">GYM</h1>
         </div>
         <button
@@ -1204,16 +1212,12 @@ export function GymPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {isLoading && (
-          <div className="text-muted-foreground p-8 text-center text-sm">Loading…</div>
-        )}
+        {isLoading && <div className="text-muted-foreground p-8 text-center text-sm">Loading…</div>}
 
         {!isLoading && equipment.length === 0 && (
           <div className="flex flex-col items-center gap-4 p-8 text-center">
             <p className="font-semibold">No equipment yet</p>
-            <p className="text-muted-foreground text-sm">
-              Photograph a piece of gym equipment to get started
-            </p>
+            <p className="text-muted-foreground text-sm">Photograph a piece of gym equipment to get started</p>
             <button
               className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-5 py-2.5 text-sm tracking-wide uppercase transition-transform active:scale-95"
               onClick={() => setShowWizard(true)}
@@ -1224,10 +1228,7 @@ export function GymPage() {
         )}
 
         {equipment.map((item: EquipmentWithExercises) => (
-          <div
-            key={item.id}
-            className="border-border/50 flex items-center gap-3 border-b px-4 py-3"
-          >
+          <div key={item.id} className="border-border/50 flex items-center gap-3 border-b px-4 py-3">
             <img
               alt={item.name}
               className="bg-muted h-14 w-14 flex-shrink-0 rounded-xl object-cover"
@@ -1317,6 +1318,7 @@ git commit -m "feat: /gym route — Equipment list with delete"
 ### Task 11: AddEquipmentWizard step 1 — photo capture + hints + analyze
 
 **Files:**
+
 - Create: `apps/web/src/components/equipment/AddEquipmentWizard.tsx`
 
 - [ ] **Step 1: Create the wizard with step 1**
@@ -1377,7 +1379,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
   const analyze = useMutation({
     mutationFn: ({ file, equipmentType, description }: { file: File; equipmentType: string; description: string }) =>
       equipmentApi.analyze(file, equipmentType, description),
-    onSuccess: (suggestion) => {
+    onSuccess: suggestion => {
       setS2({
         file: s1.file!,
         suggestion,
@@ -1416,7 +1418,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
       <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
         {/* Photo picker */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Photo
           </label>
           <button
@@ -1424,11 +1426,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
             onClick={() => fileRef.current?.click()}
           >
             {s1.previewUrl ? (
-              <img
-                alt="Equipment preview"
-                className="h-40 w-full rounded-xl object-cover"
-                src={s1.previewUrl}
-              />
+              <img alt="Equipment preview" className="h-40 w-full rounded-xl object-cover" src={s1.previewUrl} />
             ) : (
               <>
                 <Camera className="text-muted-foreground" size={32} strokeWidth={1.5} />
@@ -1448,7 +1446,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
 
         {/* Equipment Type */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Equipment Type
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -1470,11 +1468,11 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
 
         {/* Description / hint */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Description (helps AI)
           </label>
           <textarea
-            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
             placeholder="e.g. left cable tower near the window, dual pulley"
             rows={3}
             value={s1.description}
@@ -1483,7 +1481,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
         </div>
       </div>
 
-      <div className="border-border border-t p-4 pb-safe">
+      <div className="border-border pb-safe border-t p-4">
         {analyze.isError && (
           <p className="text-destructive mb-3 text-center text-sm">
             {analyze.error instanceof Error ? analyze.error.message : 'Analysis failed'}
@@ -1522,6 +1520,7 @@ git commit -m "feat: AddEquipmentWizard step 1 — photo capture and hint form"
 ### Task 12: AddEquipmentWizard step 2 — review + confirm + save
 
 **Files:**
+
 - Modify: `apps/web/src/components/equipment/AddEquipmentWizard.tsx`
 
 - [ ] **Step 1: Add the `Step2` component at the end of `AddEquipmentWizard.tsx`**
@@ -1554,7 +1553,14 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         category: ex.category,
         equipmentType: ex.equipmentType,
       }))
-      return equipmentApi.create(s2.file, s2.name, s2.suggestion.exercises[0]?.equipmentType ?? 'other', '', s2.tags, exercises)
+      return equipmentApi.create(
+        s2.file,
+        s2.name,
+        s2.suggestion.exercises[0]?.equipmentType ?? 'other',
+        '',
+        s2.tags,
+        exercises,
+      )
     },
     onSuccess: onSaved,
   })
@@ -1584,23 +1590,23 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
       <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
         {/* Equipment name */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Equipment Name
           </label>
           <input
-            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
             value={s2.name}
-            onChange={e => setS2(prev => prev ? { ...prev, name: e.target.value } : prev)}
+            onChange={e => setS2(prev => (prev ? { ...prev, name: e.target.value } : prev))}
           />
         </div>
 
         {/* Tags */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Tags (comma-separated)
           </label>
           <input
-            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
             value={s2.tagsInput}
             onChange={e =>
               setS2(prev =>
@@ -1621,7 +1627,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
 
         {/* Exercises */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Exercises ({s2.selectedExercises.size} selected)
           </label>
           <div className="space-y-1">
@@ -1629,9 +1635,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
               <button
                 key={i}
                 className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors ${
-                  s2.selectedExercises.has(i)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border opacity-50'
+                  s2.selectedExercises.has(i) ? 'border-primary bg-primary/5' : 'border-border opacity-50'
                 }`}
                 onClick={() => toggleExercise(i)}
               >
@@ -1667,10 +1671,8 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         </div>
       </div>
 
-      <div className="border-border border-t p-4 pb-safe">
-        {save.isError && (
-          <p className="text-destructive mb-3 text-center text-sm">Failed to save — try again</p>
-        )}
+      <div className="border-border pb-safe border-t p-4">
+        {save.isError && <p className="text-destructive mb-3 text-center text-sm">Failed to save — try again</p>}
         <Button
           className="w-full"
           disabled={save.isPending || s2.selectedExercises.size === 0}
@@ -1687,6 +1689,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
 Also fix the `mutationFn` in `Step2` to pass `equipmentType` from the step 1 state. Since `Step2` doesn't have access to step 1's `equipmentType` directly, add it to the `Step2State`:
 
 In the `Step2State` type, add `equipmentType: string`:
+
 ```typescript
 type Step2State = {
   file: File
@@ -1695,12 +1698,13 @@ type Step2State = {
   tags: string[]
   tagsInput: string
   selectedExercises: Set<number>
-  equipmentType: string   // ← add this
-  description: string     // ← add this
+  equipmentType: string // ← add this
+  description: string // ← add this
 }
 ```
 
 In the `analyze` mutation's `onSuccess`, pass these:
+
 ```typescript
 onSuccess: (suggestion) => {
   setS2({
@@ -1718,6 +1722,7 @@ onSuccess: (suggestion) => {
 ```
 
 And fix the `mutationFn` in `Step2` to use them:
+
 ```typescript
 mutationFn: () => {
   const selected = s2.suggestion.exercises.filter((_, i) => s2.selectedExercises.has(i))
@@ -1758,6 +1763,7 @@ git commit -m "feat: AddEquipmentWizard step 2 — review, confirm, and save"
 ### Task 13: Wire router + nav + update exercises.tsx
 
 **Files:**
+
 - Modify: `apps/web/src/router.tsx`
 - Modify: `apps/web/src/components/layout/AppLayout.tsx`
 - Modify: `apps/web/src/routes/exercises.tsx`
@@ -1791,7 +1797,7 @@ const routeTree = rootRoute.addChildren([
     historyDetailRoute,
     workoutStartRoute,
     workoutTemplateNewRoute,
-    gymRoute,   // ← add
+    gymRoute, // ← add
   ]),
   workoutSessionRoute,
 ])
@@ -1863,17 +1869,21 @@ Find the line `{ex.equipment && (` and update:
 
 ```tsx
 // Before:
-                {ex.equipment && (
-                  <span className="text-muted-foreground bg-muted rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
-                    {EQUIPMENT_LABELS[ex.equipment] ?? ex.equipment}
-                  </span>
-                )}
+{
+  ex.equipment && (
+    <span className="text-muted-foreground bg-muted rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
+      {EQUIPMENT_LABELS[ex.equipment] ?? ex.equipment}
+    </span>
+  )
+}
 // After:
-                {ex.equipmentType && (
-                  <span className="text-muted-foreground bg-muted rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
-                    {EQUIPMENT_LABELS[ex.equipmentType] ?? ex.equipmentType}
-                  </span>
-                )}
+{
+  ex.equipmentType && (
+    <span className="text-muted-foreground bg-muted rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
+      {EQUIPMENT_LABELS[ex.equipmentType] ?? ex.equipmentType}
+    </span>
+  )
+}
 ```
 
 - [ ] **Step 4: Full TypeScript build check**
@@ -1917,27 +1927,27 @@ git commit -m "feat: wire /gym route and nav entry, update exercises for equipme
 
 ### 1. Spec Coverage
 
-| Requirement | Task |
-|---|---|
-| API-side Gemini call | Task 6 |
-| Gemini 2.0 Flash structured JSON | Task 6 |
-| Two-phase flow (analyze + save) | Tasks 6, 7, 8 |
-| Photo re-uploaded on save | Task 12 (Step2 passes `s2.file`) |
-| Server-side exercise deduplication with `existingId` | Task 6 |
-| `exercises.equipment` → `equipment_type` column rename | Task 2 |
-| `gyms`, `equipment`, `equipment_exercises` tables | Task 3 |
-| Nullable `equipment_id` FK on `sets` and `template_exercises` | Task 3 |
-| Implicit Gym creation on first upload | Task 5 + Task 7 (`create` calls `gymService.getOrCreateForUser`) |
-| User-owned new exercises (`isDefault: 0`) | Task 7 |
-| Equipment photos at `{photosDir}/{userId}/equipment/` | Task 7 |
-| HTTP 422 on Gemini failure | Task 6 (`UnprocessableEntityException`) |
-| `/gym` route with Equipment list | Task 10 |
-| View + Delete only (no edit) | Task 10 |
-| Add Equipment wizard (2 steps) | Tasks 11, 12 |
-| Gemini name + tags pre-filled and editable | Task 12 |
-| Exercise checkbox review | Task 12 |
-| Nav entry + `grid-cols-7` | Task 13 |
-| ADR for Gemini choice | Already committed (`docs/adr/0003`) |
+| Requirement                                                   | Task                                                             |
+| ------------------------------------------------------------- | ---------------------------------------------------------------- |
+| API-side Gemini call                                          | Task 6                                                           |
+| Gemini 2.0 Flash structured JSON                              | Task 6                                                           |
+| Two-phase flow (analyze + save)                               | Tasks 6, 7, 8                                                    |
+| Photo re-uploaded on save                                     | Task 12 (Step2 passes `s2.file`)                                 |
+| Server-side exercise deduplication with `existingId`          | Task 6                                                           |
+| `exercises.equipment` → `equipment_type` column rename        | Task 2                                                           |
+| `gyms`, `equipment`, `equipment_exercises` tables             | Task 3                                                           |
+| Nullable `equipment_id` FK on `sets` and `template_exercises` | Task 3                                                           |
+| Implicit Gym creation on first upload                         | Task 5 + Task 7 (`create` calls `gymService.getOrCreateForUser`) |
+| User-owned new exercises (`isDefault: 0`)                     | Task 7                                                           |
+| Equipment photos at `{photosDir}/{userId}/equipment/`         | Task 7                                                           |
+| HTTP 422 on Gemini failure                                    | Task 6 (`UnprocessableEntityException`)                          |
+| `/gym` route with Equipment list                              | Task 10                                                          |
+| View + Delete only (no edit)                                  | Task 10                                                          |
+| Add Equipment wizard (2 steps)                                | Tasks 11, 12                                                     |
+| Gemini name + tags pre-filled and editable                    | Task 12                                                          |
+| Exercise checkbox review                                      | Task 12                                                          |
+| Nav entry + `grid-cols-7`                                     | Task 13                                                          |
+| ADR for Gemini choice                                         | Already committed (`docs/adr/0003`)                              |
 
 ### 2. No Placeholder Issues
 

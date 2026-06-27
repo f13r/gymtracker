@@ -283,12 +283,7 @@ export class WorkoutsService {
    * count) into session-owned rows, seeding each Set's reps/weight from the
    * Exercise's last-done values (Template default the first time). Per ADR-0008.
    */
-  private async snapshotPlan(
-    tx: NodePgDatabase<typeof schema>,
-    sessionId: string,
-    userId: string,
-    templateId: string,
-  ) {
+  private async snapshotPlan(tx: NodePgDatabase<typeof schema>, sessionId: string, userId: string, templateId: string) {
     // Idempotent: a Session is snapshotted exactly once. If rows already exist
     // (a retried or future "restart" Start), do nothing rather than inserting a
     // duplicate set of session_exercises/sets. Per ADR-0008 ("re-read at Start"

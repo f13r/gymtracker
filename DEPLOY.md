@@ -52,12 +52,12 @@ The provisioning sections below were done long ago; a **recurring update** only 
 ## ⚠️ Two settings that have broken this deploy before
 
 1. **`DATABASE_URL` must be a Postgres URL — never a file path.** The `pg` driver parses a
-   bare path like `/var/data/gymtracker/db.sqlite` as a *unix-socket directory* and fails with
+   bare path like `/var/data/gymtracker/db.sqlite` as a _unix-socket directory_ and fails with
    `connect ENOENT /var/data/gymtracker/db.sqlite/.s.PGSQL.5432`. It must look like
    `postgresql://USER:PASSWORD@127.0.0.1:5432/gymtracker`.
 2. **pgvector must be installed on the Postgres server.** Without it, migration `0005` fails on
    `CREATE EXTENSION ... vector` with `extension "vector" is not available … vector.control:
-   No such file`. `drizzle-kit migrate` prints this to nothing — exit code 1 with empty stderr —
+No such file`. `drizzle-kit migrate` prints this to nothing — exit code 1 with empty stderr —
    so a black-box migrate failure almost always means one of these two.
 
 ---
@@ -73,6 +73,7 @@ Drizzle schema migrations via `npm run db:migrate` (see `.github/workflows/deplo
 restore a dump over the production database.
 
 **Back up production data** (run on the server; keep backups outside the repo):
+
 ```bash
 sudo -u postgres pg_dump -d gymtracker --no-owner --no-privileges > ~/gymtracker-backup-$(date +%F).sql
 ```
@@ -95,12 +96,15 @@ One GitHub Actions workflow runs on the **self-hosted runner on this box** (serv
   committed snapshot — there is no restore path any more, by design.)
 
 ### Non-interactive sudo (required by both the runner and any agent)
+
 The runner has **no tty**, so `sudo -u postgres …` can't prompt for a password. A scoped sudoers
 drop-in makes the psql/backup commands passwordless for `f13r` —
 `/etc/sudoers.d/gymtracker-deploy` (mode 440):
+
 ```
 f13r ALL=(postgres) NOPASSWD: /usr/bin/psql, /usr/bin/pg_dump
 ```
+
 With it, every `sudo -u postgres psql|pg_dump` in this doc works verbatim unattended. Recreate it
 on a fresh box (`visudo -c -f` to validate). For ad-hoc interactive sudo in an agent shell without
 this rule, the fallback is a `SUDO_ASKPASS` helper + `sudo -A` (the runner doesn't need it).
@@ -112,17 +116,20 @@ this rule, the fallback is a `SUDO_ASKPASS` helper + `sudo -A` (the runner doesn
 Skip any step already satisfied. Run as a non-root sudo user (examples assume `ubuntu`).
 
 ### 1. System packages
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs git nginx postgresql-16 postgresql-16-pgvector
 sudo npm install -g pm2
 node -v   # expect v22.x
 ```
+
 > If `postgresql-16-pgvector` isn't found, add PGDG: `sudo apt-get install -y postgresql-common &&
-> sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh` then retry. If Postgres runs in
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh` then retry. If Postgres runs in
 > Docker instead, use the `pgvector/pgvector:pg16` image.
 
 ### 2. Database, role, and extension
+
 ```bash
 # Pick a strong password and reuse it in apps/api/.env (step 4).
 sudo -u postgres psql <<'SQL'
@@ -134,18 +141,21 @@ SQL
 ```
 
 ### 3. Directories
+
 ```bash
 sudo mkdir -p /var/www/gymtracker /var/data/gymtracker/photos
 sudo chown -R "$USER:$USER" /var/www/gymtracker /var/data/gymtracker
 ```
 
 ### 4. Clone the repo
+
 ```bash
 git clone https://github.com/f13r/gymtracker.git /var/www/gymtracker
 # Private repo? Set up a deploy key first — see docs/server-setup.md Step 4a.
 ```
 
 ### 5. Create `apps/api/.env` (the single source of truth)
+
 ```bash
 cat > /var/www/gymtracker/apps/api/.env <<'EOF'
 DATABASE_URL=postgresql://gymtracker:CHANGE_ME@127.0.0.1:5432/gymtracker
@@ -155,12 +165,14 @@ NODE_ENV=production
 GEMINI_API_KEY=CHANGE_ME
 EOF
 ```
+
 > `DATABASE_URL` MUST start with `postgresql://`. Use the password from step 2.
 > **`GEMINI_API_KEY` is mandatory** — `gemini.service.ts` reads it with `getOrThrow`, so a missing
 > or empty value makes the API **crash on boot**. Obtain the key out-of-band (it is intentionally
 > not committed to the repo) and paste the real value here.
 
 ### 6. Nginx + GitHub Actions auto-deploy
+
 Follow `docs/server-setup.md` **Step 9** (Nginx site) and **Steps 11–12** (SSH key + secrets).
 Those parts are still accurate **except the listen port**: this app's vhost listens on
 **`8095`**, not `80` (and `server-setup.md`'s verify `curl http://localhost/...` lines should be
@@ -182,6 +194,7 @@ pm2 reload ecosystem.config.js --env production   # use `pm2 start` on the very 
 ```
 
 First run only, to persist across reboots:
+
 ```bash
 pm2 save
 pm2 startup   # then run the sudo command it prints
@@ -235,6 +248,7 @@ exercise list has diverged from the live data) — do **not** run it as part of 
 ---
 
 ## Verify
+
 ```bash
 ls apps/api/dist/main.js apps/web/dist/index.html      # build artifacts exist
 pm2 status                                             # "gymtracker" is "online"
@@ -248,36 +262,38 @@ curl -s http://localhost:8095/ | grep -o '<title>.*</title>'  # SPA served
 
 ## Troubleshooting
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| `npm run db:migrate` exits 1 with **no error text**, "applying migrations…" | One of the two below — drizzle-kit swallows the real error | Reproduce with the verbose probe below to see it |
-| `connect ENOENT …/db.sqlite/.s.PGSQL.5432` (or `ECONNREFUSED`) | `DATABASE_URL` is a file path / wrong host | Fix `apps/api/.env` to a real `postgresql://…` URL (see step 5) |
-| `extension "vector" is not available … vector.control: No such file` | pgvector not installed on the Postgres host | `sudo apt-get install -y postgresql-16-pgvector`, then step 2's `CREATE EXTENSION` |
-| `permission denied to create extension "vector"` | Migrating role isn't superuser | Run the `CREATE EXTENSION` once as the `postgres` superuser (step 2); the app role then just uses it |
-| API boots then crashes on DB calls | Runtime read the wrong `DATABASE_URL` | Confirm PM2 `cwd: apps/api` and that no `DATABASE_URL` is set in `ecosystem.config.js` (it must come from `.env`) |
-| API exits immediately on boot, log mentions `GEMINI_API_KEY` / `getOrThrow` | `GEMINI_API_KEY` missing/empty in `apps/api/.env` | Set a real `GEMINI_API_KEY` in `.env` (step 5), then `pm2 reload …` |
-| `curl http://localhost/...` → 404 / connection refused | Nginx public port is **8095**, not 80 | Use `http://localhost:8095/` (see Architecture → Ports) |
+| Symptom                                                                     | Cause                                                      | Fix                                                                                                               |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `npm run db:migrate` exits 1 with **no error text**, "applying migrations…" | One of the two below — drizzle-kit swallows the real error | Reproduce with the verbose probe below to see it                                                                  |
+| `connect ENOENT …/db.sqlite/.s.PGSQL.5432` (or `ECONNREFUSED`)              | `DATABASE_URL` is a file path / wrong host                 | Fix `apps/api/.env` to a real `postgresql://…` URL (see step 5)                                                   |
+| `extension "vector" is not available … vector.control: No such file`        | pgvector not installed on the Postgres host                | `sudo apt-get install -y postgresql-16-pgvector`, then step 2's `CREATE EXTENSION`                                |
+| `permission denied to create extension "vector"`                            | Migrating role isn't superuser                             | Run the `CREATE EXTENSION` once as the `postgres` superuser (step 2); the app role then just uses it              |
+| API boots then crashes on DB calls                                          | Runtime read the wrong `DATABASE_URL`                      | Confirm PM2 `cwd: apps/api` and that no `DATABASE_URL` is set in `ecosystem.config.js` (it must come from `.env`) |
+| API exits immediately on boot, log mentions `GEMINI_API_KEY` / `getOrThrow` | `GEMINI_API_KEY` missing/empty in `apps/api/.env`          | Set a real `GEMINI_API_KEY` in `.env` (step 5), then `pm2 reload …`                                               |
+| `curl http://localhost/...` → 404 / connection refused                      | Nginx public port is **8095**, not 80                      | Use `http://localhost:8095/` (see Architecture → Ports)                                                           |
 
 **See the real migrate error** (drizzle-kit hides it). Test the connection directly — this prints
 the `pg` error that `db:migrate` swallows:
+
 ```bash
 cd /var/www/gymtracker/apps/api
 export $(grep -v '^#' .env | xargs)            # load DATABASE_URL from .env
 node -e "const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});p.query('select 1').then(()=>console.log('CONNECT OK')).catch(e=>console.log('CONNECT ERR:',e.code,e.message)).finally(()=>p.end())"
 ```
+
 `CONNECT OK` → the issue is pgvector (run step 2). `CONNECT ERR` → fix `DATABASE_URL` in `.env`.
 
 ---
 
 ## Maintenance reference
 
-| Task | Command |
-|---|---|
-| View API logs | `pm2 logs gymtracker` |
-| Restart / reload API | `pm2 restart gymtracker` / `pm2 reload ecosystem.config.js --env production` |
-| PM2 status | `pm2 status` |
-| Reload Nginx | `sudo systemctl reload nginx` |
-| Open DB shell | `sudo -u postgres psql -d gymtracker` |
-| Back up DB | `sudo -u postgres pg_dump -d gymtracker --no-owner --no-privileges > ~/gymtracker-backup-$(date +%F).sql` |
-| Confirm pgvector | `sudo -u postgres psql -d gymtracker -c "SELECT extname FROM pg_extension WHERE extname='vector';"` |
-| Manual deploy | the **Deploy / start** block above |
+| Task                 | Command                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| View API logs        | `pm2 logs gymtracker`                                                                                     |
+| Restart / reload API | `pm2 restart gymtracker` / `pm2 reload ecosystem.config.js --env production`                              |
+| PM2 status           | `pm2 status`                                                                                              |
+| Reload Nginx         | `sudo systemctl reload nginx`                                                                             |
+| Open DB shell        | `sudo -u postgres psql -d gymtracker`                                                                     |
+| Back up DB           | `sudo -u postgres pg_dump -d gymtracker --no-owner --no-privileges > ~/gymtracker-backup-$(date +%F).sql` |
+| Confirm pgvector     | `sudo -u postgres psql -d gymtracker -c "SELECT extname FROM pg_extension WHERE extname='vector';"`       |
+| Manual deploy        | the **Deploy / start** block above                                                                        |

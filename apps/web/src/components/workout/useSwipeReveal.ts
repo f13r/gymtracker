@@ -20,7 +20,9 @@ export function useSwipeReveal(openWidth = 96) {
   const didDragRef = useRef(false)
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('input')) { return }
+    if ((e.target as HTMLElement).closest('input')) {
+      return
+    }
     startXRef.current = e.clientX
     startYRef.current = e.clientY
     axisRef.current = 'none'
@@ -29,41 +31,62 @@ export function useSwipeReveal(openWidth = 96) {
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!activeRef.current) { return }
+    if (!activeRef.current) {
+      return
+    }
     const dx = e.clientX - startXRef.current
     const dy = e.clientY - startYRef.current
     if (axisRef.current === 'none') {
-      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) { return }
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) {
+        return
+      }
       axisRef.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
       if (axisRef.current === 'h') {
         setDragging(true)
         e.currentTarget.setPointerCapture?.(e.pointerId)
       }
     }
-    if (axisRef.current !== 'h') { return }
+    if (axisRef.current !== 'h') {
+      return
+    }
     didDragRef.current = true
     const base = revealed ? -openWidth : 0
     let next = base + dx
-    if (next > 0) { next = 0 }
-    if (next < -(openWidth + 40)) { next = -(openWidth + 40) }
+    if (next > 0) {
+      next = 0
+    }
+    if (next < -(openWidth + 40)) {
+      next = -(openWidth + 40)
+    }
     setDragX(next)
   }
 
   const onPointerUp = () => {
     if (axisRef.current === 'h') {
-      if (dragX <= -openWidth / 2) { setRevealed(true); setDragX(-openWidth) }
-      else { setRevealed(false); setDragX(0) }
+      if (dragX <= -openWidth / 2) {
+        setRevealed(true)
+        setDragX(-openWidth)
+      } else {
+        setRevealed(false)
+        setDragX(0)
+      }
     }
     activeRef.current = false
     axisRef.current = 'none'
     setDragging(false)
   }
 
-  const close = () => { setRevealed(false); setDragX(0) }
+  const close = () => {
+    setRevealed(false)
+    setDragX(0)
+  }
 
   /** True if the finished interaction was a drag — lets callers swallow the click. Resets the flag. */
   const consumeDrag = () => {
-    if (didDragRef.current) { didDragRef.current = false; return true }
+    if (didDragRef.current) {
+      didDragRef.current = false
+      return true
+    }
     return false
   }
 

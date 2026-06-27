@@ -43,7 +43,9 @@ export class ExercisesService {
     const [ex] = await this.db
       .select()
       .from(schema.exercises)
-      .where(and(eq(schema.exercises.id, id), or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1))))
+      .where(
+        and(eq(schema.exercises.id, id), or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1))),
+      )
       .limit(1)
     if (!ex) {
       throw new NotFoundException('Exercise not found')
@@ -159,7 +161,9 @@ export class ExercisesService {
   private unlinkMedia(ex: DbExercise) {
     for (const rel of [ex.imagePath, ex.thumbPath]) {
       if (rel) {
-        try { unlinkSync(join(this.photosDir, rel)) } catch {} // eslint-disable-line no-empty
+        try {
+          unlinkSync(join(this.photosDir, rel))
+        } catch {} // eslint-disable-line no-empty
       }
     }
   }

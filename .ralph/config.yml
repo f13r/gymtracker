@@ -24,8 +24,8 @@ knowledge:
   past:
     - docs/plans/**
     - docs/superpowers/plans/**
-    - "gh issue list --state closed" # closed issues
-    - "git log" # shipped history
+    - 'gh issue list --state closed' # closed issues
+    - 'git log' # shipped history
 
 # Per-task BLOCKING validation, run by Ralphex inside the loop.
 # Mechanical gate — a task is not "done" until this is green.

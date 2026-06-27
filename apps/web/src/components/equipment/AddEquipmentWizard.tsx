@@ -56,7 +56,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
   const analyze = useMutation({
     mutationFn: ({ file, equipmentType, description }: { file: File; equipmentType: string; description: string }) =>
       equipmentApi.analyze(file, equipmentType, description),
-    onSuccess: (suggestion) => {
+    onSuccess: suggestion => {
       setS2({
         file: s1.file!,
         suggestion,
@@ -74,7 +74,9 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) {return}
+    if (!file) {
+      return
+    }
     setS1(prev => ({
       ...prev,
       file,
@@ -98,7 +100,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
       <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
         {/* Photo picker */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Photo
           </label>
           <button
@@ -107,11 +109,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
             onClick={() => fileRef.current?.click()}
           >
             {s1.previewUrl ? (
-              <img
-                alt="Equipment preview"
-                className="h-40 w-full rounded-xl object-cover"
-                src={s1.previewUrl}
-              />
+              <img alt="Equipment preview" className="h-40 w-full rounded-xl object-cover" src={s1.previewUrl} />
             ) : (
               <>
                 <Camera className="text-muted-foreground" size={32} strokeWidth={1.5} />
@@ -131,7 +129,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
 
         {/* Equipment Type */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Equipment Type
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -154,11 +152,11 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
 
         {/* Description / hint */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Description (helps AI)
           </label>
           <textarea
-            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
             placeholder="e.g. left cable tower near the window, dual pulley"
             rows={3}
             value={s1.description}
@@ -167,7 +165,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
         </div>
       </div>
 
-      <div className="border-border border-t p-4 pb-safe">
+      <div className="border-border pb-safe border-t p-4">
         {analyze.isError && (
           <p className="text-destructive mb-3 text-center text-sm">
             {analyze.error instanceof Error ? analyze.error.message : 'Analysis failed'}
@@ -207,22 +205,17 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
     mutationFn: () => {
       const exercises: SaveExerciseInput[] = s2.suggestion.exercises.flatMap((ex: SuggestedExercise, i: number) =>
         s2.selectedExercises.has(i)
-          ? [{
-              existingId: ex.existingId ?? undefined,
-              name: s2.exerciseNames[i].trim() || ex.name,
-              category: ex.category,
-              equipmentType: ex.equipmentType,
-            }]
-          : []
+          ? [
+              {
+                existingId: ex.existingId ?? undefined,
+                name: s2.exerciseNames[i].trim() || ex.name,
+                category: ex.category,
+                equipmentType: ex.equipmentType,
+              },
+            ]
+          : [],
       )
-      return equipmentApi.create(
-        s2.file,
-        s2.name,
-        s2.equipmentType,
-        s2.description,
-        s2.tags,
-        exercises,
-      )
+      return equipmentApi.create(s2.file, s2.name, s2.equipmentType, s2.description, s2.tags, exercises)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['equipment'] })
@@ -235,19 +228,22 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
 
   const pendingRenames = s2.suggestion.exercises
     .map((ex: SuggestedExercise, i: number) => ({ ex, i }))
-    .filter(({ ex, i }) =>
-      s2.selectedExercises.has(i) &&
-      ex.existingId !== null &&
-      s2.exerciseNames[i].trim() !== ex.name
+    .filter(
+      ({ ex, i }) => s2.selectedExercises.has(i) && ex.existingId !== null && s2.exerciseNames[i].trim() !== ex.name,
     )
     .map(({ ex, i }) => ({ from: ex.name, to: s2.exerciseNames[i].trim() }))
 
   const toggleExercise = (index: number) => {
     setS2(prev => {
-      if (!prev) {return prev}
+      if (!prev) {
+        return prev
+      }
       const next = new Set(prev.selectedExercises)
-      if (next.has(index)) {next.delete(index)}
-      else {next.add(index)}
+      if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
+      }
       return { ...prev, selectedExercises: next }
     })
   }
@@ -267,23 +263,23 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
       <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
         {/* Equipment name */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Equipment Name
           </label>
           <input
-            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
             value={s2.name}
-            onChange={e => setS2(prev => prev ? { ...prev, name: e.target.value } : prev)}
+            onChange={e => setS2(prev => (prev ? { ...prev, name: e.target.value } : prev))}
           />
         </div>
 
         {/* Tags */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Tags (comma-separated)
           </label>
           <input
-            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+            className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
             value={s2.tagsInput}
             onChange={e =>
               setS2(prev =>
@@ -291,12 +287,10 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                   ? {
                       ...prev,
                       tagsInput: e.target.value,
-                      tags: e.target.value
-                        .split(',')
-                        .flatMap(t => {
-                          const trimmed = t.trim()
-                          return trimmed ? [trimmed] : []
-                        }),
+                      tags: e.target.value.split(',').flatMap(t => {
+                        const trimmed = t.trim()
+                        return trimmed ? [trimmed] : []
+                      }),
                     }
                   : prev,
               )
@@ -306,7 +300,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
 
         {/* Exercises */}
         <div>
-          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold uppercase tracking-widest">
+          <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
             Exercises ({s2.selectedExercises.size} selected)
           </label>
           <div className="space-y-1">
@@ -314,9 +308,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
               <div
                 key={i}
                 className={`flex w-full items-center gap-1 rounded-xl border transition-colors ${
-                  s2.selectedExercises.has(i)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border opacity-50'
+                  s2.selectedExercises.has(i) ? 'border-primary bg-primary/5' : 'border-border opacity-50'
                 }`}
               >
                 <button
@@ -351,7 +343,9 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                     value={s2.exerciseNames[i]}
                     onChange={e =>
                       setS2(prev => {
-                        if (!prev) {return prev}
+                        if (!prev) {
+                          return prev
+                        }
                         const names = [...prev.exerciseNames]
                         names[i] = e.target.value
                         return { ...prev, exerciseNames: names }
@@ -369,10 +363,8 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         </div>
       </div>
 
-      <div className="border-border border-t p-4 pb-safe">
-        {save.isError && (
-          <p className="text-destructive mb-3 text-center text-sm">Failed to save, try again</p>
-        )}
+      <div className="border-border pb-safe border-t p-4">
+        {save.isError && <p className="text-destructive mb-3 text-center text-sm">Failed to save, try again</p>}
         <Button
           className="w-full"
           disabled={save.isPending}
@@ -399,15 +391,9 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                 </li>
               ))}
             </ul>
-            <p className="text-muted-foreground text-xs">
-              These exercises will be renamed everywhere they appear.
-            </p>
+            <p className="text-muted-foreground text-xs">These exercises will be renamed everywhere they appear.</p>
             <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                variant="outline"
-                onClick={() => setRenameConfirm(null)}
-              >
+              <Button className="flex-1" variant="outline" onClick={() => setRenameConfirm(null)}>
                 Cancel
               </Button>
               <Button

@@ -60,24 +60,13 @@ export function formatExerciseFacts(ex: ExerciseContext): ExerciseFactFragments 
   return {
     nameWithCategory: `${ex.name}${ex.category ? ` (${ex.category})` : ''}`,
     lastSet: last ? formatSet(last) : null,
-    sessionSets:
-      ex.lastSets.length > 0
-        ? ex.lastSets.map(s => `set${s.setNumber} ${formatSet(s)}`).join(', ')
-        : null,
-    twoForTwoTopSets:
-      ex.lastTwoSessions.length === 2
-        ? ex.lastTwoSessions.map(formatTopSet).join(', ')
-        : null,
+    sessionSets: ex.lastSets.length > 0 ? ex.lastSets.map(s => `set${s.setNumber} ${formatSet(s)}`).join(', ') : null,
+    twoForTwoTopSets: ex.lastTwoSessions.length === 2 ? ex.lastTwoSessions.map(formatTopSet).join(', ') : null,
     volumeTrend,
     volumeSeries:
-      ex.weeklyVolumes.length > 0
-        ? ex.weeklyVolumes.map(v => `${v.volume.toFixed(0)}kg`).join(' → ')
-        : null,
+      ex.weeklyVolumes.length > 0 ? ex.weeklyVolumes.map(v => `${v.volume.toFixed(0)}kg`).join(' → ') : null,
     e1rmCurrent: ex.currentE1rmKg !== null ? Math.round(ex.currentE1rmKg) : null,
-    e1rmTrend:
-      ex.e1rmTrend.length > 0
-        ? `${ex.e1rmTrend.map(v => Math.round(v)).join(' → ')}kg`
-        : null,
+    e1rmTrend: ex.e1rmTrend.length > 0 ? `${ex.e1rmTrend.map(v => Math.round(v)).join(' → ')}kg` : null,
     prWeightKg: ex.prWeightKg,
     prReps: ex.prReps,
     category: ex.category,

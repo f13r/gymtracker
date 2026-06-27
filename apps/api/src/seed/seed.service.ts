@@ -60,12 +60,10 @@ export class SeedService implements OnModuleInit {
   }
 
   private async seedUser() {
-    const [existing] = await this.db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, 'default-user'))
-      .limit(1)
-    if (existing) {return}
+    const [existing] = await this.db.select().from(schema.users).where(eq(schema.users.id, 'default-user')).limit(1)
+    if (existing) {
+      return
+    }
 
     await this.db.insert(schema.users).values({
       id: 'default-user',
@@ -75,12 +73,10 @@ export class SeedService implements OnModuleInit {
   }
 
   private async seedExercises() {
-    const [existing] = await this.db
-      .select()
-      .from(schema.exercises)
-      .where(eq(schema.exercises.isDefault, 1))
-      .limit(1)
-    if (existing) {return}
+    const [existing] = await this.db.select().from(schema.exercises).where(eq(schema.exercises.isDefault, 1)).limit(1)
+    if (existing) {
+      return
+    }
 
     const now = Math.floor(Date.now() / 1000)
     for (const ex of DEFAULT_EXERCISES) {

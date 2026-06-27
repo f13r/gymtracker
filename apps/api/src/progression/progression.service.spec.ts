@@ -35,14 +35,24 @@ function exCtx(overrides: Partial<ExerciseContext> = {}): ExerciseContext {
   }
 }
 
-const noProfile = { age: null, heightCm: null, experienceLevel: null, latestBodyWeightKg: null, goal: null, trainingPhase: null }
+const noProfile = {
+  age: null,
+  heightCm: null,
+  experienceLevel: null,
+  latestBodyWeightKg: null,
+  goal: null,
+  trainingPhase: null,
+}
 
 describe('ProgressionService.buildPrompt', () => {
   it('includes exercise block with id, name, and session sets', () => {
-    const result = service.buildPrompt(
-      [exCtx({ weeklyVolumes: [{ week: '2026-W20', volume: 1920 }] })],
-      { ...noProfile, age: 32, heightCm: 180, experienceLevel: 'intermediate', latestBodyWeightKg: 82 },
-    )
+    const result = service.buildPrompt([exCtx({ weeklyVolumes: [{ week: '2026-W20', volume: 1920 }] })], {
+      ...noProfile,
+      age: 32,
+      heightCm: 180,
+      experienceLevel: 'intermediate',
+      latestBodyWeightKg: 82,
+    })
     expect(result).toContain('[bench-id] Bench Press (push)')
     expect(result).toContain('set1 80kg×8')
     expect(result).toContain('PR: 90kg × 3 reps')
@@ -52,18 +62,20 @@ describe('ProgressionService.buildPrompt', () => {
 
   it('shows "insufficient data" when no weekly volumes', () => {
     const result = service.buildPrompt(
-      [exCtx({
-        exerciseId: 'squat-id',
-        name: 'Squat',
-        category: 'legs',
-        lastSets: [],
-        prWeightKg: null,
-        prReps: null,
-        weeklyFrequency: 1,
-        sessionCount: 1,
-        categoryWeeklySetCount: 0,
-        consecutiveWeeksActive: 1,
-      })],
+      [
+        exCtx({
+          exerciseId: 'squat-id',
+          name: 'Squat',
+          category: 'legs',
+          lastSets: [],
+          prWeightKg: null,
+          prReps: null,
+          weeklyFrequency: 1,
+          sessionCount: 1,
+          categoryWeeklySetCount: 0,
+          consecutiveWeeksActive: 1,
+        }),
+      ],
       noProfile,
     )
     expect(result).toContain('4-week volume: insufficient data')
@@ -74,10 +86,12 @@ describe('ProgressionService.buildPrompt', () => {
 
 describe('ProgressionService.buildSituationSummary', () => {
   it('includes experience level, goal, training phase, and body weight', () => {
-    const result = service.buildSituationSummary(
-      [],
-      { experienceLevel: 'intermediate', latestBodyWeightKg: 82, goal: 'hypertrophy', trainingPhase: 'accumulation' },
-    )
+    const result = service.buildSituationSummary([], {
+      experienceLevel: 'intermediate',
+      latestBodyWeightKg: 82,
+      goal: 'hypertrophy',
+      trainingPhase: 'accumulation',
+    })
     expect(result).toContain('intermediate')
     expect(result).toContain('82kg')
     expect(result).toContain('hypertrophy')
@@ -86,18 +100,23 @@ describe('ProgressionService.buildSituationSummary', () => {
 
   it('includes exercise name, volume trend, session count, and category session gap', () => {
     const result = service.buildSituationSummary(
-      [exCtx({
-        lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: 7 }],
-        weeklyVolumes: [
-          { week: '2026-W19', volume: 1800 },
-          { week: '2026-W20', volume: 1920 },
-        ],
-        weeklyFrequency: 3,
-        lastTwoSessions: [{ weightKg: 80, reps: 10 }, { weightKg: 80, reps: 11 }],
-        categoryWeeklySetCount: 12,
-        hoursSinceCategorySession: 72,
-        consecutiveWeeksActive: 6,
-      })],
+      [
+        exCtx({
+          lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: 7 }],
+          weeklyVolumes: [
+            { week: '2026-W19', volume: 1800 },
+            { week: '2026-W20', volume: 1920 },
+          ],
+          weeklyFrequency: 3,
+          lastTwoSessions: [
+            { weightKg: 80, reps: 10 },
+            { weightKg: 80, reps: 11 },
+          ],
+          categoryWeeklySetCount: 12,
+          hoursSinceCategorySession: 72,
+          consecutiveWeeksActive: 6,
+        }),
+      ],
       { experienceLevel: null, latestBodyWeightKg: null, goal: null, trainingPhase: null },
     )
     expect(result).toContain('Bench Press')
@@ -112,10 +131,7 @@ describe('ProgressionService.buildSituationSummary', () => {
 
 describe('ProgressionService e1RM signal', () => {
   it('includes current e1RM and a 4-week e1RM trend in the prompt', () => {
-    const result = service.buildPrompt(
-      [exCtx({ currentE1rmKg: 132, e1rmTrend: [116.6667, 132] })],
-      noProfile,
-    )
+    const result = service.buildPrompt([exCtx({ currentE1rmKg: 132, e1rmTrend: [116.6667, 132] })], noProfile)
     expect(result).toContain('Estimated 1RM: 132kg')
     expect(result).toContain('117 → 132kg')
     // prompt permits citing e1RM in plain-language evidence
@@ -124,20 +140,22 @@ describe('ProgressionService e1RM signal', () => {
 
   it('emits no e1RM output for an exercise with no qualifying sets', () => {
     const result = service.buildPrompt(
-      [exCtx({
-        exerciseId: 'plank-id',
-        name: 'Plank',
-        category: 'core',
-        lastSets: [],
-        prWeightKg: null,
-        prReps: null,
-        weeklyFrequency: 1,
-        sessionCount: 2,
-        categoryWeeklySetCount: 0,
-        consecutiveWeeksActive: 1,
-        currentE1rmKg: null,
-        e1rmTrend: [],
-      })],
+      [
+        exCtx({
+          exerciseId: 'plank-id',
+          name: 'Plank',
+          category: 'core',
+          lastSets: [],
+          prWeightKg: null,
+          prReps: null,
+          weeklyFrequency: 1,
+          sessionCount: 2,
+          categoryWeeklySetCount: 0,
+          consecutiveWeeksActive: 1,
+          currentE1rmKg: null,
+          e1rmTrend: [],
+        }),
+      ],
       noProfile,
     )
     expect(result).not.toContain('Estimated 1RM')
@@ -145,15 +163,17 @@ describe('ProgressionService e1RM signal', () => {
 
   it('includes e1RM in the situation summary', () => {
     const result = service.buildSituationSummary(
-      [exCtx({
-        lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: 7 }],
-        weeklyFrequency: 3,
-        categoryWeeklySetCount: 12,
-        hoursSinceCategorySession: 72,
-        consecutiveWeeksActive: 6,
-        currentE1rmKg: 132,
-        e1rmTrend: [116.6667, 132],
-      })],
+      [
+        exCtx({
+          lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: 7 }],
+          weeklyFrequency: 3,
+          categoryWeeklySetCount: 12,
+          hoursSinceCategorySession: 72,
+          consecutiveWeeksActive: 6,
+          currentE1rmKg: 132,
+          e1rmTrend: [116.6667, 132],
+        }),
+      ],
       { experienceLevel: null, latestBodyWeightKg: null, goal: null, trainingPhase: null },
     )
     expect(result).toContain('e1RM 132kg')
@@ -174,18 +194,20 @@ describe('ProgressionService.buildPrompt with coaching chunks', () => {
 
   it('omits COACHING PRINCIPLES section when no chunks provided', () => {
     const result = service.buildPrompt(
-      [exCtx({
-        exerciseId: 'squat-id',
-        name: 'Squat',
-        category: 'legs',
-        lastSets: [],
-        prWeightKg: null,
-        prReps: null,
-        weeklyFrequency: 1,
-        sessionCount: 1,
-        categoryWeeklySetCount: 0,
-        consecutiveWeeksActive: 1,
-      })],
+      [
+        exCtx({
+          exerciseId: 'squat-id',
+          name: 'Squat',
+          category: 'legs',
+          lastSets: [],
+          prWeightKg: null,
+          prReps: null,
+          weeklyFrequency: 1,
+          sessionCount: 1,
+          categoryWeeklySetCount: 0,
+          consecutiveWeeksActive: 1,
+        }),
+      ],
       noProfile,
       [],
     )

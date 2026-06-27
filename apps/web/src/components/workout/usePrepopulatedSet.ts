@@ -32,9 +32,7 @@ interface UsePrepopulatedSetResult {
  * source-of-truth for what a pending Set should be pre-filled with; the raw
  * query data is returned alongside for rendering hints/summaries.
  */
-export function usePrepopulatedSet(
-  currentExercise: PrepopulatedExercise | undefined,
-): UsePrepopulatedSetResult {
+export function usePrepopulatedSet(currentExercise: PrepopulatedExercise | undefined): UsePrepopulatedSetResult {
   const exerciseId = currentExercise?.id
 
   const { data: prevSets = [] } = useQuery({

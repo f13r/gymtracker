@@ -46,9 +46,13 @@ export function CalendarPage() {
   const seen = new Set<string>()
   const legend: { label: string; name: string }[] = []
   for (const date of grid) {
-    if (date.getMonth() !== view.month) {continue}
+    if (date.getMonth() !== view.month) {
+      continue
+    }
     for (const { templateId } of workoutsForDate(date, schedules)) {
-      if (seen.has(templateId)) {continue}
+      if (seen.has(templateId)) {
+        continue
+      }
       seen.add(templateId)
       legend.push({ label: labels.get(templateId) ?? '•', name: nameById.get(templateId) ?? 'Workout' })
     }
@@ -133,15 +137,12 @@ export function CalendarPage() {
                 onClick={() => setSelected(date)}
               >
                 <span
-                  className={cn(
-                    'text-xs font-semibold tabular-nums',
-                    isToday ? 'text-primary' : 'text-foreground',
-                  )}
+                  className={cn('text-xs font-semibold tabular-nums', isToday ? 'text-primary' : 'text-foreground')}
                 >
                   {date.getDate()}
                 </span>
                 {label && (
-                  <span className="bg-primary/15 text-primary flex items-center gap-0.5 rounded px-1 text-[10px] font-bold leading-4">
+                  <span className="bg-primary/15 text-primary flex items-center gap-0.5 rounded px-1 text-[10px] leading-4 font-bold">
                     {label}
                     {more > 0 && <span className="opacity-70">+{more}</span>}
                   </span>

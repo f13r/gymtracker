@@ -5,32 +5,35 @@
 Based on Viktor Slavinskyi's usage over the last 30 days:
 
 Work Type Breakdown:
-  Build Feature  ████████████░░░░░░░░  53%
-  Debug Fix      ██████░░░░░░░░░░░░░░  27%
-  Plan Design    ████░░░░░░░░░░░░░░░░  13%
-  Improve Quality█░░░░░░░░░░░░░░░░░░░   7%
+Build Feature ████████████░░░░░░░░ 53%
+Debug Fix ██████░░░░░░░░░░░░░░ 27%
+Plan Design ████░░░░░░░░░░░░░░░░ 13%
+Improve Quality█░░░░░░░░░░░░░░░░░░░ 7%
 
 Top Skills & Commands:
-  /clear                        █████████░░░░░░░░░░░   9x/month
-  /exit                         █████░░░░░░░░░░░░░░░   4x/month
-  /grill-with-docs              ██░░░░░░░░░░░░░░░░░░   2x/month
-  /remote-env                   ██░░░░░░░░░░░░░░░░░░   2x/month
-  /superpowers:subagent-driven-development █░░░░░░░░░░░░░░░░░░░   1x/month
-  /handoff                      █░░░░░░░░░░░░░░░░░░░   1x/month
-  /improve-codebase-architecture █░░░░░░░░░░░░░░░░░░░   1x/month
+/clear █████████░░░░░░░░░░░ 9x/month
+/exit █████░░░░░░░░░░░░░░░ 4x/month
+/grill-with-docs ██░░░░░░░░░░░░░░░░░░ 2x/month
+/remote-env ██░░░░░░░░░░░░░░░░░░ 2x/month
+/superpowers:subagent-driven-development █░░░░░░░░░░░░░░░░░░░ 1x/month
+/handoff █░░░░░░░░░░░░░░░░░░░ 1x/month
+/improve-codebase-architecture █░░░░░░░░░░░░░░░░░░░ 1x/month
 
 Top MCP Servers:
-  _(none configured)_
+_(none configured)_
 
 ## Your Setup Checklist
 
 ### Codebases
+
 - [ ] gymtracker — github.com/f13r/gymtracker
 
 ### MCP Servers to Activate
+
 _(none in use — nothing to set up here)_
 
 ### Skills to Know About
+
 - `/grill-with-docs` — Stress-tests a plan against CONTEXT.md and ADRs, sharpens terminology, and updates docs inline. Use before implementing a non-trivial feature.
 - `/superpowers:subagent-driven-development` — Executes a written plan task-by-task using parallel sub-agents. Use when you have a plan doc in `docs/superpowers/plans/` ready to implement.
 - `/improve-codebase-architecture` — Finds deepening opportunities informed by CONTEXT.md and the ADR log. Use when the codebase feels like it needs a structural pass.

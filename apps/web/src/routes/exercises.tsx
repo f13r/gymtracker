@@ -132,15 +132,7 @@ export function ExercisesPage() {
   )
 }
 
-function CreateExerciseDialog({
-  open,
-  onClose,
-  onSaved,
-}: {
-  open: boolean
-  onClose: () => void
-  onSaved: () => void
-}) {
+function CreateExerciseDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: () => void }) {
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-h-[90dvh] max-w-sm overflow-y-auto rounded-2xl">

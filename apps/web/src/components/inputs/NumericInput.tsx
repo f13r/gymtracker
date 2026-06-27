@@ -18,7 +18,18 @@ interface NumericInputProps {
   readOnly?: boolean
 }
 
-export function NumericInput({ value, onChange, min, max, step, unit, label, size = 'md', highlighted = false, readOnly = false }: NumericInputProps) {
+export function NumericInput({
+  value,
+  onChange,
+  min,
+  max,
+  step,
+  unit,
+  label,
+  size = 'md',
+  highlighted = false,
+  readOnly = false,
+}: NumericInputProps) {
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -32,12 +43,16 @@ export function NumericInput({ value, onChange, min, max, step, unit, label, siz
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <span className={`text-center text-[10px] font-semibold tracking-widest uppercase ${highlighted ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+        <span
+          className={`text-center text-[10px] font-semibold tracking-widest uppercase ${highlighted ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+        >
           {label}
           {unit ? ` (${unit})` : ''}
         </span>
       )}
-      <div className={`bg-card border-border flex items-center overflow-hidden rounded-xl border ${lg ? 'h-16' : 'h-14'}`}>
+      <div
+        className={`bg-card border-border flex items-center overflow-hidden rounded-xl border ${lg ? 'h-16' : 'h-14'}`}
+      >
         {!readOnly && (
           <button
             className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-12' : 'w-9'}`}

@@ -17,7 +17,10 @@ function ctx(overrides: Partial<ExerciseContext> = {}): ExerciseContext {
     ],
     weeklyFrequency: 3,
     sessionCount: 5,
-    lastTwoSessions: [{ weightKg: 80, reps: 10 }, { weightKg: 80, reps: 11 }],
+    lastTwoSessions: [
+      { weightKg: 80, reps: 10 },
+      { weightKg: 80, reps: 11 },
+    ],
     categoryWeeklySetCount: 12,
     hoursSinceCategorySession: 72,
     consecutiveWeeksActive: 6,
@@ -35,18 +38,22 @@ describe('formatExerciseFacts', () => {
   })
 
   it('omits the category suffix and RPE when absent', () => {
-    const f = formatExerciseFacts(ctx({ category: null, lastSets: [{ setNumber: 1, weightKg: 60, reps: 5, rpe: null }] }))
+    const f = formatExerciseFacts(
+      ctx({ category: null, lastSets: [{ setNumber: 1, weightKg: 60, reps: 5, rpe: null }] }),
+    )
     expect(f.nameWithCategory).toBe('Bench Press')
     expect(f.lastSet).toBe('60kg×5')
   })
 
   it('joins all done sets this session with their set numbers', () => {
-    const f = formatExerciseFacts(ctx({
-      lastSets: [
-        { setNumber: 1, weightKg: 80, reps: 8, rpe: 7 },
-        { setNumber: 2, weightKg: 80, reps: 6, rpe: null },
-      ],
-    }))
+    const f = formatExerciseFacts(
+      ctx({
+        lastSets: [
+          { setNumber: 1, weightKg: 80, reps: 8, rpe: 7 },
+          { setNumber: 2, weightKg: 80, reps: 6, rpe: null },
+        ],
+      }),
+    )
     expect(f.sessionSets).toBe('set1 80kg×8 @RPE7, set2 80kg×6')
   })
 
@@ -73,9 +80,14 @@ describe('formatExerciseFacts', () => {
   })
 
   it('reports a flat-or-decreasing volume trend', () => {
-    const f = formatExerciseFacts(ctx({
-      weeklyVolumes: [{ week: '2026-W19', volume: 1920 }, { week: '2026-W20', volume: 1800 }],
-    }))
+    const f = formatExerciseFacts(
+      ctx({
+        weeklyVolumes: [
+          { week: '2026-W19', volume: 1920 },
+          { week: '2026-W20', volume: 1800 },
+        ],
+      }),
+    )
     expect(f.volumeTrend).toBe('flat or decreasing')
   })
 

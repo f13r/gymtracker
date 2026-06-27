@@ -71,7 +71,9 @@ export class SchedulesService {
       )
       .limit(1)
 
-    if (!match) { return null }
+    if (!match) {
+      return null
+    }
 
     const startOfDay = Math.floor(new Date(today).getTime() / 1000)
     const endOfDay = startOfDay + 86400
@@ -86,7 +88,9 @@ export class SchedulesService {
           lt(schema.workoutSessions.startedAt, endOfDay),
         ),
       )
-    if (result && result.count > 0) { return null }
+    if (result && result.count > 0) {
+      return null
+    }
 
     const [template] = await this.db
       .select()

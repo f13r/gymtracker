@@ -1,4 +1,10 @@
-import type { CreateExerciseDto, Exercise, ProgressionSuggestion, UpdateExerciseDto, WorkoutSet } from '@gymtracker/shared'
+import type {
+  CreateExerciseDto,
+  Exercise,
+  ProgressionSuggestion,
+  UpdateExerciseDto,
+  WorkoutSet,
+} from '@gymtracker/shared'
 
 import { api } from './client'
 
@@ -21,7 +27,10 @@ export const exercisesApi = {
   getOne: (id: string) => api.get<Exercise>(`/exercises/${id}`),
   create: (data: CreateExerciseDto, image?: File | null) => api.post<Exercise>('/exercises', toFormData(data, image)),
   update: (id: string, data: UpdateExerciseDto, image?: File | null, removeImage?: boolean) =>
-    api.patch<Exercise>(`/exercises/${id}`, toFormData({ ...data, ...(removeImage ? { removeImage: true } : {}) }, image)),
+    api.patch<Exercise>(
+      `/exercises/${id}`,
+      toFormData({ ...data, ...(removeImage ? { removeImage: true } : {}) }, image),
+    ),
   remove: (id: string) => api.delete(`/exercises/${id}`),
   // Stored demonstration media, served by exercise id. Append the row's updatedAt-like key if cache-
   // busting is ever needed; for now the id is stable and images change rarely.

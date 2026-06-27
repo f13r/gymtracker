@@ -8,17 +8,17 @@ The **Active Exercise** — the one Exercise within the **Active Session** that 
 
 Previously the Active Exercise was a positional index (`activeExerciseIndex`) in an in-memory Zustand store (`workout.store.ts`). Because the index was neither persisted nor in the URL, a page refresh reset it to `0` and threw the user back to the first Exercise, even though the **Session** itself survived (its id is in the URL path and the server re-derives the Active Session from `finishedAt IS NULL`). The store and the URL were two sources of truth for "where the user is," and they drifted on reload.
 
-**The Active Exercise is navigation state, not a domain attribute of the Session.** It is part of *where the user is in the app*, so it belongs in the URL — the same place the Session already lives — not on the Session row in the database and not in a client store.
+**The Active Exercise is navigation state, not a domain attribute of the Session.** It is part of _where the user is in the app_, so it belongs in the URL — the same place the Session already lives — not on the Session row in the database and not in a client store.
 
-**Addressed by `exerciseId`, never by position.** A Session is editable in place: the glossary's **Session** entry allows the user to add, remove, and reorder exercises mid-session. A positional index in the URL would point at a *different* Exercise after a reorder or removal. An `exerciseId` survives both. It is also the only identifier available in **both** session modes: freeform Sessions have no `session_exercises` snapshot rows (their exercise list is derived from Sets, de-duped by `exerciseId`), so the snapshot row PK cannot serve as a universal identifier.
+**Addressed by `exerciseId`, never by position.** A Session is editable in place: the glossary's **Session** entry allows the user to add, remove, and reorder exercises mid-session. A positional index in the URL would point at a _different_ Exercise after a reorder or removal. An `exerciseId` survives both. It is also the only identifier available in **both** session modes: freeform Sessions have no `session_exercises` snapshot rows (their exercise list is derived from Sets, de-duped by `exerciseId`), so the snapshot row PK cannot serve as a universal identifier.
 
-**The URL is honored literally — the logger never auto-picks an Exercise and never rewrites the URL.** The displayed Exercise is *exactly* the one whose id matches `?exercise`, or nothing:
+**The URL is honored literally — the logger never auto-picks an Exercise and never rewrites the URL.** The displayed Exercise is _exactly_ the one whose id matches `?exercise`, or nothing:
 
 - **Param present, structure still loading:** show a loading state. Do **not** render a positional fallback (e.g. `exercises[0]`) — that was the source of a visible flicker on refresh: a legacy Session (no Snapshot) briefly exposes a Sets-only list that doesn't contain the param's id, so any fallback renders the wrong Exercise for a beat before correcting.
 - **Param present and resolved to an Exercise in the Session:** render it.
 - **Param absent, or present but not found once the structure has fully loaded** (stale id, removed mid-session, wrong Session): there is no Active Exercise — redirect to the **overview** (`/dashboard`). A missing param redirects immediately; an unresolved-but-present param redirects only after the Session and its Template have settled, so a slow load is never mistaken for an invalid id.
 
-This is the user's model: *"no exercise chosen → dashboard; an exercise chosen → that one."* The overview is where you are when no Exercise is focused; the logger is always focused on one specific Exercise.
+This is the user's model: _"no exercise chosen → dashboard; an exercise chosen → that one."_ The overview is where you are when no Exercise is focused; the logger is always focused on one specific Exercise.
 
 **An earlier draft of this ADR specified the opposite** — auto-resolve a missing/stale param to the first not-done Exercise and `replace` the URL to pin it. That rule was removed: the auto-rewrite fought the async load (rewriting a valid param before the full structure arrived) and the positional fallback flickered. Honoring the URL literally and routing the empty case to the overview is simpler and has no race.
 

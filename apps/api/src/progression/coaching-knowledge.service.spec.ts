@@ -15,10 +15,7 @@ describe('CoachingKnowledgeService.retrieveForSituation', () => {
     const mockDbWithExecute = {
       ...mockDb,
       execute: vi.fn().mockResolvedValue({
-        rows: [
-          { content: 'chunk one' },
-          { content: 'chunk two' },
-        ],
+        rows: [{ content: 'chunk one' }, { content: 'chunk two' }],
       }),
     }
 

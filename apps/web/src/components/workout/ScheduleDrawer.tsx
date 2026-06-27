@@ -36,10 +36,14 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
   const create = useMutation({
     mutationFn: async () => {
       if (type === 'once') {
-        if (!selectedDate) {return}
+        if (!selectedDate) {
+          return
+        }
         await schedulesApi.createSchedule({ templateId, type: 'once', scheduledDate: selectedDate })
       } else {
-        if (selectedDays.length === 0) {return}
+        if (selectedDays.length === 0) {
+          return
+        }
         await Promise.all(
           selectedDays.map(day => schedulesApi.createSchedule({ templateId, type: 'weekly', dayOfWeek: day })),
         )

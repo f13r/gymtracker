@@ -14,17 +14,18 @@
 
 ## File Map
 
-| File | Change |
-|------|--------|
-| `apps/web/src/stores/workout.store.ts` | Add `setActiveExerciseIndex(n: number)` action |
-| `apps/web/src/routes/dashboard.tsx` | Full rewrite of the active-session branch: hub view with timer, exercise list, finish button |
-| `apps/web/src/components/workout/WorkoutLogger.tsx` | Change all-done drawer: primary → "BACK TO OVERVIEW", remove next-exercise shortcut |
+| File                                                | Change                                                                                       |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `apps/web/src/stores/workout.store.ts`              | Add `setActiveExerciseIndex(n: number)` action                                               |
+| `apps/web/src/routes/dashboard.tsx`                 | Full rewrite of the active-session branch: hub view with timer, exercise list, finish button |
+| `apps/web/src/components/workout/WorkoutLogger.tsx` | Change all-done drawer: primary → "BACK TO OVERVIEW", remove next-exercise shortcut          |
 
 ---
 
 ## Task 1: Add `setActiveExerciseIndex` to store
 
 **Files:**
+
 - Modify: `apps/web/src/stores/workout.store.ts`
 
 - [ ] **Step 1: Add the action to the interface and implementation**
@@ -99,6 +100,7 @@ git commit -m "feat(store): add setActiveExerciseIndex action"
 ## Task 2: Transform Dashboard into workout hub
 
 **Files:**
+
 - Modify: `apps/web/src/routes/dashboard.tsx`
 
 This task replaces the single "active session" button with a full workout hub view. When `active` is null, the existing dashboard (greeting + start button + recent sessions) is unchanged.
@@ -106,6 +108,7 @@ This task replaces the single "active session" button with a full workout hub vi
 - [ ] **Step 1: Add required imports to dashboard.tsx**
 
 The current imports are:
+
 ```tsx
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, Link } from '@tanstack/react-router'
@@ -168,22 +171,34 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
 
   const exerciseNameMap = useMemo(() => {
     const map: Record<string, string> = {}
-    allExercises.forEach((e: { id: string; name: string }) => { map[e.id] = e.name })
+    allExercises.forEach((e: { id: string; name: string }) => {
+      map[e.id] = e.name
+    })
     return map
   }, [allExercises])
 
   const exercises = useMemo(() => {
-    if (!session) { return [] }
+    if (!session) {
+      return []
+    }
     if (template) {
       return template.exercises
         .slice()
         .sort((a: { orderIndex: number }, b: { orderIndex: number }) => a.orderIndex - b.orderIndex)
-        .map((te: { exerciseId: string; defaultSets?: number; defaultReps?: number; defaultWeightKg?: number; orderIndex: number }) => ({
-          id: te.exerciseId,
-          name: exerciseNameMap[te.exerciseId] ?? 'Exercise',
-          defaultSets: te.defaultSets ?? 3,
-          loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId),
-        }))
+        .map(
+          (te: {
+            exerciseId: string
+            defaultSets?: number
+            defaultReps?: number
+            defaultWeightKg?: number
+            orderIndex: number
+          }) => ({
+            id: te.exerciseId,
+            name: exerciseNameMap[te.exerciseId] ?? 'Exercise',
+            defaultSets: te.defaultSets ?? 3,
+            loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === te.exerciseId),
+          }),
+        )
     }
     const ids = [...new Set((session.sets ?? []).map((s: WorkoutSet) => s.exerciseId).filter(Boolean) as string[])]
     return ids.map(id => ({
@@ -195,7 +210,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   }, [template, session, exerciseNameMap])
 
   useEffect(() => {
-    if (!session?.startedAt) { return }
+    if (!session?.startedAt) {
+      return
+    }
     setElapsedSeconds(Math.floor(Date.now() / 1000) - session.startedAt)
     const id = setInterval(() => {
       setElapsedSeconds(Math.floor(Date.now() / 1000) - session.startedAt)
@@ -232,7 +249,9 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
             {session.name.toUpperCase()}
           </h1>
         </div>
-        <span className="text-muted-foreground font-mono text-xl tabular-nums">{mm}:{ss}</span>
+        <span className="text-muted-foreground font-mono text-xl tabular-nums">
+          {mm}:{ss}
+        </span>
       </div>
 
       {/* Exercise list */}
@@ -253,7 +272,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
               <button
                 key={ex.id}
                 className={cn(
-                  'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left last:border-b-0 transition-colors',
+                  'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors last:border-b-0',
                   isCurrent && 'bg-primary/5',
                 )}
                 onClick={() => {
@@ -276,7 +295,12 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                     {ex.name}
                   </span>
                 </div>
-                <span className={cn('text-xs font-semibold tabular-nums', isComplete ? 'text-accent' : 'text-muted-foreground')}>
+                <span
+                  className={cn(
+                    'text-xs font-semibold tabular-nums',
+                    isComplete ? 'text-accent' : 'text-muted-foreground',
+                  )}
+                >
                   {doneSets}/{totalSets > 0 ? totalSets : '?'}
                 </span>
               </button>
@@ -327,9 +351,9 @@ In `DashboardPage`, find the section that currently renders the active session b
 The entire `DashboardPage` return when `active` is truthy should short-circuit to `WorkoutHub` before rendering the main layout. Add this early return at the top of the `DashboardPage` function body, immediately after the hooks:
 
 ```tsx
-  if (active) {
-    return <WorkoutHub sessionId={active.id} />
-  }
+if (active) {
+  return <WorkoutHub sessionId={active.id} />
+}
 ```
 
 Place it right after all the hook calls (after `const isSkipped = ...` and `const showPrompt = ...` lines but before `const finished = ...`). The full function body top looks like:
@@ -393,6 +417,7 @@ git commit -m "feat(dashboard): transform into workout hub when session is activ
 ## Task 3: Update WorkoutLogger all-done drawer
 
 **Files:**
+
 - Modify: `apps/web/src/components/workout/WorkoutLogger.tsx`
 
 Change the all-done drawer so the primary action navigates back to the Dashboard overview instead of jumping to the next exercise.
@@ -402,82 +427,91 @@ Change the all-done drawer so the primary action navigates back to the Dashboard
 Around line 772–806:
 
 ```tsx
-      {/* All-done bottom sheet */}
-      {isTemplateBased && (
-        <Drawer open={allDoneOpen} onOpenChange={setAllDoneOpen}>
-          <DrawerContent>
-            <DrawerHeader className="pb-2 text-center">
-              <div className="mb-3 flex justify-center">
-                <CheckCircle2 className="text-accent" size={40} />
-              </div>
-              <DrawerTitle className="text-xl">{currentExercise?.name} done!</DrawerTitle>
-              <p className="text-muted-foreground mt-1 text-sm">
-                {nextExerciseData
-                  ? `Ready for ${nextExerciseData.name}?`
-                  : 'That was the last exercise. Finish the workout?'}
-              </p>
-            </DrawerHeader>
-            <DrawerFooter>
-              <button
-                className="bg-primary text-primary-foreground font-display font-700 h-14 w-full rounded-xl text-lg tracking-widest transition-transform active:scale-[0.97]"
-                onClick={() => {
-                  setAllDoneOpen(false)
-                  if (nextExerciseData) { nextExercise() }
-                  else { finishWorkout.mutate() }
-                }}
-              >
-                {nextExerciseData ? `NEXT: ${nextExerciseData.name.toUpperCase()}` : 'FINISH WORKOUT'}
-              </button>
-              <button
-                className="text-muted-foreground h-11 w-full text-sm font-medium"
-                onClick={() => setAllDoneOpen(false)}
-              >
-                Keep going here
-              </button>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
-      )}
+{
+  /* All-done bottom sheet */
+}
+{
+  isTemplateBased && (
+    <Drawer open={allDoneOpen} onOpenChange={setAllDoneOpen}>
+      <DrawerContent>
+        <DrawerHeader className="pb-2 text-center">
+          <div className="mb-3 flex justify-center">
+            <CheckCircle2 className="text-accent" size={40} />
+          </div>
+          <DrawerTitle className="text-xl">{currentExercise?.name} done!</DrawerTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {nextExerciseData
+              ? `Ready for ${nextExerciseData.name}?`
+              : 'That was the last exercise. Finish the workout?'}
+          </p>
+        </DrawerHeader>
+        <DrawerFooter>
+          <button
+            className="bg-primary text-primary-foreground font-display font-700 h-14 w-full rounded-xl text-lg tracking-widest transition-transform active:scale-[0.97]"
+            onClick={() => {
+              setAllDoneOpen(false)
+              if (nextExerciseData) {
+                nextExercise()
+              } else {
+                finishWorkout.mutate()
+              }
+            }}
+          >
+            {nextExerciseData ? `NEXT: ${nextExerciseData.name.toUpperCase()}` : 'FINISH WORKOUT'}
+          </button>
+          <button
+            className="text-muted-foreground h-11 w-full text-sm font-medium"
+            onClick={() => setAllDoneOpen(false)}
+          >
+            Keep going here
+          </button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  )
+}
 ```
 
 Replace it with:
 
 ```tsx
-      {/* All-done bottom sheet */}
-      {isTemplateBased && (
-        <Drawer open={allDoneOpen} onOpenChange={setAllDoneOpen}>
-          <DrawerContent>
-            <DrawerHeader className="pb-2 text-center">
-              <div className="mb-3 flex justify-center">
-                <CheckCircle2 className="text-accent" size={40} />
-              </div>
-              <DrawerTitle className="text-xl">{currentExercise?.name} done!</DrawerTitle>
-              <p className="text-muted-foreground mt-1 text-sm">
-                {nextExerciseData
-                  ? 'Head back to the overview to pick your next exercise'
-                  : 'That was the last exercise.'}
-              </p>
-            </DrawerHeader>
-            <DrawerFooter>
-              <button
-                className="bg-primary text-primary-foreground font-display font-700 h-14 w-full rounded-xl text-lg tracking-widest transition-transform active:scale-[0.97]"
-                onClick={() => {
-                  setAllDoneOpen(false)
-                  navigate({ to: '/dashboard' })
-                }}
-              >
-                BACK TO OVERVIEW
-              </button>
-              <button
-                className="text-muted-foreground h-11 w-full text-sm font-medium"
-                onClick={() => setAllDoneOpen(false)}
-              >
-                Keep going here
-              </button>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
-      )}
+{
+  /* All-done bottom sheet */
+}
+{
+  isTemplateBased && (
+    <Drawer open={allDoneOpen} onOpenChange={setAllDoneOpen}>
+      <DrawerContent>
+        <DrawerHeader className="pb-2 text-center">
+          <div className="mb-3 flex justify-center">
+            <CheckCircle2 className="text-accent" size={40} />
+          </div>
+          <DrawerTitle className="text-xl">{currentExercise?.name} done!</DrawerTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {nextExerciseData ? 'Head back to the overview to pick your next exercise' : 'That was the last exercise.'}
+          </p>
+        </DrawerHeader>
+        <DrawerFooter>
+          <button
+            className="bg-primary text-primary-foreground font-display font-700 h-14 w-full rounded-xl text-lg tracking-widest transition-transform active:scale-[0.97]"
+            onClick={() => {
+              setAllDoneOpen(false)
+              navigate({ to: '/dashboard' })
+            }}
+          >
+            BACK TO OVERVIEW
+          </button>
+          <button
+            className="text-muted-foreground h-11 w-full text-sm font-medium"
+            onClick={() => setAllDoneOpen(false)}
+          >
+            Keep going here
+          </button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  )
+}
 ```
 
 - [ ] **Step 2: Verify TypeScript compiles**
@@ -512,6 +546,7 @@ git commit -m "feat(logger): route all-done drawer back to dashboard overview"
 ## Self-Review
 
 **Spec coverage:**
+
 - ✅ Home page transforms into workout hub when session active
 - ✅ Exercise list with status icons + set progress visible on hub
 - ✅ Tap exercise → jumps to that exercise in logger
@@ -523,6 +558,7 @@ git commit -m "feat(logger): route all-done drawer back to dashboard overview"
 **Placeholder scan:** None found — all code blocks are complete.
 
 **Type consistency:**
+
 - `setActiveExerciseIndex` defined in Task 1, consumed in Task 2 `WorkoutHub` component ✓
 - `WorkoutSet` imported in dashboard in Task 2 ✓
 - `exercisesApi` imported in dashboard in Task 2 ✓

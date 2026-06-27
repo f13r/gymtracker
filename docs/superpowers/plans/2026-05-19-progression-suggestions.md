@@ -13,12 +13,14 @@
 ## File Map
 
 **Create:**
+
 - `packages/shared/src/progression.schema.ts` — `ProgressionSuggestion` type used by both API and web
 - `apps/api/src/progression/progression.service.ts` — context building, Gemini call, upsert
 - `apps/api/src/progression/progression.controller.ts` — `GET /exercises/:id/progression-suggestion`
 - `apps/api/src/progression/progression.module.ts` — NestJS module
 
 **Modify:**
+
 - `packages/shared/src/index.ts` — re-export `progression.schema`
 - `apps/api/src/drizzle/schema.ts` — add `userProfiles` and `progressionSuggestions` tables
 - `apps/api/src/app.module.ts` — import `ProgressionModule`
@@ -28,6 +30,7 @@
 - `apps/web/src/components/workout/WorkoutLogger.tsx` — fetch PS, update pre-population, update `PendingSetRow`
 
 **Generate (via drizzle-kit):**
+
 - `apps/api/src/drizzle/migrations/0004_*.sql`
 
 ---
@@ -35,6 +38,7 @@
 ### Task 1: Shared `ProgressionSuggestion` type
 
 **Files:**
+
 - Create: `packages/shared/src/progression.schema.ts`
 - Modify: `packages/shared/src/index.ts`
 
@@ -84,6 +88,7 @@ git commit -m "feat: add ProgressionSuggestion shared type"
 ### Task 2: DB schema — `userProfiles` and `progressionSuggestions` tables
 
 **Files:**
+
 - Modify: `apps/api/src/drizzle/schema.ts`
 
 - [ ] **Step 1: Add both tables at the end of the schema file**
@@ -92,26 +97,36 @@ Append to `apps/api/src/drizzle/schema.ts`:
 
 ```typescript
 export const userProfiles = pgTable('user_profiles', {
-  userId: text('user_id').primaryKey().references(() => users.id),
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id),
   age: integer('age'),
   heightCm: integer('height_cm'),
   experienceLevel: text('experience_level'), // 'beginner' | 'intermediate' | 'advanced'
   updatedAt: integer('updated_at').notNull(),
 })
 
-export const progressionSuggestions = pgTable('progression_suggestions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id),
-  exerciseId: text('exercise_id').notNull().references(() => exercises.id),
-  suggestedSets: integer('suggested_sets').notNull(),
-  suggestedReps: integer('suggested_reps').notNull(),
-  suggestedWeightKg: real('suggested_weight_kg').notNull(),
-  reason: text('reason').notNull(),
-  evidence: text('evidence').notNull(), // JSON.stringify(string[])
-  createdAt: integer('created_at').notNull(),
-}, (t) => ({
-  userExercise: uniqueIndex('progression_suggestions_user_exercise').on(t.userId, t.exerciseId),
-}))
+export const progressionSuggestions = pgTable(
+  'progression_suggestions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id),
+    exerciseId: text('exercise_id')
+      .notNull()
+      .references(() => exercises.id),
+    suggestedSets: integer('suggested_sets').notNull(),
+    suggestedReps: integer('suggested_reps').notNull(),
+    suggestedWeightKg: real('suggested_weight_kg').notNull(),
+    reason: text('reason').notNull(),
+    evidence: text('evidence').notNull(), // JSON.stringify(string[])
+    createdAt: integer('created_at').notNull(),
+  },
+  t => ({
+    userExercise: uniqueIndex('progression_suggestions_user_exercise').on(t.userId, t.exerciseId),
+  }),
+)
 ```
 
 Note: `uniqueIndex` requires adding it to the imports at the top of `schema.ts`. Check line 1 — it currently imports `{ pgTable, text, integer, real, primaryKey, uniqueIndex }`. `uniqueIndex` is already imported (used by `gyms`). No import change needed.
@@ -129,6 +144,7 @@ Expected: exits 0.
 ### Task 3: Generate and apply migration
 
 **Files:**
+
 - Generate: `apps/api/src/drizzle/migrations/0004_*.sql`
 
 - [ ] **Step 1: Generate migration**
@@ -161,9 +177,11 @@ git commit -m "feat: add user_profiles and progression_suggestions tables"
 This task implements the SQL queries that build the prompt context. No Gemini call yet.
 
 **Files:**
+
 - Create: `apps/api/src/progression/progression.service.ts`
 
 The service needs:
+
 - DB injection (same pattern as `EquipmentService`)
 - `ConfigService` for `GEMINI_API_KEY`
 - Logger
@@ -203,11 +221,7 @@ export class ProgressionService {
     this.geminiApiKey = config.getOrThrow<string>('GEMINI_API_KEY')
   }
 
-  async buildExerciseContext(
-    exerciseId: string,
-    userId: string,
-    sessionId: string,
-  ): Promise<ExerciseContext | null> {
+  async buildExerciseContext(exerciseId: string, userId: string, sessionId: string): Promise<ExerciseContext | null> {
     // Exercise name + category
     const [exercise] = await this.db
       .select({ name: schema.exercises.name, category: schema.exercises.category })
@@ -308,7 +322,12 @@ export class ProgressionService {
 
   buildPrompt(
     exercises: ExerciseContext[],
-    user: { age: number | null; heightCm: number | null; experienceLevel: string | null; latestBodyWeightKg: number | null },
+    user: {
+      age: number | null
+      heightCm: number | null
+      experienceLevel: string | null
+      latestBodyWeightKg: number | null
+    },
   ): string {
     const userLine = [
       user.age && `Age: ${user.age}`,
@@ -373,24 +392,23 @@ import { describe, it, expect } from 'vitest'
 import { ProgressionService } from './progression.service'
 
 // Minimal mocks — buildPrompt doesn't use db or config
-const service = new ProgressionService(
-  {} as any,
-  { getOrThrow: () => 'fake-key' } as any,
-)
+const service = new ProgressionService({} as any, { getOrThrow: () => 'fake-key' } as any)
 
 describe('ProgressionService.buildPrompt', () => {
   it('includes exercise block with id, name, and session sets', () => {
     const result = service.buildPrompt(
-      [{
-        exerciseId: 'bench-id',
-        name: 'Bench Press',
-        category: 'push',
-        lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: null }],
-        prWeightKg: 90,
-        prReps: 3,
-        weeklyVolumes: [{ week: '2026-W20', volume: 1920 }],
-        weeklyFrequency: 2,
-      }],
+      [
+        {
+          exerciseId: 'bench-id',
+          name: 'Bench Press',
+          category: 'push',
+          lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: null }],
+          prWeightKg: 90,
+          prReps: 3,
+          weeklyVolumes: [{ week: '2026-W20', volume: 1920 }],
+          weeklyFrequency: 2,
+        },
+      ],
       { age: 32, heightCm: 180, experienceLevel: 'intermediate', latestBodyWeightKg: 82 },
     )
     expect(result).toContain('[bench-id] Bench Press (push)')
@@ -402,16 +420,18 @@ describe('ProgressionService.buildPrompt', () => {
 
   it('shows "insufficient data" when no weekly volumes', () => {
     const result = service.buildPrompt(
-      [{
-        exerciseId: 'squat-id',
-        name: 'Squat',
-        category: 'legs',
-        lastSets: [],
-        prWeightKg: null,
-        prReps: null,
-        weeklyVolumes: [],
-        weeklyFrequency: 1,
-      }],
+      [
+        {
+          exerciseId: 'squat-id',
+          name: 'Squat',
+          category: 'legs',
+          lastSets: [],
+          prWeightKg: null,
+          prReps: null,
+          weeklyVolumes: [],
+          weeklyFrequency: 1,
+        },
+      ],
       { age: null, heightCm: null, experienceLevel: null, latestBodyWeightKg: null },
     )
     expect(result).toContain('4-week volume: insufficient data')
@@ -441,6 +461,7 @@ git commit -m "feat: add ProgressionService context building and prompt generati
 ### Task 5: ProgressionService — Gemini call + upsert
 
 **Files:**
+
 - Modify: `apps/api/src/progression/progression.service.ts`
 
 - [ ] **Step 1: Add the Gemini response type, `callGemini`, and `generateForSession` to the service**
@@ -452,8 +473,7 @@ The Gemini URL and call pattern is identical to `equipment.service.ts`. Add thes
 import { randomUUID } from 'crypto'
 
 // Add these types inside the file (not exported)
-const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 type GeminiSuggestionRaw = {
   exerciseId: string
@@ -606,6 +626,7 @@ Add these methods to `ProgressionService`:
 ```
 
 Also add `isNotNull` to the drizzle imports at the top:
+
 ```typescript
 import { eq, and, sql, desc, isNotNull } from 'drizzle-orm'
 ```
@@ -630,6 +651,7 @@ git commit -m "feat: add Gemini batch call and upsert to ProgressionService"
 ### Task 6: ProgressionController + ProgressionModule + wire into AppModule
 
 **Files:**
+
 - Create: `apps/api/src/progression/progression.controller.ts`
 - Create: `apps/api/src/progression/progression.module.ts`
 - Modify: `apps/api/src/app.module.ts`
@@ -708,6 +730,7 @@ cd apps/api && npm run start:dev
 ```
 
 Then in another terminal:
+
 ```bash
 curl -s http://localhost:3000/exercises/nonexistent-id/progression-suggestion
 ```
@@ -726,6 +749,7 @@ git commit -m "feat: add ProgressionController and ProgressionModule"
 ### Task 7: Wire fire-and-forget into WorkoutsService
 
 **Files:**
+
 - Modify: `apps/api/src/workouts/workouts.service.ts`
 - Modify: `apps/api/src/workouts/workouts.module.ts`
 
@@ -754,12 +778,14 @@ export class WorkoutsModule {}
 In `apps/api/src/workouts/workouts.service.ts`, update the class:
 
 Add to imports:
+
 ```typescript
 import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common'
 import { ProgressionService } from '../progression/progression.service'
 ```
 
 Update the constructor to inject `ProgressionService`:
+
 ```typescript
 private readonly logger = new Logger(WorkoutsService.name)
 
@@ -771,6 +797,7 @@ constructor(
 ```
 
 Update `finishSession` to fire-and-forget:
+
 ```typescript
 async finishSession(id: string, userId: string, dto: FinishSessionDto) {
   await this.getSession(id, userId)
@@ -809,6 +836,7 @@ curl -s -X POST http://localhost:3000/sessions/<SESSION_ID>/finish \
 Expected: immediate JSON response (session data), no hang. Check logs — after a few seconds you should see `Generated N progression suggestions for session <id>`.
 
 Then verify suggestion was persisted:
+
 ```bash
 curl -s http://localhost:3000/exercises/<EXERCISE_ID>/progression-suggestion
 ```
@@ -827,6 +855,7 @@ git commit -m "feat: fire-and-forget progression suggestion generation on sessio
 ### Task 8: Frontend API client
 
 **Files:**
+
 - Modify: `apps/web/src/api/exercises.ts`
 
 - [ ] **Step 1: Add `getProgressionSuggestion` to the exercises API**
@@ -834,7 +863,13 @@ git commit -m "feat: fire-and-forget progression suggestion generation on sessio
 In `apps/web/src/api/exercises.ts`:
 
 ```typescript
-import type { CreateExerciseDto, Exercise, UpdateExerciseDto, WorkoutSet, ProgressionSuggestion } from '@gymtracker/shared'
+import type {
+  CreateExerciseDto,
+  Exercise,
+  UpdateExerciseDto,
+  WorkoutSet,
+  ProgressionSuggestion,
+} from '@gymtracker/shared'
 
 import { api } from './client'
 
@@ -876,11 +911,13 @@ This is the largest frontend task. Read the full context before starting.
 **Context:** `WorkoutLogger.tsx` has a `PendingSetRow` component (lines 170–244) and a `ExerciseSummaryBar` component. The main logger fetches `prevSets` (last done sets for current exercise) at line 448. Pre-population currently happens at lines 455–468 using `currentExercise.loggedSets.at(-1)` and template defaults.
 
 **What changes:**
+
 1. Fetch the active `ProgressionSuggestion` for `currentExercise` alongside `prevSets`
 2. Update pre-population to use PS weight/reps when available (PS → last-done → template default)
 3. Pass PS and `prevSets` into `PendingSetRow`; display PS in inputs, last-done in small text below, expandable reason toggle
 
 **Files:**
+
 - Modify: `apps/web/src/components/workout/WorkoutLogger.tsx`
 
 - [ ] **Step 1: Update `PendingSetRow` to accept and display PS data**
@@ -1025,6 +1062,7 @@ Add the import for `exercisesApi` if not already imported (check the top of the 
 The two pre-population blocks (lines 455–468) currently read from `currentExercise.loggedSets.at(-1)` and template defaults. Replace both with PS-aware versions.
 
 Find:
+
 ```typescript
 if (currentExercise && !newSetInitialized.current) {
   newSetInitialized.current = true
@@ -1050,33 +1088,17 @@ const lastDoneSet = prevSets.at(-1) // last set from previous session
 if (currentExercise && !newSetInitialized.current) {
   newSetInitialized.current = true
   setNewSetWeight(
-    progressionSuggestion?.suggestedWeightKg
-    ?? lastDoneSet?.weightKg
-    ?? currentExercise.defaultWeightKg
-    ?? 0
+    progressionSuggestion?.suggestedWeightKg ?? lastDoneSet?.weightKg ?? currentExercise.defaultWeightKg ?? 0,
   )
-  setNewSetReps(
-    progressionSuggestion?.suggestedReps
-    ?? lastDoneSet?.reps
-    ?? currentExercise.defaultReps
-    ?? 8
-  )
+  setNewSetReps(progressionSuggestion?.suggestedReps ?? lastDoneSet?.reps ?? currentExercise.defaultReps ?? 8)
 }
 
 if (currentExercise && prevActiveExerciseIndex !== activeExerciseIndex) {
   setPrevActiveExerciseIndex(activeExerciseIndex)
   setNewSetWeight(
-    progressionSuggestion?.suggestedWeightKg
-    ?? lastDoneSet?.weightKg
-    ?? currentExercise.defaultWeightKg
-    ?? 0
+    progressionSuggestion?.suggestedWeightKg ?? lastDoneSet?.weightKg ?? currentExercise.defaultWeightKg ?? 0,
   )
-  setNewSetReps(
-    progressionSuggestion?.suggestedReps
-    ?? lastDoneSet?.reps
-    ?? currentExercise.defaultReps
-    ?? 8
-  )
+  setNewSetReps(progressionSuggestion?.suggestedReps ?? lastDoneSet?.reps ?? currentExercise.defaultReps ?? 8)
 }
 ```
 
@@ -1108,6 +1130,7 @@ cd apps/web && npm run dev
 ```
 
 Open the workout logger for an active session. For an exercise that has a Progression Suggestion stored:
+
 - Weight and reps inputs should show the AI's suggested values
 - "Previous: Xkg × Y reps" appears below
 - "Why this weight?" expands to show reason + evidence bullets

@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
-import { nextSupersetExercise, type Exercise, type SessionWithSets, type SupersetMember, type WorkoutSet } from '@gymtracker/shared'
+import {
+  nextSupersetExercise,
+  type Exercise,
+  type SessionWithSets,
+  type SupersetMember,
+  type WorkoutSet,
+} from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
@@ -32,7 +38,12 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   // for in-logger moves (prev/next, auto-resolve) so Back exits the logger
   // rather than walking exercises; push only when entering from the overview.
   const goToExercise = (exerciseId: string, opts?: { replace?: boolean }) =>
-    navigate({ to: '/workout/$sessionId', params: { sessionId }, search: { exercise: exerciseId }, replace: opts?.replace })
+    navigate({
+      to: '/workout/$sessionId',
+      params: { sessionId },
+      search: { exercise: exerciseId },
+      replace: opts?.replace,
+    })
 
   const [showPicker, setShowPicker] = useState(false)
   // selectedExerciseId + selectedExerciseName always move together (a pending
@@ -64,19 +75,25 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
 
   const exerciseNameMap = useMemo(() => {
     const map: Record<string, string> = {}
-    allExercises.forEach((e: Exercise) => { map[e.id] = e.name })
+    allExercises.forEach((e: Exercise) => {
+      map[e.id] = e.name
+    })
     return map
   }, [allExercises])
 
   const exerciseMediaMap = useMemo(() => {
     const map: Record<string, { hasImage: boolean; description: string | null }> = {}
-    allExercises.forEach((e: Exercise) => { map[e.id] = { hasImage: e.hasImage, description: e.description } })
+    allExercises.forEach((e: Exercise) => {
+      map[e.id] = { hasImage: e.hasImage, description: e.description }
+    })
     return map
   }, [allExercises])
 
   const equipmentMap = useMemo(() => {
     const map: Record<string, string | null> = {}
-    allExercises.forEach((e: Exercise) => { map[e.id] = e.equipmentType })
+    allExercises.forEach((e: Exercise) => {
+      map[e.id] = e.equipmentType
+    })
     return map
   }, [allExercises])
 
@@ -135,8 +152,12 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map(te => fromTemplateDefaults(te.exerciseId!, te.supersetGroup))
     }
-    if (!session?.sets) { return [] }
-    const ids = [...new Set(session.sets.filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId))]
+    if (!session?.sets) {
+      return []
+    }
+    const ids = [
+      ...new Set(session.sets.filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId)),
+    ]
     return ids.map(id => fromTemplateDefaults(id))
   }, [session, template, templateDefaults, exerciseNameMap])
 
@@ -145,7 +166,8 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   // ?exercise, or undefined. No positional fallback (that flickered on refresh).
   const currentExercise = activeExerciseId ? exercises.find(e => e.id === activeExerciseId) : undefined
   const activeExerciseIndex = currentExercise ? exercises.findIndex(e => e.id === activeExerciseId) : -1
-  const nextExerciseData = activeExerciseIndex >= 0 && activeExerciseIndex < exercises.length - 1 ? exercises[activeExerciseIndex + 1] : null
+  const nextExerciseData =
+    activeExerciseIndex >= 0 && activeExerciseIndex < exercises.length - 1 ? exercises[activeExerciseIndex + 1] : null
 
   // The exercise list is final once the Session and (for template Sessions without
   // a Snapshot) its Template have settled. Judging a present param "invalid" before
@@ -162,11 +184,16 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   // Freeform exercise navigation, URL-driven. Past the last Exercise, "Next"
   // opens the picker to add a new one.
   const prevExercise = () => {
-    if (activeExerciseIndex > 0) { goToExercise(exercises[activeExerciseIndex - 1].id, { replace: true }) }
+    if (activeExerciseIndex > 0) {
+      goToExercise(exercises[activeExerciseIndex - 1].id, { replace: true })
+    }
   }
   const nextExercise = () => {
-    if (activeExerciseIndex < exercises.length - 1) { goToExercise(exercises[activeExerciseIndex + 1].id, { replace: true }) }
-    else { setShowPicker(true) }
+    if (activeExerciseIndex < exercises.length - 1) {
+      goToExercise(exercises[activeExerciseIndex + 1].id, { replace: true })
+    } else {
+      setShowPicker(true)
+    }
   }
   const loggedCount = currentExercise?.loggedSets.length ?? 0
   const doneCount = currentExercise?.loggedSets.filter((s: WorkoutSet) => s.done).length ?? 0
@@ -181,8 +208,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   // Optimistic: a tap must recolor the row instantly, even on a slow connection —
   // the cache is flipped in onMutate and rolled back if the server rejects it.
   const toggleDone = useMutation({
-    mutationFn: ({ setId, done }: { setId: string; done: boolean }) =>
-      setsApi.updateSet(sessionId, setId, { done }),
+    mutationFn: ({ setId, done }: { setId: string; done: boolean }) => setsApi.updateSet(sessionId, setId, { done }),
     onMutate: async ({ setId, done }) => {
       // Haptic feedback is fired synchronously from the tap handler, not here —
       // Android blocks navigator.vibrate() in async callbacks. See lib/haptics.
@@ -207,20 +233,26 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
             hasRemainingPlannedSet: e.loggedSets.some(s => s.id !== setId && !s.done),
           }))
           const advance = nextSupersetExercise(members, currentExercise.id)
-          if (advance.kind === 'advance') { goToExercise(advance.exerciseId, { replace: true }) }
-          else if (advance.kind === 'complete') { setAllDoneOpen(true) }
+          if (advance.kind === 'advance') {
+            goToExercise(advance.exerciseId, { replace: true })
+          } else if (advance.kind === 'complete') {
+            setAllDoneOpen(true)
+          }
         } else {
           // Standalone (supersetGroup == null): unchanged per-exercise behavior.
           const allDone =
-            currentExercise.loggedSets.length > 0 &&
-            currentExercise.loggedSets.every(s => s.id === setId || s.done)
-          if (allDone) { setAllDoneOpen(true) }
+            currentExercise.loggedSets.length > 0 && currentExercise.loggedSets.every(s => s.id === setId || s.done)
+          if (allDone) {
+            setAllDoneOpen(true)
+          }
         }
       }
       return { previous }
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) { queryClient.setQueryData(queryKeys.session(sessionId), context.previous) }
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.session(sessionId), context.previous)
+      }
       setAllDoneOpen(false)
     },
     onSettled: () => {
@@ -239,7 +271,9 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   const addSet = useMutation({
     mutationFn: async () => {
       const exId = currentExercise?.id ?? pendingSelection?.id
-      if (!exId) { throw new Error('No exercise selected') }
+      if (!exId) {
+        throw new Error('No exercise selected')
+      }
       const last = currentExercise?.loggedSets.at(-1)
       await setsApi.logSet(sessionId, {
         exerciseId: exId,
@@ -254,7 +288,9 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
       setPendingSelection(null)
       // A brand-new freeform Exercise now has an id — pin it to the URL.
-      if (exId && exId !== activeExerciseId) { goToExercise(exId, { replace: true }) }
+      if (exId && exId !== activeExerciseId) {
+        goToExercise(exId, { replace: true })
+      }
     },
   })
 

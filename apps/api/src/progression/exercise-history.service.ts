@@ -44,11 +44,7 @@ export class ExerciseHistoryService {
    * total session count, last-two-sessions top sets (two-for-two), and the
    * category weekly-set load. Returns null if the exercise does not exist.
    */
-  async buildExerciseContext(
-    exerciseId: string,
-    userId: string,
-    sessionId: string,
-  ): Promise<ExerciseContext | null> {
+  async buildExerciseContext(exerciseId: string, userId: string, sessionId: string): Promise<ExerciseContext | null> {
     const [exercise] = await this.db
       .select({ name: schema.exercises.name, category: schema.exercises.category })
       .from(schema.exercises)
@@ -209,9 +205,7 @@ export class ExerciseHistoryService {
     const lastTwoSessions = lastTwoResult.rows as { weightKg: number | null; reps: number | null }[]
     const categoryWeeklySetCount = Math.round(Number((catSetsResult.rows[0] as { avg_sets: string })?.avg_sets ?? 0))
     const lastCatAt = (catLastResult.rows[0] as { last_at: number | null })?.last_at
-    const hoursSinceCategorySession = lastCatAt
-      ? Math.round((Date.now() / 1000 - lastCatAt) / 3600)
-      : null
+    const hoursSinceCategorySession = lastCatAt ? Math.round((Date.now() / 1000 - lastCatAt) / 3600) : null
     const consecutiveWeeksActive = Number((consWeeksResult.rows[0] as { consecutive: string })?.consecutive ?? 1)
 
     const e1rmSets = e1rmResult.rows as { weightKg: number | null; reps: number | null; week: string }[]

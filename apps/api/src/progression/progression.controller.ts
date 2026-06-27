@@ -10,7 +10,9 @@ export class ProgressionController {
   @Get('exercises/:id/progression-suggestion')
   async getForExercise(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const result = await this.svc.getForExercise(id, req.user.id)
-    if (!result) {throw new NotFoundException('No progression suggestion found')}
+    if (!result) {
+      throw new NotFoundException('No progression suggestion found')
+    }
     return result
   }
 }

@@ -145,7 +145,9 @@ describe('ProgramService.parseGeminiProgram', () => {
             {
               name: 'A',
               dayLabel: 'A',
-              exercises: [{ exerciseId: 'squat-id', orderIndex: 0, defaultSets: 3, defaultReps: 8, defaultWeightKg: 40 }],
+              exercises: [
+                { exerciseId: 'squat-id', orderIndex: 0, defaultSets: 3, defaultReps: 8, defaultWeightKg: 40 },
+              ],
             },
           ],
         },
@@ -169,7 +171,9 @@ describe('ProgramService.parseGeminiProgram', () => {
             {
               name: 'A',
               dayLabel: 'A',
-              exercises: [{ exerciseId: 'made-up-id', orderIndex: 0, defaultSets: 3, defaultReps: 8, defaultWeightKg: 40 }],
+              exercises: [
+                { exerciseId: 'made-up-id', orderIndex: 0, defaultSets: 3, defaultReps: 8, defaultWeightKg: 40 },
+              ],
             },
           ],
         },
