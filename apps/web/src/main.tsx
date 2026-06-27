@@ -3,6 +3,7 @@ import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+import './lib/i18n'
 import { queryClient } from './lib/query'
 import { router } from './router'
 import 'react-grab'

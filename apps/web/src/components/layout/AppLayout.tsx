@@ -1,24 +1,26 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Home, Dumbbell, Library, BarChart2, Activity, Settings } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 
 const NAV = [
-  { to: '/dashboard', label: 'Home', Icon: Home },
-  { to: '/workout/start', label: 'Workouts', Icon: Dumbbell },
-  { to: '/exercises', label: 'Exercises', Icon: Library },
-  { to: '/stats', label: 'Stats', Icon: BarChart2 },
-  { to: '/body', label: 'Body', Icon: Activity },
-  { to: '/settings', label: 'Settings', Icon: Settings },
+  { to: '/dashboard', labelKey: 'home', Icon: Home },
+  { to: '/workout/start', labelKey: 'workouts', Icon: Dumbbell },
+  { to: '/exercises', labelKey: 'exercises', Icon: Library },
+  { to: '/stats', labelKey: 'stats', Icon: BarChart2 },
+  { to: '/body', labelKey: 'body', Icon: Activity },
+  { to: '/settings', labelKey: 'settings', Icon: Settings },
 ] as const
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { location } = useRouterState()
+  const { t } = useTranslation('nav')
   return (
     <div className="bg-background flex h-svh flex-col">
       <main className="flex-1 overflow-y-auto">{children}</main>
       <nav className="border-border bg-card pb-safe grid grid-cols-6 border-t">
-        {NAV.map(({ to, label, Icon }) => {
+        {NAV.map(({ to, labelKey, Icon }) => {
           const active = location.pathname.startsWith(to)
           return (
             <Link
@@ -40,7 +42,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   active ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
-                {label}
+                {t(labelKey)}
               </span>
             </Link>
           )

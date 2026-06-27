@@ -2,6 +2,10 @@
 
 A personal fitness tracking application for logging workouts, tracking body progress, and analysing training over time. Currently single-user (prototyping phase); multi-user with authentication is planned.
 
+## Internationalization (i18n)
+
+The web app (`apps/web`) is translated with `react-i18next`. Ukrainian (`uk`) is the default/fallback language; English (`en`) is also available. The chosen language persists in the zustand preferences store (localStorage key `gymtracker-preferences`) — there is a single persistence mechanism and the first load with no stored value always resolves to `uk` (never browser language). Translations are organized as one JSON namespace file per feature under `src/locales/{uk,en}/`. See `docs/agents/i18n.md` for conventions: key naming, adding strings/namespaces without merge conflicts, and running tests.
+
 ## Language
 
 ### Workout domain
