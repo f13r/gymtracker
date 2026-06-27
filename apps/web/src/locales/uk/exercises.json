@@ -1,0 +1,24 @@
+{
+  "eyebrow": "Бібліотека",
+  "title": "ВПРАВИ",
+  "addExercise": "Додати вправу",
+  "searchAria": "Пошук вправ",
+  "searchPlaceholder": "Пошук вправ...",
+  "empty": "Вправ не знайдено",
+  "category": {
+    "push": "Жим",
+    "pull": "Тяга",
+    "legs": "Ноги",
+    "core": "Кор",
+    "cardio": "Кардіо",
+    "other": "Інше"
+  },
+  "equipment": {
+    "barbell": "Штанга",
+    "dumbbell": "Гантелі",
+    "machine": "Тренажер",
+    "bodyweight": "Власна вага",
+    "cable": "Блок",
+    "other": "Інше"
+  }
+}

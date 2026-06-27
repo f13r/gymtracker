@@ -1,0 +1,17 @@
+{
+  "eyebrow": "Progress",
+  "title": "PHOTOS",
+  "addPhoto": "Add Photo",
+  "noPhotos": "No photos yet",
+  "uploadFirst": "Upload your first progress photo",
+  "uploadPhoto": "Upload Photo",
+  "deleteAria": "Delete photo",
+  "deleteTitle": "Delete photo?",
+  "deleteDescDated": "Photo from {{date}} will be permanently removed.",
+  "deleteDescGeneric": "This photo will be permanently removed.",
+  "cannotUndo": "This cannot be undone.",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "deleting": "Deleting…",
+  "kg": "kg"
+}

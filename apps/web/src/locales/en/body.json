@@ -1,0 +1,36 @@
+{
+  "eyebrow": "Tracking",
+  "title": "BODY",
+  "latestWeight": "Latest weight",
+  "weightInKg": "Weight in kg",
+  "progressPhotos": "Progress Photos",
+  "weightLog": "Weight Log",
+  "myProfile": "My Profile",
+  "age": "Age",
+  "height": "Height (cm)",
+  "gender": "Gender",
+  "selectPlaceholder": "Select…",
+  "male": "Male",
+  "female": "Female",
+  "experienceLabel": "Experience",
+  "goalLabel": "Goal",
+  "trainingDays": "Training days",
+  "sessionDuration": "Session duration (min)",
+  "minutes": "{{minutes}} min",
+  "saveError": "Couldn’t save: check your entries (age/height must be whole numbers).",
+  "saving": "Saving…",
+  "saved": "Saved ✓",
+  "saveProfile": "Save profile",
+  "experience": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  },
+  "goal": {
+    "hypertrophy": "Hypertrophy",
+    "strength": "Strength",
+    "powerlifting": "Powerlifting",
+    "general": "General fitness"
+  },
+  "kg": "kg"
+}

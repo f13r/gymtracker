@@ -1,0 +1,24 @@
+{
+  "eyebrow": "Library",
+  "title": "EXERCISES",
+  "addExercise": "Add exercise",
+  "searchAria": "Search exercises",
+  "searchPlaceholder": "Search exercises...",
+  "empty": "No exercises found",
+  "category": {
+    "push": "Push",
+    "pull": "Pull",
+    "legs": "Legs",
+    "core": "Core",
+    "cardio": "Cardio",
+    "other": "Other"
+  },
+  "equipment": {
+    "barbell": "Barbell",
+    "dumbbell": "Dumbbell",
+    "machine": "Machine",
+    "bodyweight": "Bodyweight",
+    "cable": "Cable",
+    "other": "Other"
+  }
+}

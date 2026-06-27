@@ -1,0 +1,27 @@
+{
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "activeWorkout": "Active workout",
+  "finishWorkout": "Finish Workout",
+  "finishing": "Finishing…",
+  "vsLastSession": "vs last session",
+  "volume": "VOLUME",
+  "was": "was",
+  "done": "DONE",
+  "exercisesComplete": "exercises complete",
+  "beatLastTime": "beat last time ({{count}})",
+  "noExercisesYet": "No exercises yet",
+  "exerciseFallback": "Exercise",
+  "skipToday": "Skip today",
+  "letsGo": "LET'S GO",
+  "exercisesPlanned_one": "{{count}} exercise planned",
+  "exercisesPlanned_other": "{{count}} exercises planned",
+  "startWorkout": "START WORKOUT",
+  "recent": "Recent",
+  "viewAll": "View all",
+  "noWorkoutsYet": "No workouts yet. Start your first one!",
+  "kg": "kg"
+}

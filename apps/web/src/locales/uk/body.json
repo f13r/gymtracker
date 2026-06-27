@@ -1,0 +1,36 @@
+{
+  "eyebrow": "Відстеження",
+  "title": "ТІЛО",
+  "latestWeight": "Остання вага",
+  "weightInKg": "Вага в кг",
+  "progressPhotos": "Фото прогресу",
+  "weightLog": "Журнал ваги",
+  "myProfile": "Мій профіль",
+  "age": "Вік",
+  "height": "Зріст (см)",
+  "gender": "Стать",
+  "selectPlaceholder": "Оберіть…",
+  "male": "Чоловіча",
+  "female": "Жіноча",
+  "experienceLabel": "Досвід",
+  "goalLabel": "Мета",
+  "trainingDays": "Дні тренувань",
+  "sessionDuration": "Тривалість сесії (хв)",
+  "minutes": "{{minutes}} хв",
+  "saveError": "Не вдалося зберегти: перевірте введені дані (вік/зріст мають бути цілими числами).",
+  "saving": "Збереження…",
+  "saved": "Збережено ✓",
+  "saveProfile": "Зберегти профіль",
+  "experience": {
+    "beginner": "Початківець",
+    "intermediate": "Середній",
+    "advanced": "Просунутий"
+  },
+  "goal": {
+    "hypertrophy": "Гіпертрофія",
+    "strength": "Сила",
+    "powerlifting": "Пауерліфтинг",
+    "general": "Загальна форма"
+  },
+  "kg": "кг"
+}

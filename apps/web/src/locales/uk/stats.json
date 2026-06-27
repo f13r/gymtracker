@@ -1,0 +1,13 @@
+{
+  "eyebrow": "Огляд",
+  "title": "СТАТИСТИКА",
+  "current": "Поточна",
+  "best": "Найкраща",
+  "dayStreak": "днів поспіль",
+  "personalRecords": "Особисті рекорди",
+  "volumeOverTime": "Об'єм за час",
+  "bodyWeight": "Вага тіла",
+  "weeklyFrequency": "Частота за тиждень",
+  "prReps": "кг × {{reps}}",
+  "empty": "Завершуйте тренування, щоб побачити статистику"
+}
