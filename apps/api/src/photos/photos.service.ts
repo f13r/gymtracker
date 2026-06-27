@@ -70,7 +70,9 @@ export class PhotosService {
     }
 
     for (const rel of [photo.filePath, photo.thumbPath]) {
-      try { unlinkSync(join(this.photosDir, rel)) } catch {} // eslint-disable-line no-empty
+      try {
+        unlinkSync(join(this.photosDir, rel))
+      } catch {} // eslint-disable-line no-empty
     }
     await this.db.delete(schema.progressPhotos).where(eq(schema.progressPhotos.id, id))
   }

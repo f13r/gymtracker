@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dialog'
 import { formatSessionDuration } from '@/lib/utils'
 
-
 function formatDate(ts: number) {
   return new Date(ts * 1000).toLocaleDateString('en', {
     weekday: 'short',
@@ -62,7 +61,7 @@ export function HistoryPage() {
     <div className="flex min-h-full flex-col">
       <div className="border-border border-b px-4 pt-4 pb-3">
         <button
-          className="text-muted-foreground -ml-1 mb-3 flex items-center gap-1"
+          className="text-muted-foreground mb-3 -ml-1 flex items-center gap-1"
           type="button"
           onClick={() => navigate({ to: '/dashboard' })}
         >

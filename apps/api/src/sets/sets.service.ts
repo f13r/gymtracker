@@ -59,11 +59,7 @@ export class SetsService {
     if ('done' in dto) {
       patch.completedAt = dto.done ? Math.floor(Date.now() / 1000) : null
     }
-    const [updated] = await this.db
-      .update(schema.sets)
-      .set(patch)
-      .where(eq(schema.sets.id, setId))
-      .returning()
+    const [updated] = await this.db.update(schema.sets).set(patch).where(eq(schema.sets.id, setId)).returning()
     return toWorkoutSet(updated!)
   }
 

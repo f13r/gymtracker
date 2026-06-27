@@ -13,7 +13,10 @@ import { cn } from '@/lib/utils'
 /** The seven dates of the current week, Monday-first. */
 function currentWeekDates(today: Date): Date[] {
   const offset = (today.getDay() + 6) % 7 // days since the preceding Monday
-  return Array.from({ length: 7 }, (_, i) => new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset + i))
+  return Array.from(
+    { length: 7 },
+    (_, i) => new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset + i),
+  )
 }
 
 /**
@@ -30,7 +33,9 @@ export function ThisWeekCard() {
   const today = useMemo(() => new Date(), [])
   const week = useMemo(() => currentWeekDates(today), [today])
 
-  if (schedules.length === 0) {return null}
+  if (schedules.length === 0) {
+    return null
+  }
 
   const labels = dayLabelByTemplate(program)
   const nameById = new Map(templates.map(t => [t.id, t.name]))
@@ -40,13 +45,17 @@ export function ThisWeekCard() {
   const legend: { label: string; name: string }[] = []
   for (const date of week) {
     for (const { templateId } of workoutsForDate(date, schedules)) {
-      if (seen.has(templateId)) {continue}
+      if (seen.has(templateId)) {
+        continue
+      }
       seen.add(templateId)
       legend.push({ label: labels.get(templateId) ?? '•', name: nameById.get(templateId) ?? 'Workout' })
     }
   }
 
-  if (legend.length === 0) {return null}
+  if (legend.length === 0) {
+    return null
+  }
 
   return (
     <section aria-label="This week's training schedule" className="space-y-2">

@@ -5,6 +5,7 @@
 **Goal:** Let the AI generate a full multi-phase training Program for the user based on their profile (experience level, goal, training days, session duration, body weight) and the exercises available in their Gym. The Program spawns concrete Templates and weekly Schedules. After each Session finishes, the system evaluates whether the current Phase's performance signals warrant a change (phase transition, exercise swap, deload) and surfaces a pending Program Update for the user to accept or dismiss. Progression Suggestions continue to auto-populate set weights as before — no change to that flow.
 
 **Architecture:**
+
 - New `ProgramModule` with `ProgramService` (generation + adaptation) and `ProgramController`
 - Program generation: one Gemini call with user profile + available exercises + RAG coaching chunks → structured JSON → persisted as `programs` + `programPhases` + `programPhaseTemplates` + auto-created Templates and Schedules
 - Program adaptation: evaluated fire-and-forget on every `finishSession`, also exposed as `POST /programs/:id/evaluate` for manual re-trigger → produces a `programUpdates` row pending user acknowledgement → Templates and Schedules mutated only on acceptance
@@ -13,6 +14,7 @@
 **Tech Stack:** NestJS, Drizzle ORM (PostgreSQL), Gemini 2.5 Flash (same as Equipment Analysis + Progression Suggestions), CoachingKnowledgeService (existing RAG), Vitest, React + TanStack Query
 
 **Product flow this plan implements:**
+
 1. User sets up Gym + Equipment → Exercises exist ✓ (already built)
 2. First launch: Onboarding captures profile fields + training days
 3. User triggers "Create my Program" → AI generates Program
@@ -35,24 +37,24 @@
 
 ### User Profile extensions (2 new fields)
 
-| Field | Type | Description |
-|---|---|---|
-| `trainingDays` | `text` (JSON array) | e.g. `["monday","wednesday","friday"]` |
-| `sessionDurationMinutes` | `integer` | e.g. `60` |
+| Field                    | Type                | Description                            |
+| ------------------------ | ------------------- | -------------------------------------- |
+| `trainingDays`           | `text` (JSON array) | e.g. `["monday","wednesday","friday"]` |
+| `sessionDurationMinutes` | `integer`           | e.g. `60`                              |
 
 ### New tables
 
-| Table | Purpose |
-|---|---|
-| `programs` | Top-level Program record |
-| `program_phases` | Ordered Phase blocks within a Program |
-| `program_phase_templates` | Links a Phase to its Template(s), one per split day |
-| `program_updates` | Pending adaptation proposals awaiting user acknowledgement |
+| Table                     | Purpose                                                    |
+| ------------------------- | ---------------------------------------------------------- |
+| `programs`                | Top-level Program record                                   |
+| `program_phases`          | Ordered Phase blocks within a Program                      |
+| `program_phase_templates` | Links a Phase to its Template(s), one per split day        |
+| `program_updates`         | Pending adaptation proposals awaiting user acknowledgement |
 
 ### Existing table extensions
 
-| Table | New column | Purpose |
-|---|---|---|
+| Table              | New column                                             | Purpose                                      |
+| ------------------ | ------------------------------------------------------ | -------------------------------------------- |
 | `workout_sessions` | `program_phase_id` (nullable FK → `program_phases.id`) | Tag sessions started from a Program Schedule |
 
 ---
@@ -60,6 +62,7 @@
 ## File Map
 
 **Create:**
+
 - `apps/api/src/program/program.module.ts`
 - `apps/api/src/program/program.service.ts` — generation, adaptation evaluation, update apply
 - `apps/api/src/program/program.controller.ts` — CRUD + manual re-evaluate
@@ -67,6 +70,7 @@
 - `packages/shared/src/program.schema.ts` — shared types
 
 **Modify:**
+
 - `apps/api/src/drizzle/schema.ts` — 4 new tables + 2 userProfile fields + session column
 - `apps/api/src/app.module.ts` — import ProgramModule
 - `apps/api/src/workouts/workouts.service.ts` — call ProgramService.evaluateAfterSession fire-and-forget in finishSession
@@ -77,6 +81,7 @@
 - `apps/web/src/pages/ProgramPage.tsx` — Program view + pending updates (new file)
 
 **Generate (via drizzle-kit):**
+
 - `apps/api/src/drizzle/migrations/0006_programs.sql`
 
 ---
@@ -84,6 +89,7 @@
 ### Task 1: Schema — User Profile extensions + 4 new tables + session column
 
 **Files:**
+
 - Modify: `apps/api/src/drizzle/schema.ts`
 - Generate: `apps/api/src/drizzle/migrations/0006_*.sql`
 
@@ -93,13 +99,15 @@ Extend `userProfiles`:
 
 ```typescript
 export const userProfiles = pgTable('user_profiles', {
-  userId: text('user_id').primaryKey().references(() => users.id),
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id),
   age: integer('age'),
   heightCm: integer('height_cm'),
   experienceLevel: text('experience_level'),
   goal: text('goal'),
   trainingPhase: text('training_phase'),
-  trainingDays: text('training_days'),           // JSON: string[] e.g. ["monday","wednesday","friday"]
+  trainingDays: text('training_days'), // JSON: string[] e.g. ["monday","wednesday","friday"]
   sessionDurationMinutes: integer('session_duration_minutes'),
   updatedAt: integer('updated_at').notNull(),
 })
@@ -110,8 +118,10 @@ Add 4 new tables:
 ```typescript
 export const programs = pgTable('programs', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id),
-  name: text('name').notNull(),                  // AI-generated, user-facing
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  name: text('name').notNull(), // AI-generated, user-facing
   goal: text('goal').notNull(),
   experienceLevel: text('experience_level').notNull(),
   status: text('status').notNull().default('active'), // 'active' | 'completed' | 'abandoned'
@@ -120,31 +130,39 @@ export const programs = pgTable('programs', {
 
 export const programPhases = pgTable('program_phases', {
   id: text('id').primaryKey(),
-  programId: text('program_id').notNull().references(() => programs.id),
-  name: text('name').notNull(),                  // AI-generated, user-facing e.g. "Building Your Base"
-  type: text('type').notNull(),                  // 'accumulation' | 'strength' | 'peaking' | 'maintenance'
+  programId: text('program_id')
+    .notNull()
+    .references(() => programs.id),
+  name: text('name').notNull(), // AI-generated, user-facing e.g. "Building Your Base"
+  type: text('type').notNull(), // 'accumulation' | 'strength' | 'peaking' | 'maintenance'
   orderIndex: integer('order_index').notNull(),
   targetSessionCount: integer('target_session_count').notNull(), // e.g. 24 (3/week × 8 weeks)
   completedSessionCount: integer('completed_session_count').notNull().default(0),
-  splitType: text('split_type').notNull(),        // 'full_body' | 'upper_lower' | 'push_pull_legs'
-  rationale: text('rationale').notNull(),         // AI explanation shown to user
+  splitType: text('split_type').notNull(), // 'full_body' | 'upper_lower' | 'push_pull_legs'
+  rationale: text('rationale').notNull(), // AI explanation shown to user
   status: text('status').notNull().default('pending'), // 'pending' | 'active' | 'completed'
 })
 
 export const programPhaseTemplates = pgTable('program_phase_templates', {
   id: text('id').primaryKey(),
-  phaseId: text('phase_id').notNull().references(() => programPhases.id),
-  templateId: text('template_id').notNull().references(() => workoutTemplates.id),
-  dayLabel: text('day_label').notNull(),          // 'A', 'B', 'C' — rotation label within the split
+  phaseId: text('phase_id')
+    .notNull()
+    .references(() => programPhases.id),
+  templateId: text('template_id')
+    .notNull()
+    .references(() => workoutTemplates.id),
+  dayLabel: text('day_label').notNull(), // 'A', 'B', 'C' — rotation label within the split
 })
 
 export const programUpdates = pgTable('program_updates', {
   id: text('id').primaryKey(),
-  programId: text('program_id').notNull().references(() => programs.id),
-  type: text('type').notNull(),                  // 'phase_transition' | 'exercise_swap' | 'deload' | 'phase_extension'
-  description: text('description').notNull(),    // human-readable summary for the user
-  reason: text('reason').notNull(),              // coaching rationale
-  evidence: text('evidence').notNull(),          // JSON: string[] — specific numbers/signals cited
+  programId: text('program_id')
+    .notNull()
+    .references(() => programs.id),
+  type: text('type').notNull(), // 'phase_transition' | 'exercise_swap' | 'deload' | 'phase_extension'
+  description: text('description').notNull(), // human-readable summary for the user
+  reason: text('reason').notNull(), // coaching rationale
+  evidence: text('evidence').notNull(), // JSON: string[] — specific numbers/signals cited
   proposedChanges: text('proposed_changes').notNull(), // JSON: structured payload applied on accept
   status: text('status').notNull().default('pending'), // 'pending' | 'accepted' | 'dismissed'
   createdAt: integer('created_at').notNull(),
@@ -202,6 +220,7 @@ git commit -m "feat: add programs, program_phases, program_phase_templates, prog
 ### Task 2: Shared types
 
 **Files:**
+
 - Create: `packages/shared/src/program.schema.ts`
 - Modify: `packages/shared/src/index.ts`
 
@@ -303,10 +322,12 @@ git commit -m "feat: add Program shared types"
 ### Task 3: ProgramService — generation
 
 **Files:**
+
 - Create: `apps/api/src/program/program.service.ts`
 - Create: `apps/api/src/program/program.service.spec.ts`
 
 The generation flow:
+
 1. Validate prerequisites (user has goal + trainingDays + experienceLevel in profile; gym has exercises)
 2. Build situation summary for RAG
 3. Retrieve 5 coaching chunks via CoachingKnowledgeService
@@ -334,8 +355,17 @@ describe('ProgramService.buildGenerationPrompt', () => {
   it('includes experience level, goal, training days, and session duration', () => {
     const svc = new ProgramService(mockDb as any, mockConfig as any, mockCoaching as any)
     const prompt = svc.buildGenerationPrompt(
-      { experienceLevel: 'beginner', goal: 'hypertrophy', trainingDays: ['monday', 'wednesday', 'friday'], sessionDurationMinutes: 60, latestBodyWeightKg: 75 },
-      [{ id: 'squat-id', name: 'Squat', category: 'legs' }, { id: 'bench-id', name: 'Bench Press', category: 'push' }],
+      {
+        experienceLevel: 'beginner',
+        goal: 'hypertrophy',
+        trainingDays: ['monday', 'wednesday', 'friday'],
+        sessionDurationMinutes: 60,
+        latestBodyWeightKg: 75,
+      },
+      [
+        { id: 'squat-id', name: 'Squat', category: 'legs' },
+        { id: 'bench-id', name: 'Bench Press', category: 'push' },
+      ],
       ['Novice lifters adapt session-to-session.'],
     )
     expect(prompt).toContain('beginner')
@@ -350,7 +380,13 @@ describe('ProgramService.buildGenerationPrompt', () => {
   it('includes JSON output format instructions', () => {
     const svc = new ProgramService(mockDb as any, mockConfig as any, mockCoaching as any)
     const prompt = svc.buildGenerationPrompt(
-      { experienceLevel: 'beginner', goal: 'strength', trainingDays: ['tuesday', 'thursday'], sessionDurationMinutes: 45, latestBodyWeightKg: null },
+      {
+        experienceLevel: 'beginner',
+        goal: 'strength',
+        trainingDays: ['tuesday', 'thursday'],
+        sessionDurationMinutes: 45,
+        latestBodyWeightKg: null,
+      },
       [],
       [],
     )
@@ -420,8 +456,7 @@ import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { CoachingKnowledgeService } from '../progression/coaching-knowledge.service'
 
-const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 type UserProgramContext = {
   experienceLevel: string
@@ -440,7 +475,13 @@ type AvailableExercise = {
 type ParsedPhaseTemplate = {
   name: string
   dayLabel: string
-  exercises: { exerciseId: string; orderIndex: number; defaultSets: number; defaultReps: number; defaultWeightKg: number }[]
+  exercises: {
+    exerciseId: string
+    orderIndex: number
+    defaultSets: number
+    defaultReps: number
+    defaultWeightKg: number
+  }[]
 }
 
 type ParsedPhase = {
@@ -509,9 +550,10 @@ export class ProgramService {
 
   buildGenerationPrompt(user: UserProgramContext, exercises: AvailableExercise[], coachingChunks: string[]): string {
     const exerciseList = exercises.map(e => `- ${e.name} (${e.category ?? 'other'})`).join('\n')
-    const coachingSection = coachingChunks.length > 0
-      ? `COACHING PRINCIPLES (apply these when designing the program):\n${coachingChunks.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`
-      : ''
+    const coachingSection =
+      coachingChunks.length > 0
+        ? `COACHING PRINCIPLES (apply these when designing the program):\n${coachingChunks.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`
+        : ''
 
     return [
       'You are a certified strength and conditioning coach creating a personalised multi-phase training program.',
@@ -531,33 +573,37 @@ export class ProgramService {
       'Design a complete multi-phase training program. For a beginner: start with full-body 3x/week for 8 weeks (accumulation), then progress to an appropriate split for another 8 weeks. For intermediate/advanced: adjust phases accordingly.',
       '',
       'Return ONLY valid JSON in exactly this structure (no markdown, no explanation):',
-      JSON.stringify({
-        name: 'Program name (inspiring, concise)',
-        phases: [
-          {
-            name: 'Phase user-facing name',
-            type: 'accumulation | strength | peaking | maintenance',
-            durationWeeks: 8,
-            splitType: 'full_body | upper_lower | push_pull_legs',
-            rationale: 'Why this phase structure for this user (2-3 sentences shown to user)',
-            templates: [
-              {
-                name: 'Template name e.g. Full Body A',
-                dayLabel: 'A',
-                exercises: [
-                  {
-                    exerciseId: 'exact-exercise-id-from-list',
-                    orderIndex: 0,
-                    defaultSets: 3,
-                    defaultReps: 8,
-                    defaultWeightKg: 40,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      }, null, 2),
+      JSON.stringify(
+        {
+          name: 'Program name (inspiring, concise)',
+          phases: [
+            {
+              name: 'Phase user-facing name',
+              type: 'accumulation | strength | peaking | maintenance',
+              durationWeeks: 8,
+              splitType: 'full_body | upper_lower | push_pull_legs',
+              rationale: 'Why this phase structure for this user (2-3 sentences shown to user)',
+              templates: [
+                {
+                  name: 'Template name e.g. Full Body A',
+                  dayLabel: 'A',
+                  exercises: [
+                    {
+                      exerciseId: 'exact-exercise-id-from-list',
+                      orderIndex: 0,
+                      defaultSets: 3,
+                      defaultReps: 8,
+                      defaultWeightKg: 40,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        null,
+        2,
+      ),
       '',
       'Rules:',
       '- For beginners: 2 templates per full-body phase (A and B), alternating. 3-4 exercises per template max for 60-min sessions.',
@@ -606,7 +652,7 @@ export class ProgramService {
       const body = await response.text().catch(() => '(unreadable)')
       throw new Error(`Gemini program generation failed ${response.status}: ${body}`)
     }
-    const json = await response.json() as { candidates: { content: { parts: { text: string }[] } }[] }
+    const json = (await response.json()) as { candidates: { content: { parts: { text: string }[] } }[] }
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text
     if (!text) throw new Error('Gemini returned empty response')
     return JSON.parse(text)
@@ -742,8 +788,13 @@ export class ProgramService {
           const assignedDays = trainingDays.filter((_, idx) => idx % phase.templates.length === templateIndex)
           for (const day of assignedDays) {
             const DAY_MAP: Record<string, number> = {
-              sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-              thursday: 4, friday: 5, saturday: 6,
+              sunday: 0,
+              monday: 1,
+              tuesday: 2,
+              wednesday: 3,
+              thursday: 4,
+              friday: 5,
+              saturday: 6,
             }
             await this.db.insert(schema.workoutSchedules).values({
               id: randomUUID(),
@@ -1178,6 +1229,7 @@ git commit -m "feat: add ProgramService adaptation evaluation — evaluateAfterS
 ### Task 5: ProgramController + ProgramModule
 
 **Files:**
+
 - Create: `apps/api/src/program/program.controller.ts`
 - Create: `apps/api/src/program/program.module.ts`
 - Modify: `apps/api/src/app.module.ts`
@@ -1216,11 +1268,7 @@ export class ProgramController {
   }
 
   @Post('updates/:id/acknowledge')
-  acknowledgeUpdate(
-    @Param('id') id: string,
-    @Body() dto: AcknowledgeDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  acknowledgeUpdate(@Param('id') id: string, @Body() dto: AcknowledgeDto, @Req() req: AuthenticatedRequest) {
     return this.svc.acknowledgeProgramUpdate(id, req.user.id, dto.action)
   }
 }
@@ -1302,6 +1350,7 @@ Expected: exits 0.
 - [ ] **Step 7: Smoke test — generate a program**
 
 Start the API and call:
+
 ```bash
 curl -s -X POST http://localhost:3000/program/generate \
   -H "Content-Type: application/json" \
@@ -1322,6 +1371,7 @@ git commit -m "feat: add ProgramController and wire program evaluation into sess
 ### Task 6: Frontend — Onboarding + Profile settings
 
 **Files:**
+
 - Create: `apps/web/src/pages/OnboardingPage.tsx`
 - Modify: `apps/web/src/pages/ProfilePage.tsx` (or wherever profile is edited)
 
@@ -1334,6 +1384,7 @@ In `apps/web/src/api/profile.ts` (or equivalent), add the new fields to the upda
 - [ ] **Step 2: Build OnboardingPage**
 
 A multi-step form:
+
 1. Step 1: Experience level (beginner / intermediate / advanced) — radio cards
 2. Step 2: Goal (hypertrophy / strength / powerlifting / general) — radio cards
 3. Step 3: Training days — day-of-week checkboxes (Mon–Sun), must select 2–6
@@ -1360,6 +1411,7 @@ git commit -m "feat: add onboarding flow capturing experience, goal, training da
 ### Task 7: Frontend — Program view + Program Update acknowledgment
 
 **Files:**
+
 - Create: `apps/web/src/api/program.ts`
 - Create: `apps/web/src/pages/ProgramPage.tsx`
 
@@ -1377,6 +1429,7 @@ export const acknowledgeProgramUpdate = (id: string, action: 'accept' | 'dismiss
 - [ ] **Step 2: Build ProgramPage**
 
 Sections:
+
 1. **If no program**: "You don't have a Program yet. [Generate my Program]" button.
 2. **If program active**:
    - Program name + overall progress (current phase / total phases)
@@ -1393,6 +1446,7 @@ Sections:
 - [ ] **Step 3: Program Update card — what the user sees**
 
 Example for `phase_transition`:
+
 ```
 🎯 Ready to move on
 "Your Foundation phase is complete — you've finished 24 sessions."

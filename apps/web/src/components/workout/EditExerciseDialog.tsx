@@ -54,12 +54,7 @@ function EditExerciseForm({
             {remove.isError && (
               <p className="text-destructive mt-4 text-xs">Can’t delete: this exercise has logged sets or history.</p>
             )}
-            <Button
-              className="mt-6 w-full"
-              disabled={remove.isPending}
-              variant="ghost"
-              onClick={() => remove.mutate()}
-            >
+            <Button className="mt-6 w-full" disabled={remove.isPending} variant="ghost" onClick={() => remove.mutate()}>
               Delete exercise
             </Button>
           </>

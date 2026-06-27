@@ -19,7 +19,9 @@ const layoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'layout',
   beforeLoad: async ({ location }) => {
-    if (location.pathname === '/onboarding') {return}
+    if (location.pathname === '/onboarding') {
+      return
+    }
     // Onboarding gate. fetchQuery + staleTime: Infinity → hits the server once
     // per app load, then answers from cache, so in-app navigation (e.g. logger
     // → dashboard) never blocks on the network. Onboarding's invalidate of

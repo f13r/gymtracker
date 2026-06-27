@@ -65,13 +65,26 @@ export class ProgressionService {
 
   buildSituationSummary(
     exercises: ExerciseContext[],
-    user: { experienceLevel: string | null; latestBodyWeightKg: number | null; goal: string | null; trainingPhase: string | null },
+    user: {
+      experienceLevel: string | null
+      latestBodyWeightKg: number | null
+      goal: string | null
+      trainingPhase: string | null
+    },
   ): string {
     const parts: string[] = []
-    if (user.experienceLevel) {parts.push(`Experience level: ${user.experienceLevel}`)}
-    if (user.goal) {parts.push(`Goal: ${user.goal}`)}
-    if (user.trainingPhase) {parts.push(`Training phase: ${user.trainingPhase}`)}
-    if (user.latestBodyWeightKg) {parts.push(`Body weight: ${user.latestBodyWeightKg}kg`)}
+    if (user.experienceLevel) {
+      parts.push(`Experience level: ${user.experienceLevel}`)
+    }
+    if (user.goal) {
+      parts.push(`Goal: ${user.goal}`)
+    }
+    if (user.trainingPhase) {
+      parts.push(`Training phase: ${user.trainingPhase}`)
+    }
+    if (user.latestBodyWeightKg) {
+      parts.push(`Body weight: ${user.latestBodyWeightKg}kg`)
+    }
 
     for (const ex of exercises.slice(0, 3)) {
       const f = formatExerciseFacts(ex)
@@ -81,16 +94,16 @@ export class ProgressionService {
       const e1rmInfo = f.e1rmCurrent !== null ? `e1RM ${f.e1rmCurrent}kg` : 'e1RM n/a'
       parts.push(
         `Exercise: ${f.nameWithCategory}, ` +
-        `${f.sessionCount} sessions logged, ` +
-        `${f.consecutiveWeeksActive} weeks active, ` +
-        `last: ${f.lastSet ?? 'no data'}, ` +
-        `${twoForTwoInfo}, ` +
-        `PR: ${f.prWeightKg ?? 'none'}kg, ` +
-        `${e1rmInfo}, ` +
-        `volume trend: ${f.volumeTrend}, ` +
-        `category ${f.categoryWeeklySetCount} sets/week, ` +
-        `${f.hoursSinceCategorySession !== null ? `${f.hoursSinceCategorySession}h since last ${f.category ?? 'category'} session` : 'no prior category session'}, ` +
-        `freq: ${f.weeklyFrequency}/week`,
+          `${f.sessionCount} sessions logged, ` +
+          `${f.consecutiveWeeksActive} weeks active, ` +
+          `last: ${f.lastSet ?? 'no data'}, ` +
+          `${twoForTwoInfo}, ` +
+          `PR: ${f.prWeightKg ?? 'none'}kg, ` +
+          `${e1rmInfo}, ` +
+          `volume trend: ${f.volumeTrend}, ` +
+          `category ${f.categoryWeeklySetCount} sets/week, ` +
+          `${f.hoursSinceCategorySession !== null ? `${f.hoursSinceCategorySession}h since last ${f.category ?? 'category'} session` : 'no prior category session'}, ` +
+          `freq: ${f.weeklyFrequency}/week`,
       )
     }
 
@@ -99,7 +112,14 @@ export class ProgressionService {
 
   buildPrompt(
     exercises: ExerciseContext[],
-    user: { age: number | null; heightCm: number | null; experienceLevel: string | null; latestBodyWeightKg: number | null; goal: string | null; trainingPhase: string | null },
+    user: {
+      age: number | null
+      heightCm: number | null
+      experienceLevel: string | null
+      latestBodyWeightKg: number | null
+      goal: string | null
+      trainingPhase: string | null
+    },
     coachingChunks: string[] = [],
   ): string {
     const userLine = [
@@ -117,9 +137,7 @@ export class ProgressionService {
       .map(ex => {
         const f = formatExerciseFacts(ex)
         const prLine = f.prWeightKg ? `PR: ${f.prWeightKg}kg × ${f.prReps ?? '?'} reps` : 'PR: none recorded'
-        const volumeLine = f.volumeSeries
-          ? `4-week volume: ${f.volumeSeries}`
-          : '4-week volume: insufficient data'
+        const volumeLine = f.volumeSeries ? `4-week volume: ${f.volumeSeries}` : '4-week volume: insufficient data'
         const twoForTwo = f.twoForTwoTopSets
           ? `Last 2 sessions top sets: ${f.twoForTwoTopSets}`
           : 'Last 2 sessions: insufficient history'
@@ -174,15 +192,14 @@ export class ProgressionService {
             items: {
               type: 'OBJECT',
               properties: {
-                exerciseId:        { type: 'STRING' },
-                suggestedSets:     { type: 'INTEGER' },
-                suggestedReps:     { type: 'INTEGER' },
+                exerciseId: { type: 'STRING' },
+                suggestedSets: { type: 'INTEGER' },
+                suggestedReps: { type: 'INTEGER' },
                 suggestedWeightKg: { type: 'NUMBER' },
-                reason:            { type: 'STRING' },
-                evidence:          { type: 'ARRAY', items: { type: 'STRING' } },
+                reason: { type: 'STRING' },
+                evidence: { type: 'ARRAY', items: { type: 'STRING' } },
               },
-              required: ['exerciseId', 'suggestedSets', 'suggestedReps',
-                         'suggestedWeightKg', 'reason', 'evidence'],
+              required: ['exerciseId', 'suggestedSets', 'suggestedReps', 'suggestedWeightKg', 'reason', 'evidence'],
             },
           },
         },
@@ -198,7 +215,9 @@ export class ProgressionService {
       .from(schema.sets)
       .where(and(eq(schema.sets.sessionId, sessionId), doneSetFilter, isNotNull(schema.sets.exerciseId)))
 
-    if (doneRows.length === 0) {return}
+    if (doneRows.length === 0) {
+      return
+    }
 
     const [userCtx, ...exerciseContexts] = await Promise.all([
       this.getUserContext(userId),
@@ -206,7 +225,9 @@ export class ProgressionService {
     ])
 
     const validContexts = exerciseContexts.filter((c): c is ExerciseContext => c !== null)
-    if (validContexts.length === 0) {return}
+    if (validContexts.length === 0) {
+      return
+    }
 
     const situationSummary = this.buildSituationSummary(validContexts, userCtx)
     let coachingChunks: string[] = []
@@ -228,7 +249,9 @@ export class ProgressionService {
 
     const now = Math.floor(Date.now() / 1000)
     for (const s of suggestions) {
-      if (!isPersistableSuggestion(s)) {continue}
+      if (!isPersistableSuggestion(s)) {
+        continue
+      }
       await this.db
         .insert(schema.progressionSuggestions)
         .values({
@@ -263,14 +286,13 @@ export class ProgressionService {
       .select()
       .from(schema.progressionSuggestions)
       .where(
-        and(
-          eq(schema.progressionSuggestions.exerciseId, exerciseId),
-          eq(schema.progressionSuggestions.userId, userId),
-        ),
+        and(eq(schema.progressionSuggestions.exerciseId, exerciseId), eq(schema.progressionSuggestions.userId, userId)),
       )
       .limit(1)
 
-    if (!row) {return null}
+    if (!row) {
+      return null
+    }
 
     return {
       id: row.id,

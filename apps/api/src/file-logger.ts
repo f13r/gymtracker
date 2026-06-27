@@ -29,7 +29,9 @@ export class FileLogger extends ConsoleLogger {
   error(message: unknown, stack?: string, context?: string) {
     super.error(message, stack, context)
     write(fmt('error', message, context))
-    if (stack) {write(stack)}
+    if (stack) {
+      write(stack)
+    }
   }
 
   warn(message: unknown, context?: string) {

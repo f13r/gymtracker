@@ -103,8 +103,7 @@ producing `"9.6kkg"`. Fix both so the unit reads `kg` once.
 - [x] Fix the "was …" site at `dashboard.tsx:77`: `` `${fmtVol(prevVolume!)}kg` ``
       renders `9.6kkg`. Render the numeric value via `fmtVol` and the `kg` unit
       separately so the value is never glued to a literal `kg` after the `k`
-      suffix. Match the existing current-value treatment (`fmtVol(currentVolume)`
-      + a separate `<span>…kg</span>`, `dashboard.tsx:66-70`) so the "was" label
+      suffix. Match the existing current-value treatment (`fmtVol(currentVolume)` + a separate `<span>…kg</span>`, `dashboard.tsx:66-70`) so the "was" label
       and the current value format identically.
 - [x] Fix the exceeded-exercises site at `dashboard.tsx:113`:
       `+{fmtVol(ex.delta)}kg` produces `kkg` for any delta ≥ 1000. Apply the same
@@ -132,9 +131,7 @@ displayed as `—` (a difference from "nothing").
       deltas — those encode a bodyweight-Volume stance that belongs to the
       separate issue. The only change is gating the delta's visibility. (Only the
       delta-visibility guard changed; the `—` fallback and `deltaVol` math are untouched.)
-- [x] Verify: an all-bodyweight current session (currentVolume 0, prevVolume
-      9600) shows `—` with no delta; a weighted current session (currentVolume
-      > 0) still shows its delta exactly as before. [manual visual test skipped -
+- [x] Verify: an all-bodyweight current session (currentVolume 0, prevVolume 9600) shows `—` with no delta; a weighted current session (currentVolume > 0) still shows its delta exactly as before. [manual visual test skipped -
       not automatable; verified by code: with currentVolume 0 the current value
       renders `—` (line 66) AND the delta guard's `currentVolume > 0` is false so
       the delta block is not rendered; with currentVolume > 0 the guard reduces to

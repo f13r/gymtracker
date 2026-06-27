@@ -41,9 +41,7 @@ export function GymPage() {
     <div className="flex h-full flex-col">
       <div className="border-border flex items-start justify-between border-b px-4 pt-4 pb-3">
         <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-            Equipment
-          </p>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Equipment</p>
           <h1 className="font-display font-700 text-3xl tracking-wide">GYM</h1>
         </div>
         <button
@@ -57,16 +55,12 @@ export function GymPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {isLoading && (
-          <div className="text-muted-foreground p-8 text-center text-sm">Loading…</div>
-        )}
+        {isLoading && <div className="text-muted-foreground p-8 text-center text-sm">Loading…</div>}
 
         {!isLoading && equipment.length === 0 && (
           <div className="flex flex-col items-center gap-4 p-8 text-center">
             <p className="font-semibold">No equipment yet</p>
-            <p className="text-muted-foreground text-sm">
-              Photograph a piece of gym equipment to get started
-            </p>
+            <p className="text-muted-foreground text-sm">Photograph a piece of gym equipment to get started</p>
             <button
               className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-5 py-2.5 text-sm tracking-wide uppercase transition-transform active:scale-95"
               type="button"
@@ -78,10 +72,7 @@ export function GymPage() {
         )}
 
         {equipment.map((item: EquipmentWithExercises) => (
-          <div
-            key={item.id}
-            className="border-border/50 flex items-center gap-3 border-b px-4 py-3"
-          >
+          <div key={item.id} className="border-border/50 flex items-center gap-3 border-b px-4 py-3">
             <img
               alt={item.name}
               className="bg-muted size-14 flex-shrink-0 rounded-xl object-cover"

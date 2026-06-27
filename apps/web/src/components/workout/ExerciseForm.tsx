@@ -84,7 +84,11 @@ export function ExerciseForm({
         onClick={() => fileInput.current?.click()}
       >
         {previewUrl ? (
-          <img alt={`${name || 'Exercise'} demonstration`} className="h-full w-full object-contain p-2" src={previewUrl} />
+          <img
+            alt={`${name || 'Exercise'} demonstration`}
+            className="h-full w-full object-contain p-2"
+            src={previewUrl}
+          />
         ) : (
           <span className="text-muted-foreground flex flex-col items-center gap-1.5 text-sm">
             <ImagePlus size={24} strokeWidth={1.5} />
@@ -172,11 +176,7 @@ export function ExerciseForm({
 
       {footerExtra}
 
-      <Button
-        className="w-full"
-        disabled={name.trim() === '' || save.isPending}
-        onClick={() => save.mutate()}
-      >
+      <Button className="w-full" disabled={name.trim() === '' || save.isPending} onClick={() => save.mutate()}>
         {save.isPending ? 'Saving…' : editing ? 'Save' : 'Add exercise'}
       </Button>
     </div>

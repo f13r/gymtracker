@@ -38,7 +38,9 @@ const DEFAULT_EXERCISES = [
 ]
 
 async function main() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/gymtracker' })
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/gymtracker',
+  })
 
   try {
     console.log('Erasing user data...')
@@ -67,10 +69,11 @@ async function main() {
     console.log('User data erased.')
 
     console.log('Seeding default user...')
-    await pool.query(
-      `INSERT INTO users (id, display_name, created_at) VALUES ($1, $2, $3)`,
-      ['default-user', 'Viktor', Math.floor(Date.now() / 1000)],
-    )
+    await pool.query(`INSERT INTO users (id, display_name, created_at) VALUES ($1, $2, $3)`, [
+      'default-user',
+      'Viktor',
+      Math.floor(Date.now() / 1000),
+    ])
 
     console.log(`Seeding ${DEFAULT_EXERCISES.length} default exercises...`)
     const now = Math.floor(Date.now() / 1000)

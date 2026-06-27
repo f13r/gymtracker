@@ -13,6 +13,7 @@
 ## File Map
 
 ### New files
+
 - `apps/api/src/gemini/gemini.adapter.ts` — GeminiAdapter (generate + embed + model fallback)
 - `apps/api/src/gemini/gemini.module.ts` — @Global() GeminiModule
 - `apps/api/src/gemini/gemini.adapter.spec.ts` — unit tests
@@ -25,6 +26,7 @@
 - `apps/api/src/workouts/session-event.service.ts` — post-session async hook dispatcher
 
 ### Modified files
+
 - `apps/api/src/progression/progression.service.ts` — reduced to orchestration only
 - `apps/api/src/progression/progression.module.ts` — adds ExerciseHistoryService, CoachingModule
 - `apps/api/src/progression/progression.service.spec.ts` — updated imports
@@ -39,6 +41,7 @@
 - `apps/api/src/app.module.ts` — imports GeminiModule + CoachingModule
 
 ### Deleted files
+
 - `apps/api/src/gym/gym.service.ts`
 - `apps/api/src/gym/gym.module.ts`
 - `apps/api/src/sessions/session.repository.ts`
@@ -52,6 +55,7 @@
 ## Task 1: Fold GymService into EquipmentService
 
 **Files:**
+
 - Modify: `apps/api/src/equipment/equipment.service.ts`
 - Modify: `apps/api/src/equipment/equipment.module.ts`
 - Delete: `apps/api/src/gym/gym.service.ts`
@@ -62,6 +66,7 @@
 Open `apps/api/src/equipment/equipment.service.ts`. Replace the gym-related constructor injection and the `create()` call to `gymService`:
 
 Before (constructor):
+
 ```typescript
 constructor(
   @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
@@ -75,6 +80,7 @@ constructor(
 ```
 
 After (constructor):
+
 ```typescript
 constructor(
   @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
@@ -87,16 +93,19 @@ constructor(
 ```
 
 Before (first line of `create()`):
+
 ```typescript
 const gym = await this.gymService.getOrCreateForUser(userId)
 ```
 
 After (same first line of `create()`):
+
 ```typescript
 const gym = await this.getOrCreateGym(userId)
 ```
 
 Add private helper at end of class (before the closing brace):
+
 ```typescript
 private async getOrCreateGym(userId: string): Promise<typeof schema.gyms.$inferSelect> {
   const [existing] = await this.db.select().from(schema.gyms).where(eq(schema.gyms.userId, userId)).limit(1)
@@ -160,6 +169,7 @@ git commit -m "refactor: fold GymService into EquipmentService (candidate 6a)"
 ## Task 2: Fold SessionRepository into its callers
 
 **Files:**
+
 - Modify: `apps/api/src/workouts/workouts.service.ts`
 - Modify: `apps/api/src/workouts/workouts.module.ts`
 - Modify: `apps/api/src/sets/sets.service.ts`
@@ -174,6 +184,7 @@ In `apps/api/src/workouts/workouts.service.ts`:
 Remove `SessionRepository` import and constructor injection. Remove `private sessions: SessionRepository` from constructor.
 
 Replace `getActiveSession`:
+
 ```typescript
 async getActiveSession(userId: string) {
   const [row] = await this.db
@@ -230,6 +241,7 @@ Change every `await this.sessions.assertActive(sessionId, userId)` call to `awai
 Add these imports at top of the file: `import { eq, and } from 'drizzle-orm'` (they may already exist), `import * as schema from '../drizzle/schema'` (if not already), and `import { BadRequestException } from '@nestjs/common'` (add if not present — check what's already imported from `@nestjs/common`).
 
 The full updated constructor for SetsService:
+
 ```typescript
 constructor(
   @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
@@ -283,6 +295,7 @@ git commit -m "refactor: fold SessionRepository into WorkoutsService and SetsSer
 ## Task 3: Create GeminiAdapter
 
 **Files:**
+
 - Create: `apps/api/src/gemini/gemini.adapter.ts`
 - Create: `apps/api/src/gemini/gemini.module.ts`
 - Create: `apps/api/src/gemini/gemini.adapter.spec.ts`
@@ -311,7 +324,9 @@ function makeCandidates(text: string) {
 }
 
 describe('GeminiAdapter.generate', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
   it('calls gemini-2.5-flash by default and parses JSON response', async () => {
     const payload = { suggestions: [{ exerciseId: 'x', suggestedSets: 3 }] }
@@ -368,7 +383,8 @@ describe('GeminiAdapter.generate', () => {
   })
 
   it('switches to gemini-2.0-flash on 429 and retries', async () => {
-    global.fetch = vi.fn()
+    global.fetch = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, status: 429, text: async () => 'rate limited' })
       .mockResolvedValueOnce({ ok: true, json: async () => makeCandidates('{"ok":true}') })
 
@@ -384,7 +400,8 @@ describe('GeminiAdapter.generate', () => {
   })
 
   it('stays on fallback model after switching', async () => {
-    global.fetch = vi.fn()
+    global.fetch = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, status: 429, text: async () => 'rate limited' })
       .mockResolvedValue({ ok: true, json: async () => makeCandidates('{"ok":true}') })
 
@@ -399,7 +416,8 @@ describe('GeminiAdapter.generate', () => {
   })
 
   it('throws on 503 without retry when already on fallback', async () => {
-    global.fetch = vi.fn()
+    global.fetch = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, status: 429, text: async () => 'rate limited' })
       .mockResolvedValueOnce({ ok: true, json: async () => makeCandidates('{"ok":true}') })
       .mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'unavailable' })
@@ -467,7 +485,10 @@ const PRIMARY_MODEL = 'gemini-2.5-flash'
 const FALLBACK_MODEL = 'gemini-2.0-flash'
 
 class GeminiHttpError extends Error {
-  constructor(readonly status: number, readonly body: string) {
+  constructor(
+    readonly status: number,
+    readonly body: string,
+  ) {
     super(`Gemini ${status}: ${body}`)
   }
 }
@@ -541,7 +562,7 @@ export class GeminiAdapter {
       throw new GeminiHttpError(res.status, errBody)
     }
 
-    const json = await res.json() as { candidates: { content: { parts: { text: string }[] } }[] }
+    const json = (await res.json()) as { candidates: { content: { parts: { text: string }[] } }[] }
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text
     if (!text) throw new Error('Gemini returned empty response')
     return text
@@ -562,7 +583,7 @@ export class GeminiAdapter {
       throw new Error(`Gemini embed ${res.status}: ${errBody}`)
     }
 
-    const json = await res.json() as { embedding: { values: number[] } }
+    const json = (await res.json()) as { embedding: { values: number[] } }
     return json.embedding.values
   }
 }
@@ -625,6 +646,7 @@ git commit -m "feat: add GeminiAdapter with auto-fallback to gemini-2.0-flash on
 ## Task 4: Create CoachingModule
 
 **Files:**
+
 - Create: `apps/api/src/coaching/coaching-knowledge.service.ts`
 - Create: `apps/api/src/coaching/coaching-knowledge.ts`
 - Create: `apps/api/src/coaching/coaching.module.ts`
@@ -663,7 +685,9 @@ const mockDb = {
 }
 
 describe('CoachingKnowledgeService.retrieveForSituation', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
   it('uses GeminiAdapter.embed to build query vector and returns content strings', async () => {
     const vector = Array(768).fill(0.1)
@@ -728,10 +752,7 @@ export class CoachingKnowledgeService implements OnModuleInit {
   }
 
   private async seedIfEmpty() {
-    const rows = await this.db
-      .select({ id: schema.coachingKnowledge.id })
-      .from(schema.coachingKnowledge)
-      .limit(1)
+    const rows = await this.db.select({ id: schema.coachingKnowledge.id }).from(schema.coachingKnowledge).limit(1)
 
     if (rows.length > 0) {
       this.logger.log(`Coaching knowledge already seeded (${rows.length}+ rows), skipping`)
@@ -819,11 +840,13 @@ export class ProgressionModule {}
 In `apps/api/src/progression/progression.service.ts`, update the `CoachingKnowledgeService` import:
 
 Before:
+
 ```typescript
 import { CoachingKnowledgeService } from './coaching-knowledge.service'
 ```
 
 After:
+
 ```typescript
 import { CoachingKnowledgeService } from '../coaching/coaching-knowledge.service'
 ```
@@ -853,11 +876,13 @@ export class ProgramModule {}
 In `apps/api/src/program/program.service.ts`, update:
 
 Before:
+
 ```typescript
 import { CoachingKnowledgeService } from '../progression/coaching-knowledge.service'
 ```
 
 After:
+
 ```typescript
 import { CoachingKnowledgeService } from '../coaching/coaching-knowledge.service'
 ```
@@ -910,6 +935,7 @@ git commit -m "refactor: move CoachingKnowledgeService to its own CoachingModule
 ## Task 5: Extract ExerciseHistoryService and ProgressionPromptBuilder
 
 **Files:**
+
 - Create: `apps/api/src/progression/exercise-history.service.ts`
 - Create: `apps/api/src/progression/progression-prompt.builder.ts`
 - Modify: `apps/api/src/progression/progression.service.ts`
@@ -957,11 +983,7 @@ export type UserContext = {
 export class ExerciseHistoryService {
   constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
 
-  async buildExerciseContext(
-    exerciseId: string,
-    userId: string,
-    sessionId: string,
-  ): Promise<ExerciseContext | null> {
+  async buildExerciseContext(exerciseId: string, userId: string, sessionId: string): Promise<ExerciseContext | null> {
     const [exercise] = await this.db
       .select({ name: schema.exercises.name, category: schema.exercises.category })
       .from(schema.exercises)
@@ -1049,9 +1071,7 @@ export class ExerciseHistoryService {
         GROUP BY week
       ) t
     `)
-    const categoryWeeklySetCount = Math.round(
-      Number((catSetsResult.rows[0] as { avg_sets: string })?.avg_sets ?? 0),
-    )
+    const categoryWeeklySetCount = Math.round(Number((catSetsResult.rows[0] as { avg_sets: string })?.avg_sets ?? 0))
 
     const catLastResult = await this.db.execute(sql`
       SELECT MAX(ws.finished_at) AS last_at
@@ -1063,9 +1083,7 @@ export class ExerciseHistoryService {
         AND ws.id != ${sessionId}
     `)
     const lastCatAt = (catLastResult.rows[0] as { last_at: number | null })?.last_at
-    const hoursSinceCategorySession = lastCatAt
-      ? Math.round((Date.now() / 1000 - lastCatAt) / 3600)
-      : null
+    const hoursSinceCategorySession = lastCatAt ? Math.round((Date.now() / 1000 - lastCatAt) / 3600) : null
 
     const consWeeksResult = await this.db.execute(sql`
       WITH weekly AS (
@@ -1092,9 +1110,7 @@ export class ExerciseHistoryService {
       FROM ranked
       WHERE week = expected_week
     `)
-    const consecutiveWeeksActive = Number(
-      (consWeeksResult.rows[0] as { consecutive: string })?.consecutive ?? 1,
-    )
+    const consecutiveWeeksActive = Number((consWeeksResult.rows[0] as { consecutive: string })?.consecutive ?? 1)
 
     return {
       exerciseId,
@@ -1174,26 +1190,22 @@ export class ProgressionPromptBuilder {
           : 'fewer than 2 prior sessions'
       parts.push(
         `Exercise: ${ex.name}${ex.category ? ` (${ex.category})` : ''}, ` +
-        `${ex.sessionCount} sessions logged, ` +
-        `${ex.consecutiveWeeksActive} weeks active, ` +
-        `last: ${lastSet ? `${lastSet.weightKg ?? 0}kg×${lastSet.reps ?? 0}${lastSet.rpe ? ` @RPE${lastSet.rpe}` : ''}` : 'no data'}, ` +
-        `${twoForTwoInfo}, ` +
-        `PR: ${ex.prWeightKg ?? 'none'}kg, ` +
-        `volume trend: ${volumeTrend}, ` +
-        `category ${ex.categoryWeeklySetCount} sets/week, ` +
-        `${ex.hoursSinceCategorySession !== null ? `${ex.hoursSinceCategorySession}h since last ${ex.category ?? 'category'} session` : 'no prior category session'}, ` +
-        `freq: ${ex.weeklyFrequency}/week`,
+          `${ex.sessionCount} sessions logged, ` +
+          `${ex.consecutiveWeeksActive} weeks active, ` +
+          `last: ${lastSet ? `${lastSet.weightKg ?? 0}kg×${lastSet.reps ?? 0}${lastSet.rpe ? ` @RPE${lastSet.rpe}` : ''}` : 'no data'}, ` +
+          `${twoForTwoInfo}, ` +
+          `PR: ${ex.prWeightKg ?? 'none'}kg, ` +
+          `volume trend: ${volumeTrend}, ` +
+          `category ${ex.categoryWeeklySetCount} sets/week, ` +
+          `${ex.hoursSinceCategorySession !== null ? `${ex.hoursSinceCategorySession}h since last ${ex.category ?? 'category'} session` : 'no prior category session'}, ` +
+          `freq: ${ex.weeklyFrequency}/week`,
       )
     }
 
     return parts.join('. ')
   }
 
-  static buildPrompt(
-    exercises: ExerciseContext[],
-    user: UserContext,
-    coachingChunks: string[] = [],
-  ): string {
+  static buildPrompt(exercises: ExerciseContext[], user: UserContext, coachingChunks: string[] = []): string {
     const userLine = [
       user.age && `Age: ${user.age}`,
       user.heightCm && `Height: ${user.heightCm}cm`,
@@ -1264,22 +1276,31 @@ import { ProgressionPromptBuilder } from './progression-prompt.builder'
 describe('ProgressionPromptBuilder.buildPrompt', () => {
   it('includes exercise block with id, name, and session sets', () => {
     const result = ProgressionPromptBuilder.buildPrompt(
-      [{
-        exerciseId: 'bench-id',
-        name: 'Bench Press',
-        category: 'push',
-        lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: null }],
-        prWeightKg: 90,
-        prReps: 3,
-        weeklyVolumes: [{ week: '2026-W20', volume: 1920 }],
-        weeklyFrequency: 2,
-        sessionCount: 5,
-        lastTwoSessions: [],
-        categoryWeeklySetCount: 10,
-        hoursSinceCategorySession: null,
-        consecutiveWeeksActive: 4,
-      }],
-      { age: 32, heightCm: 180, experienceLevel: 'intermediate', latestBodyWeightKg: 82, goal: null, trainingPhase: null },
+      [
+        {
+          exerciseId: 'bench-id',
+          name: 'Bench Press',
+          category: 'push',
+          lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: null }],
+          prWeightKg: 90,
+          prReps: 3,
+          weeklyVolumes: [{ week: '2026-W20', volume: 1920 }],
+          weeklyFrequency: 2,
+          sessionCount: 5,
+          lastTwoSessions: [],
+          categoryWeeklySetCount: 10,
+          hoursSinceCategorySession: null,
+          consecutiveWeeksActive: 4,
+        },
+      ],
+      {
+        age: 32,
+        heightCm: 180,
+        experienceLevel: 'intermediate',
+        latestBodyWeightKg: 82,
+        goal: null,
+        trainingPhase: null,
+      },
     )
     expect(result).toContain('[bench-id] Bench Press (push)')
     expect(result).toContain('set1 80kg×8')
@@ -1290,21 +1311,23 @@ describe('ProgressionPromptBuilder.buildPrompt', () => {
 
   it('shows "insufficient data" when no weekly volumes', () => {
     const result = ProgressionPromptBuilder.buildPrompt(
-      [{
-        exerciseId: 'squat-id',
-        name: 'Squat',
-        category: 'legs',
-        lastSets: [],
-        prWeightKg: null,
-        prReps: null,
-        weeklyVolumes: [],
-        weeklyFrequency: 1,
-        sessionCount: 1,
-        lastTwoSessions: [],
-        categoryWeeklySetCount: 0,
-        hoursSinceCategorySession: null,
-        consecutiveWeeksActive: 1,
-      }],
+      [
+        {
+          exerciseId: 'squat-id',
+          name: 'Squat',
+          category: 'legs',
+          lastSets: [],
+          prWeightKg: null,
+          prReps: null,
+          weeklyVolumes: [],
+          weeklyFrequency: 1,
+          sessionCount: 1,
+          lastTwoSessions: [],
+          categoryWeeklySetCount: 0,
+          hoursSinceCategorySession: null,
+          consecutiveWeeksActive: 1,
+        },
+      ],
       { age: null, heightCm: null, experienceLevel: null, latestBodyWeightKg: null, goal: null, trainingPhase: null },
     )
     expect(result).toContain('4-week volume: insufficient data')
@@ -1315,10 +1338,12 @@ describe('ProgressionPromptBuilder.buildPrompt', () => {
 
 describe('ProgressionPromptBuilder.buildSituationSummary', () => {
   it('includes experience level, goal, training phase, and body weight', () => {
-    const result = ProgressionPromptBuilder.buildSituationSummary(
-      [],
-      { experienceLevel: 'intermediate', latestBodyWeightKg: 82, goal: 'hypertrophy', trainingPhase: 'accumulation' },
-    )
+    const result = ProgressionPromptBuilder.buildSituationSummary([], {
+      experienceLevel: 'intermediate',
+      latestBodyWeightKg: 82,
+      goal: 'hypertrophy',
+      trainingPhase: 'accumulation',
+    })
     expect(result).toContain('intermediate')
     expect(result).toContain('82kg')
     expect(result).toContain('hypertrophy')
@@ -1327,24 +1352,29 @@ describe('ProgressionPromptBuilder.buildSituationSummary', () => {
 
   it('includes exercise name, volume trend, session count, and category session gap', () => {
     const result = ProgressionPromptBuilder.buildSituationSummary(
-      [{
-        exerciseId: 'bench-id',
-        name: 'Bench Press',
-        category: 'push',
-        lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: 7 }],
-        prWeightKg: 90,
-        prReps: 3,
-        weeklyVolumes: [
-          { week: '2026-W19', volume: 1800 },
-          { week: '2026-W20', volume: 1920 },
-        ],
-        weeklyFrequency: 3,
-        sessionCount: 5,
-        lastTwoSessions: [{ weightKg: 80, reps: 10 }, { weightKg: 80, reps: 11 }],
-        categoryWeeklySetCount: 12,
-        hoursSinceCategorySession: 72,
-        consecutiveWeeksActive: 6,
-      }],
+      [
+        {
+          exerciseId: 'bench-id',
+          name: 'Bench Press',
+          category: 'push',
+          lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: 7 }],
+          prWeightKg: 90,
+          prReps: 3,
+          weeklyVolumes: [
+            { week: '2026-W19', volume: 1800 },
+            { week: '2026-W20', volume: 1920 },
+          ],
+          weeklyFrequency: 3,
+          sessionCount: 5,
+          lastTwoSessions: [
+            { weightKg: 80, reps: 10 },
+            { weightKg: 80, reps: 11 },
+          ],
+          categoryWeeklySetCount: 12,
+          hoursSinceCategorySession: 72,
+          consecutiveWeeksActive: 6,
+        },
+      ],
       { experienceLevel: null, latestBodyWeightKg: null, goal: null, trainingPhase: null },
     )
     expect(result).toContain('Bench Press')
@@ -1360,22 +1390,31 @@ describe('ProgressionPromptBuilder.buildSituationSummary', () => {
 describe('ProgressionPromptBuilder.buildPrompt with coaching chunks', () => {
   it('includes COACHING PRINCIPLES section when chunks are provided', () => {
     const result = ProgressionPromptBuilder.buildPrompt(
-      [{
-        exerciseId: 'bench-id',
-        name: 'Bench Press',
-        category: 'push',
-        lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: null }],
-        prWeightKg: 90,
-        prReps: 3,
-        weeklyVolumes: [],
-        weeklyFrequency: 2,
-        sessionCount: 4,
-        lastTwoSessions: [],
-        categoryWeeklySetCount: 8,
-        hoursSinceCategorySession: null,
-        consecutiveWeeksActive: 3,
-      }],
-      { age: null, heightCm: null, experienceLevel: 'intermediate', latestBodyWeightKg: null, goal: 'hypertrophy', trainingPhase: 'accumulation' },
+      [
+        {
+          exerciseId: 'bench-id',
+          name: 'Bench Press',
+          category: 'push',
+          lastSets: [{ setNumber: 1, weightKg: 80, reps: 8, rpe: null }],
+          prWeightKg: 90,
+          prReps: 3,
+          weeklyVolumes: [],
+          weeklyFrequency: 2,
+          sessionCount: 4,
+          lastTwoSessions: [],
+          categoryWeeklySetCount: 8,
+          hoursSinceCategorySession: null,
+          consecutiveWeeksActive: 3,
+        },
+      ],
+      {
+        age: null,
+        heightCm: null,
+        experienceLevel: 'intermediate',
+        latestBodyWeightKg: null,
+        goal: 'hypertrophy',
+        trainingPhase: 'accumulation',
+      },
       ['Intermediate lifters progress weekly.', 'RPE target is 7–8.'],
     )
     expect(result).toContain('COACHING PRINCIPLES')
@@ -1385,21 +1424,23 @@ describe('ProgressionPromptBuilder.buildPrompt with coaching chunks', () => {
 
   it('omits COACHING PRINCIPLES section when no chunks provided', () => {
     const result = ProgressionPromptBuilder.buildPrompt(
-      [{
-        exerciseId: 'squat-id',
-        name: 'Squat',
-        category: 'legs',
-        lastSets: [],
-        prWeightKg: null,
-        prReps: null,
-        weeklyVolumes: [],
-        weeklyFrequency: 1,
-        sessionCount: 1,
-        lastTwoSessions: [],
-        categoryWeeklySetCount: 0,
-        hoursSinceCategorySession: null,
-        consecutiveWeeksActive: 1,
-      }],
+      [
+        {
+          exerciseId: 'squat-id',
+          name: 'Squat',
+          category: 'legs',
+          lastSets: [],
+          prWeightKg: null,
+          prReps: null,
+          weeklyVolumes: [],
+          weeklyFrequency: 1,
+          sessionCount: 1,
+          lastTwoSessions: [],
+          categoryWeeklySetCount: 0,
+          hoursSinceCategorySession: null,
+          consecutiveWeeksActive: 1,
+        },
+      ],
       { age: null, heightCm: null, experienceLevel: null, latestBodyWeightKg: null, goal: null, trainingPhase: null },
       [],
     )
@@ -1451,12 +1492,12 @@ const SUGGESTION_SCHEMA = {
       items: {
         type: 'OBJECT',
         properties: {
-          exerciseId:        { type: 'STRING' },
-          suggestedSets:     { type: 'INTEGER' },
-          suggestedReps:     { type: 'INTEGER' },
+          exerciseId: { type: 'STRING' },
+          suggestedSets: { type: 'INTEGER' },
+          suggestedReps: { type: 'INTEGER' },
           suggestedWeightKg: { type: 'NUMBER' },
-          reason:            { type: 'STRING' },
-          evidence:          { type: 'ARRAY', items: { type: 'STRING' } },
+          reason: { type: 'STRING' },
+          evidence: { type: 'ARRAY', items: { type: 'STRING' } },
         },
         required: ['exerciseId', 'suggestedSets', 'suggestedReps', 'suggestedWeightKg', 'reason', 'evidence'],
       },
@@ -1549,10 +1590,7 @@ export class ProgressionService {
       .select()
       .from(schema.progressionSuggestions)
       .where(
-        and(
-          eq(schema.progressionSuggestions.exerciseId, exerciseId),
-          eq(schema.progressionSuggestions.userId, userId),
-        ),
+        and(eq(schema.progressionSuggestions.exerciseId, exerciseId), eq(schema.progressionSuggestions.userId, userId)),
       )
       .limit(1)
 
@@ -1615,6 +1653,7 @@ git commit -m "refactor: split ProgressionService into ExerciseHistoryService + 
 ## Task 6: Wire ProgramService to GeminiAdapter
 
 **Files:**
+
 - Modify: `apps/api/src/program/program.service.ts`
 
 - [ ] **Step 1: Update ProgramService to inject and use GeminiAdapter**
@@ -1628,11 +1667,13 @@ Remove: `config: ConfigService` constructor parameter and the `this.geminiApiKey
 Add import: `import { GeminiAdapter } from '../gemini/gemini.adapter'`
 
 Add injection in constructor:
+
 ```typescript
 private readonly gemini: GeminiAdapter,
 ```
 
 Replace the private `callGemini` method. The current method:
+
 ```typescript
 private async callGemini(prompt: string): Promise<unknown> {
   const response = await fetch(`${GEMINI_URL}?key=${this.geminiApiKey}`, {
@@ -1655,6 +1696,7 @@ private async callGemini(prompt: string): Promise<unknown> {
 ```
 
 Replace with a one-liner:
+
 ```typescript
 private callGemini(prompt: string): Promise<unknown> {
   return this.gemini.generate('program', prompt)
@@ -1684,6 +1726,7 @@ git commit -m "refactor: wire ProgramService to GeminiAdapter (candidate 1)"
 ## Task 7: Wire EquipmentService to GeminiAdapter
 
 **Files:**
+
 - Modify: `apps/api/src/equipment/equipment.service.ts`
 - Modify: `apps/api/src/equipment/equipment.module.ts`
 
@@ -1698,6 +1741,7 @@ Remove: `config: ConfigService` from constructor params and `this.geminiApiKey =
 Add import: `import { GeminiAdapter, GenerateOptions } from '../gemini/gemini.adapter'`
 
 Add to constructor:
+
 ```typescript
 private readonly gemini: GeminiAdapter,
 ```
@@ -1783,6 +1827,7 @@ Also remove the now-unused `AiLogService` import and constructor injection from 
 Also remove the `GEMINI_URL` constant and the `GeminiRaw` type at the top.
 
 The constructor after changes:
+
 ```typescript
 constructor(
   @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
@@ -1831,6 +1876,7 @@ git commit -m "refactor: wire EquipmentService to GeminiAdapter, separate Analys
 ## Task 8: Create SessionEventService
 
 **Files:**
+
 - Create: `apps/api/src/workouts/session-event.service.ts`
 - Modify: `apps/api/src/workouts/workouts.service.ts`
 - Modify: `apps/api/src/workouts/workouts.module.ts`
@@ -1874,6 +1920,7 @@ Remove imports: `ProgressionService`, `ProgramService`
 Add import: `import { SessionEventService } from './session-event.service'`
 
 Replace constructor injection:
+
 ```typescript
 constructor(
   @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
@@ -1884,6 +1931,7 @@ constructor(
 Update `finishSession()`. Replace the fire-and-forget block:
 
 Before:
+
 ```typescript
 this.progressionService.generateForSession(id, userId).catch(err => {
   this.logger.error(`Progression generation failed for session ${id}`, err)
@@ -1895,6 +1943,7 @@ this.programService.evaluateAfterSession(id, userId).catch(err => {
 ```
 
 After:
+
 ```typescript
 this.sessionEvents.onSessionFinished(id, userId)
 ```
@@ -1949,19 +1998,20 @@ git commit -m "refactor: extract SessionEventService to own post-session hook di
 
 **Spec coverage check:**
 
-| Candidate | Coverage |
-|-----------|----------|
-| 1. GeminiAdapter with 429 fallback + AiLog | Task 3 (adapter), Tasks 6+7 (wiring). Logger preserved. |
-| 2. ProgressionService split | Task 5 (ExerciseHistoryService + ProgressionPromptBuilder + slimmed ProgressionService). |
-| 3. CoachingModule | Task 4 (new module, moved files, updated imports). |
-| 4. SessionEventService | Task 8 (service created, WorkoutsService updated). |
-| 5. Equipment analysis separation | Task 7 (analyze() uses GeminiAdapter; create() unchanged). |
-| 6a. GymService fold | Task 1. |
-| 6b. SessionRepository fold | Task 2. |
+| Candidate                                  | Coverage                                                                                 |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| 1. GeminiAdapter with 429 fallback + AiLog | Task 3 (adapter), Tasks 6+7 (wiring). Logger preserved.                                  |
+| 2. ProgressionService split                | Task 5 (ExerciseHistoryService + ProgressionPromptBuilder + slimmed ProgressionService). |
+| 3. CoachingModule                          | Task 4 (new module, moved files, updated imports).                                       |
+| 4. SessionEventService                     | Task 8 (service created, WorkoutsService updated).                                       |
+| 5. Equipment analysis separation           | Task 7 (analyze() uses GeminiAdapter; create() unchanged).                               |
+| 6a. GymService fold                        | Task 1.                                                                                  |
+| 6b. SessionRepository fold                 | Task 2.                                                                                  |
 
 **Placeholder scan:** No TBDs, no "fill in details" steps. All code is complete.
 
 **Type consistency:**
+
 - `ExerciseContext` and `UserContext` are defined in `exercise-history.service.ts` and imported by `progression-prompt.builder.ts` and `progression.service.ts` — consistent.
 - `GeminiAdapter.generate()` returns `Promise<unknown>` — callers cast with `as` — consistent across Tasks 5, 6, 7.
 - `GenerateOptions` exported from `gemini.adapter.ts` — imported by `equipment.service.ts` in Task 7 — consistent.

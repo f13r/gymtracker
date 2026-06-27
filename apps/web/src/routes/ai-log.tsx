@@ -29,10 +29,7 @@ function LogEntry({ entry }: { entry: AiLogEntry }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <Badge
-              className="text-[10px]"
-              variant={entry.type === 'progression' ? 'default' : 'secondary'}
-            >
+            <Badge className="text-[10px]" variant={entry.type === 'progression' ? 'default' : 'secondary'}>
               {entry.type}
             </Badge>
             <span className="text-muted-foreground text-xs">
@@ -48,13 +45,13 @@ function LogEntry({ entry }: { entry: AiLogEntry }) {
         <div className="border-border bg-muted/20 space-y-3 border-t px-4 py-3">
           <div>
             <p className="text-muted-foreground mb-1 text-[10px] font-semibold tracking-widest uppercase">Prompt</p>
-            <pre className="bg-card border-border overflow-auto rounded-lg border p-3 text-xs whitespace-pre-wrap break-words">
+            <pre className="bg-card border-border overflow-auto rounded-lg border p-3 text-xs break-words whitespace-pre-wrap">
               {entry.prompt}
             </pre>
           </div>
           <div>
             <p className="text-muted-foreground mb-1 text-[10px] font-semibold tracking-widest uppercase">Response</p>
-            <pre className="bg-card border-border overflow-auto rounded-lg border p-3 text-xs whitespace-pre-wrap break-words">
+            <pre className="bg-card border-border overflow-auto rounded-lg border p-3 text-xs break-words whitespace-pre-wrap">
               {(() => {
                 try {
                   return JSON.stringify(JSON.parse(entry.response), null, 2)
@@ -71,7 +68,11 @@ function LogEntry({ entry }: { entry: AiLogEntry }) {
 }
 
 export function AiLogPage() {
-  const { data: logs = [], isFetching, refetch } = useQuery({
+  const {
+    data: logs = [],
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['ai-log'],
     queryFn: aiLogApi.getAll,
     refetchInterval: 5000,
@@ -96,9 +97,11 @@ export function AiLogPage() {
       </div>
 
       {logs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <div className="flex flex-col items-center justify-center gap-3 py-24">
           <p className="text-muted-foreground text-sm">No AI calls logged yet.</p>
-          <p className="text-muted-foreground text-xs">Trigger an equipment analysis or finish a workout to see logs here.</p>
+          <p className="text-muted-foreground text-xs">
+            Trigger an equipment analysis or finish a workout to see logs here.
+          </p>
         </div>
       ) : (
         <div className="divide-border divide-y">

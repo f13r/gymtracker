@@ -143,10 +143,12 @@ async function main() {
     for (const tmpl of TEMPLATES) {
       const templateId = randomUUID()
       templateIds[tmpl.name] = templateId
-      await pool.query(
-        `INSERT INTO workout_templates (id, user_id, name, created_at) VALUES ($1, $2, $3, $4)`,
-        [templateId, USER_ID, tmpl.name, now],
-      )
+      await pool.query(`INSERT INTO workout_templates (id, user_id, name, created_at) VALUES ($1, $2, $3, $4)`, [
+        templateId,
+        USER_ID,
+        tmpl.name,
+        now,
+      ])
       for (const ex of tmpl.exercises) {
         await pool.query(
           `INSERT INTO template_exercises (id, template_id, exercise_id, order_index, default_sets, default_reps)
@@ -167,7 +169,7 @@ async function main() {
       console.log(`  ✓ ${s.date} — ${s.template}`)
     }
 
-    console.log('\nDone! DB is ready for Viktor\'s first session.')
+    console.log("\nDone! DB is ready for Viktor's first session.")
   } finally {
     await pool.end()
   }

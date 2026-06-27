@@ -23,24 +23,25 @@ Design: `docs/plans/2026-06-24-ralph-loop-pipeline.md`. Config: `.ralph/config.y
 ## Step 1 — Fetch the "future" layer
 
 - Fetch the issue per the `tracker` adapter. For `gh`: `gh issue view N --comments`.
-- If the issue references a parent **PRD** (e.g. "PRD: …" linked, or a `Slice` of a PRD), fetch that too — it's *context*, but the plan you emit covers **only this slice's** scope.
+- If the issue references a parent **PRD** (e.g. "PRD: …" linked, or a `Slice` of a PRD), fetch that too — it's _context_, but the plan you emit covers **only this slice's** scope.
 
 ## Step 2 — Grill ⇄ BA self-play (steps 2–3)
 
 The heart of pre-loop. Run **two separate sub-agents** (Agent tool, `general-purpose`) with **fresh contexts**, and **you mediate** between them. Do NOT role-play both yourself — separation is the whole point.
 
-- **Grill agent** — system prompt = [`grill-agent.md`](grill-agent.md). Sees **present + future** (the `knowledge.present` sources + the fetched issue/PRD). Emits the *next single question* (or declares shared understanding).
+- **Grill agent** — system prompt = [`grill-agent.md`](grill-agent.md). Sees **present + future** (the `knowledge.present` sources + the fetched issue/PRD). Emits the _next single question_ (or declares shared understanding).
 - **BA agent** — system prompt = [`ba-agent.md`](ba-agent.md). Sees **present + past** (`knowledge.present` + `knowledge.past`), **not** the grill's reasoning. Answers the question **with a citation** to the source file/issue/commit backing it.
 
 Loop (mediated by you), appending each exchange to `.ralph/scratch/issue-N.qa.md`:
 
 1. Ask the Grill agent for the next question (give it the transcript so far).
-2. Pass *only that question* to the BA agent (give it the transcript so far). It returns an answer **with citations**, or `NEEDS-HUMAN` if it cannot ground an answer.
+2. Pass _only that question_ to the BA agent (give it the transcript so far). It returns an answer **with citations**, or `NEEDS-HUMAN` if it cannot ground an answer.
 3. Append `Q:` / `A:` (+ citations) to the transcript.
 4. **When a decision crystallizes**, edit `CONTEXT.md` / `docs/adr/**` **live** in the working tree (this is `/grill-with-docs` behavior — sharpen terminology, add/supersede ADRs). These edits are reviewed at gate #1.
 5. Repeat.
 
 **Termination** — whichever comes first:
+
 - the Grill agent emits no new question (declares shared understanding), **OR**
 - every open question has a cited BA answer, **OR**
 - `settings.grill_max_rounds` (default 15) is reached.
@@ -59,21 +60,26 @@ Template:
 # Issue N: <title>
 
 ## Overview
+
 <one-paragraph goal of this slice>
 
 ## Context
-- Issue: <link>  ·  Parent PRD: <link if any>
+
+- Issue: <link> · Parent PRD: <link if any>
 - Decisions made (from grill⇄BA): <bullets, each citing CONTEXT.md/ADR/issue>
 - Decisions needed from human: <NEEDS-HUMAN items, or "none">
 
 ### Task 1: [tdd] <thin vertical slice>
+
 - [ ] <behavior to implement>
 - [ ] <test asserting it through the public interface>
 
 ### Task 2: [direct] <slice>
+
 - [ ] <UI/copy/config change>
 
 ## Success criteria
+
 - [ ] <observable end-to-end outcome for the slice>
 ```
 

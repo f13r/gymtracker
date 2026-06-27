@@ -12,25 +12,25 @@
 
 ## File Map
 
-| Action | Path |
-|--------|------|
-| Create | `docker-compose.yml` |
-| Create | `.env.example` |
-| Create | `apps/api/.env` |
-| Modify | `apps/api/package.json` |
-| Modify | `apps/api/drizzle.config.ts` |
-| Modify | `apps/api/src/drizzle/schema.ts` |
-| Rewrite | `apps/api/src/drizzle/drizzle.module.ts` |
-| Delete+regenerate | `apps/api/src/drizzle/migrations/` |
-| Modify | `apps/api/src/sessions/session.repository.ts` |
-| Modify | `apps/api/src/schedules/schedules.service.ts` |
-| Modify | `apps/api/src/body/body.service.ts` |
-| Modify | `apps/api/src/photos/photos.service.ts` |
-| Modify | `apps/api/src/sets/sets.service.ts` |
-| Modify | `apps/api/src/workouts/workouts.service.ts` |
-| Modify | `apps/api/src/exercises/exercises.service.ts` |
-| Modify | `apps/api/src/stats/stats.service.ts` |
-| Modify | `apps/api/src/seed/seed.service.ts` |
+| Action            | Path                                          |
+| ----------------- | --------------------------------------------- |
+| Create            | `docker-compose.yml`                          |
+| Create            | `.env.example`                                |
+| Create            | `apps/api/.env`                               |
+| Modify            | `apps/api/package.json`                       |
+| Modify            | `apps/api/drizzle.config.ts`                  |
+| Modify            | `apps/api/src/drizzle/schema.ts`              |
+| Rewrite           | `apps/api/src/drizzle/drizzle.module.ts`      |
+| Delete+regenerate | `apps/api/src/drizzle/migrations/`            |
+| Modify            | `apps/api/src/sessions/session.repository.ts` |
+| Modify            | `apps/api/src/schedules/schedules.service.ts` |
+| Modify            | `apps/api/src/body/body.service.ts`           |
+| Modify            | `apps/api/src/photos/photos.service.ts`       |
+| Modify            | `apps/api/src/sets/sets.service.ts`           |
+| Modify            | `apps/api/src/workouts/workouts.service.ts`   |
+| Modify            | `apps/api/src/exercises/exercises.service.ts` |
+| Modify            | `apps/api/src/stats/stats.service.ts`         |
+| Modify            | `apps/api/src/seed/seed.service.ts`           |
 
 ---
 
@@ -67,6 +67,7 @@
 ## Task 1: Infrastructure — Docker Compose + env
 
 **Files:**
+
 - Create: `docker-compose.yml`
 - Create: `.env.example`
 - Create: `apps/api/.env`
@@ -124,6 +125,7 @@ git commit -m "chore: add docker-compose for local postgres"
 ## Task 2: Swap npm packages
 
 **Files:**
+
 - Modify: `apps/api/package.json`
 
 - [ ] **Step 1: Edit apps/api/package.json**
@@ -160,6 +162,7 @@ git commit -m "chore: swap better-sqlite3 for pg"
 ## Task 3: Update schema.ts and drizzle.config.ts
 
 **Files:**
+
 - Modify: `apps/api/src/drizzle/schema.ts`
 - Modify: `apps/api/drizzle.config.ts`
 
@@ -208,6 +211,7 @@ git commit -m "chore: migrate drizzle schema from sqlite to postgresql"
 ## Task 4: Rewrite drizzle.module.ts
 
 **Files:**
+
 - Rewrite: `apps/api/src/drizzle/drizzle.module.ts`
 
 - [ ] **Step 1: Replace the module**
@@ -254,6 +258,7 @@ git commit -m "chore: rewrite drizzle module to use pg Pool"
 ## Task 5: Regenerate migrations
 
 **Files:**
+
 - Delete+regenerate: `apps/api/src/drizzle/migrations/`
 
 - [ ] **Step 1: Delete all existing SQLite migrations**
@@ -302,6 +307,7 @@ git commit -m "chore: replace sqlite migrations with postgres schema"
 ## Task 6: Convert session.repository.ts to async
 
 **Files:**
+
 - Modify: `apps/api/src/sessions/session.repository.ts`
 
 - [ ] **Step 1: Rewrite the file**
@@ -366,6 +372,7 @@ git commit -m "refactor: make SessionRepository async for postgres"
 ## Task 7: Convert schedules.service.ts, body.service.ts, photos.service.ts to async
 
 **Files:**
+
 - Modify: `apps/api/src/schedules/schedules.service.ts`
 - Modify: `apps/api/src/body/body.service.ts`
 - Modify: `apps/api/src/photos/photos.service.ts`
@@ -446,7 +453,9 @@ export class SchedulesService {
       )
       .limit(1)
 
-    if (!match) { return null }
+    if (!match) {
+      return null
+    }
 
     const startOfDay = Math.floor(new Date(today).getTime() / 1000)
     const endOfDay = startOfDay + 86400
@@ -461,7 +470,9 @@ export class SchedulesService {
           lt(schema.workoutSessions.startedAt, endOfDay),
         ),
       )
-    if (result && result.count > 0) { return null }
+    if (result && result.count > 0) {
+      return null
+    }
 
     const [template] = await this.db
       .select()
@@ -631,7 +642,9 @@ export class PhotosService {
     }
 
     for (const rel of [photo.filePath, photo.thumbPath]) {
-      try { unlinkSync(join(this.photosDir, rel)) } catch {} // eslint-disable-line no-empty
+      try {
+        unlinkSync(join(this.photosDir, rel))
+      } catch {} // eslint-disable-line no-empty
     }
     await this.db.delete(schema.progressPhotos).where(eq(schema.progressPhotos.id, id))
   }
@@ -656,6 +669,7 @@ git commit -m "refactor: make schedules, body, photos services async for postgre
 ## Task 8: Convert sets.service.ts and workouts.service.ts to async
 
 **Files:**
+
 - Modify: `apps/api/src/sets/sets.service.ts`
 - Modify: `apps/api/src/workouts/workouts.service.ts`
 
@@ -725,11 +739,7 @@ export class SetsService {
     if ('done' in dto) {
       patch.completedAt = dto.done ? Math.floor(Date.now() / 1000) : null
     }
-    const [updated] = await this.db
-      .update(schema.sets)
-      .set(patch)
-      .where(eq(schema.sets.id, setId))
-      .returning()
+    const [updated] = await this.db.update(schema.sets).set(patch).where(eq(schema.sets.id, setId)).returning()
     return toWorkoutSet(updated)
   }
 
@@ -810,16 +820,14 @@ export class WorkoutsService {
       .insert(schema.workoutTemplates)
       .values({ id, userId, name: dto.name, notes: dto.notes ?? null, createdAt: now })
     for (const ex of dto.exercises) {
-      await this.db
-        .insert(schema.templateExercises)
-        .values({
-          id: randomUUID(),
-          templateId: id,
-          ...ex,
-          defaultWeightKg: ex.defaultWeightKg ?? null,
-          defaultSets: ex.defaultSets ?? null,
-          defaultReps: ex.defaultReps ?? null,
-        })
+      await this.db.insert(schema.templateExercises).values({
+        id: randomUUID(),
+        templateId: id,
+        ...ex,
+        defaultWeightKg: ex.defaultWeightKg ?? null,
+        defaultSets: ex.defaultSets ?? null,
+        defaultReps: ex.defaultReps ?? null,
+      })
     }
     return this.getTemplate(id, userId)
   }
@@ -827,9 +835,14 @@ export class WorkoutsService {
   async deleteTemplate(id: string, userId: string) {
     await this.getTemplate(id, userId)
     await this.db.delete(schema.workoutSchedules).where(eq(schema.workoutSchedules.templateId, id))
-    await this.db.update(schema.workoutSessions).set({ templateId: null }).where(eq(schema.workoutSessions.templateId, id))
+    await this.db
+      .update(schema.workoutSessions)
+      .set({ templateId: null })
+      .where(eq(schema.workoutSessions.templateId, id))
     await this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id))
-    await this.db.delete(schema.workoutTemplates).where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
+    await this.db
+      .delete(schema.workoutTemplates)
+      .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
   }
 
   async getSessions(userId: string) {
@@ -864,17 +877,15 @@ export class WorkoutsService {
       throw new BadRequestException('A session is already active')
     }
     const id = randomUUID()
-    await this.db
-      .insert(schema.workoutSessions)
-      .values({
-        id,
-        userId,
-        templateId: dto.templateId ?? null,
-        name: dto.name,
-        startedAt: Math.floor(Date.now() / 1000),
-        finishedAt: null,
-        notes: null,
-      })
+    await this.db.insert(schema.workoutSessions).values({
+      id,
+      userId,
+      templateId: dto.templateId ?? null,
+      name: dto.name,
+      startedAt: Math.floor(Date.now() / 1000),
+      finishedAt: null,
+      notes: null,
+    })
     return this.getSession(id, userId)
   }
 
@@ -909,6 +920,7 @@ git commit -m "refactor: make sets and workouts services async for postgres"
 ## Task 9: Rewrite exercises.service.ts (async + raw SQL)
 
 **Files:**
+
 - Modify: `apps/api/src/exercises/exercises.service.ts`
 
 `getLastSets` uses `$client.prepare()` (better-sqlite3 specific). Replace with `db.execute(sql\`...\`)`.
@@ -943,7 +955,9 @@ export class ExercisesService {
     const [ex] = await this.db
       .select()
       .from(schema.exercises)
-      .where(and(eq(schema.exercises.id, id), or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1))))
+      .where(
+        and(eq(schema.exercises.id, id), or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1))),
+      )
       .limit(1)
     if (!ex) {
       throw new NotFoundException('Exercise not found')
@@ -1018,9 +1032,11 @@ git commit -m "refactor: make exercises service async, port getLastSets to pg"
 ## Task 10: Rewrite stats.service.ts (async + SQLite SQL → PostgreSQL)
 
 **Files:**
+
 - Modify: `apps/api/src/stats/stats.service.ts`
 
 SQLite-specific functions to replace:
+
 - `date(col, 'unixepoch')` → `to_char(to_timestamp(col), 'YYYY-MM-DD')`
 - `strftime('%Y-W%W', col, 'unixepoch')` → `to_char(to_timestamp(col), 'IYYY-"W"IW')`
 - `getPRs` raw query via `$client.prepare()` → `db.execute(sql\`...\`)`
@@ -1148,6 +1164,7 @@ git commit -m "refactor: make stats service async, port SQLite SQL to PostgreSQL
 ## Task 11: Convert seed.service.ts to async
 
 **Files:**
+
 - Modify: `apps/api/src/seed/seed.service.ts`
 
 NestJS supports async `onApplicationBootstrap()` — just add `async`.
@@ -1208,11 +1225,7 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seedUser() {
-    const [existing] = await this.db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, 'default-user'))
-      .limit(1)
+    const [existing] = await this.db.select().from(schema.users).where(eq(schema.users.id, 'default-user')).limit(1)
     if (existing) return
 
     await this.db.insert(schema.users).values({
@@ -1223,11 +1236,7 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seedExercises() {
-    const [existing] = await this.db
-      .select()
-      .from(schema.exercises)
-      .where(eq(schema.exercises.isDefault, 1))
-      .limit(1)
+    const [existing] = await this.db.select().from(schema.exercises).where(eq(schema.exercises.isDefault, 1)).limit(1)
     if (existing) return
 
     const now = Math.floor(Date.now() / 1000)

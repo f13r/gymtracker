@@ -19,34 +19,52 @@ export function useLongPress(callback: () => void, interval = 125, holdDelay = 3
   const repeatedRef = useRef(false)
 
   const clearTimers = useCallback(() => {
-    if (repeatRef.current) { clearInterval(repeatRef.current); repeatRef.current = null }
-    if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null }
+    if (repeatRef.current) {
+      clearInterval(repeatRef.current)
+      repeatRef.current = null
+    }
+    if (holdRef.current) {
+      clearTimeout(holdRef.current)
+      holdRef.current = null
+    }
   }, [])
 
   useEffect(() => clearTimers, [clearTimers])
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    startRef.current = { x: e.clientX, y: e.clientY }
-    movedRef.current = false
-    repeatedRef.current = false
-    holdRef.current = setTimeout(() => {
-      if (movedRef.current) { return }
-      repeatedRef.current = true
-      callback()
-      repeatRef.current = setInterval(callback, interval)
-    }, holdDelay)
-  }, [callback, interval, holdDelay])
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      startRef.current = { x: e.clientX, y: e.clientY }
+      movedRef.current = false
+      repeatedRef.current = false
+      holdRef.current = setTimeout(() => {
+        if (movedRef.current) {
+          return
+        }
+        repeatedRef.current = true
+        callback()
+        repeatRef.current = setInterval(callback, interval)
+      }, holdDelay)
+    },
+    [callback, interval, holdDelay],
+  )
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (movedRef.current) { return }
-    if (Math.abs(e.clientX - startRef.current.x) > 8 || Math.abs(e.clientY - startRef.current.y) > 8) {
-      movedRef.current = true
-      clearTimers()
-    }
-  }, [clearTimers])
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (movedRef.current) {
+        return
+      }
+      if (Math.abs(e.clientX - startRef.current.x) > 8 || Math.abs(e.clientY - startRef.current.y) > 8) {
+        movedRef.current = true
+        clearTimers()
+      }
+    },
+    [clearTimers],
+  )
 
   const onPointerUp = useCallback(() => {
-    if (!movedRef.current && !repeatedRef.current) { callback() }
+    if (!movedRef.current && !repeatedRef.current) {
+      callback()
+    }
     clearTimers()
   }, [callback, clearTimers])
 

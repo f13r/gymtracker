@@ -48,8 +48,7 @@ async function fetchWger(wgerId: number): Promise<{ imageUrl: string | null; des
   const data = (await res.json()) as WgerExerciseInfo
   const mainImage = data.images?.find(i => i.is_main) ?? data.images?.[0]
   const translation =
-    data.translations?.find(t => t.language === ENGLISH && t.description) ??
-    data.translations?.find(t => t.description)
+    data.translations?.find(t => t.language === ENGLISH && t.description) ?? data.translations?.find(t => t.description)
   return {
     imageUrl: mainImage?.image ?? null,
     description: translation?.description ? htmlToText(translation.description) : null,
@@ -119,7 +118,9 @@ async function main() {
       }
     }
 
-    console.log(`Done. ${ok} backfilled, ${failed} failed. Files in ${defaultsDir} (existing: ${existsSync(defaultsDir)}).`)
+    console.log(
+      `Done. ${ok} backfilled, ${failed} failed. Files in ${defaultsDir} (existing: ${existsSync(defaultsDir)}).`,
+    )
   } finally {
     await pool.end()
   }

@@ -15,7 +15,10 @@ describe('GeminiService.generateStructured', () => {
 
   it('parses JSON, logs success, and includes extra parts before the text prompt', async () => {
     let capturedBody: any
-    const okResponse = (text: string) => ({ ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text }] } }] }) })
+    const okResponse = (text: string) => ({
+      ok: true,
+      json: async () => ({ candidates: [{ content: { parts: [{ text }] } }] }),
+    })
     global.fetch = vi.fn().mockImplementation((_url, init: any) => {
       capturedBody = JSON.parse(init.body)
       return Promise.resolve(okResponse('{"ok":true}') as any)
@@ -42,7 +45,13 @@ describe('GeminiService.generateStructured', () => {
     const { svc, aiLog } = makeService()
 
     await expect(svc.generateStructured({ feature: 'program', prompt: 'p' })).rejects.toThrow('Gemini 500')
-    expect(aiLog.add).toHaveBeenCalledWith('program', 'p', expect.stringContaining('ERROR 500'), expect.any(Number), null)
+    expect(aiLog.add).toHaveBeenCalledWith(
+      'program',
+      'p',
+      expect.stringContaining('ERROR 500'),
+      expect.any(Number),
+      null,
+    )
   })
 
   it('logs and throws on empty response', async () => {
@@ -55,7 +64,10 @@ describe('GeminiService.generateStructured', () => {
 
   it('omits responseSchema from generationConfig when none provided', async () => {
     let capturedBody: any
-    const okResponse = (text: string) => ({ ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text }] } }] }) })
+    const okResponse = (text: string) => ({
+      ok: true,
+      json: async () => ({ candidates: [{ content: { parts: [{ text }] } }] }),
+    })
     global.fetch = vi.fn().mockImplementation((_url, init: any) => {
       capturedBody = JSON.parse(init.body)
       return Promise.resolve(okResponse('{}') as any)
@@ -83,7 +95,13 @@ describe('GeminiService.embed', () => {
       expect.stringContaining('gemini-embedding-001'),
       expect.objectContaining({ method: 'POST' }),
     )
-    expect(aiLog.add).toHaveBeenCalledWith('embedding', 'text', expect.stringContaining('3 dims'), expect.any(Number), 'bob')
+    expect(aiLog.add).toHaveBeenCalledWith(
+      'embedding',
+      'text',
+      expect.stringContaining('3 dims'),
+      expect.any(Number),
+      'bob',
+    )
   })
 
   it('defaults to a null (system) user when none is given — seed-time embeds', async () => {
@@ -94,7 +112,13 @@ describe('GeminiService.embed', () => {
     const { svc, aiLog } = makeService()
 
     await svc.embed('seed-chunk')
-    expect(aiLog.add).toHaveBeenCalledWith('embedding', 'seed-chunk', expect.stringContaining('3 dims'), expect.any(Number), null)
+    expect(aiLog.add).toHaveBeenCalledWith(
+      'embedding',
+      'seed-chunk',
+      expect.stringContaining('3 dims'),
+      expect.any(Number),
+      null,
+    )
   })
 
   it('logs and throws on non-OK status', async () => {
@@ -102,6 +126,12 @@ describe('GeminiService.embed', () => {
     const { svc, aiLog } = makeService()
 
     await expect(svc.embed('text')).rejects.toThrow('Gemini embed 429')
-    expect(aiLog.add).toHaveBeenCalledWith('embedding', 'text', expect.stringContaining('ERROR 429'), expect.any(Number), null)
+    expect(aiLog.add).toHaveBeenCalledWith(
+      'embedding',
+      'text',
+      expect.stringContaining('ERROR 429'),
+      expect.any(Number),
+      null,
+    )
   })
 })

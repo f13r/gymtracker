@@ -64,17 +64,14 @@ export class GeminiService {
       generationConfig.responseSchema = responseSchema
     }
 
-    const response = await fetch(
-      `${GEMINI_BASE_URL}/${GEMINI_GENERATE_MODEL}:generateContent?key=${this.apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: contentParts }],
-          generationConfig,
-        }),
-      },
-    )
+    const response = await fetch(`${GEMINI_BASE_URL}/${GEMINI_GENERATE_MODEL}:generateContent?key=${this.apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: contentParts }],
+        generationConfig,
+      }),
+    })
 
     if (!response.ok) {
       const body = await response.text().catch(() => '(unreadable)')
@@ -101,18 +98,15 @@ export class GeminiService {
    */
   async embed(text: string, userId: string | null = null): Promise<number[]> {
     const t0 = Date.now()
-    const response = await fetch(
-      `${GEMINI_BASE_URL}/${GEMINI_EMBED_MODEL}:embedContent?key=${this.apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: `models/${GEMINI_EMBED_MODEL}`,
-          content: { parts: [{ text }] },
-          outputDimensionality: GEMINI_EMBED_DIMENSIONS,
-        }),
-      },
-    )
+    const response = await fetch(`${GEMINI_BASE_URL}/${GEMINI_EMBED_MODEL}:embedContent?key=${this.apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: `models/${GEMINI_EMBED_MODEL}`,
+        content: { parts: [{ text }] },
+        outputDimensionality: GEMINI_EMBED_DIMENSIONS,
+      }),
+    })
 
     if (!response.ok) {
       const body = await response.text().catch(() => '(unreadable)')

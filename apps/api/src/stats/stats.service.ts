@@ -43,9 +43,15 @@ export class StatsService {
       isNotNull(schema.sets.reps),
       isNotNull(schema.sets.weightKg),
     ]
-    if (exerciseId) {conditions.push(eq(schema.sets.exerciseId, exerciseId))}
-    if (from) {conditions.push(gte(schema.sets.completedAt, from))}
-    if (to) {conditions.push(lte(schema.sets.completedAt, to))}
+    if (exerciseId) {
+      conditions.push(eq(schema.sets.exerciseId, exerciseId))
+    }
+    if (from) {
+      conditions.push(gte(schema.sets.completedAt, from))
+    }
+    if (to) {
+      conditions.push(lte(schema.sets.completedAt, to))
+    }
 
     return this.db
       .select({
@@ -70,8 +76,12 @@ export class StatsService {
 
   getBodyWeight(userId: string, from?: number, to?: number) {
     const conditions = [eq(schema.bodyWeights.userId, userId)]
-    if (from) {conditions.push(gte(schema.bodyWeights.recordedAt, from))}
-    if (to) {conditions.push(lte(schema.bodyWeights.recordedAt, to))}
+    if (from) {
+      conditions.push(gte(schema.bodyWeights.recordedAt, from))
+    }
+    if (to) {
+      conditions.push(lte(schema.bodyWeights.recordedAt, to))
+    }
     return this.db
       .select()
       .from(schema.bodyWeights)
@@ -81,8 +91,12 @@ export class StatsService {
 
   getMeasurements(userId: string, from?: number, to?: number) {
     const conditions = [eq(schema.bodyMeasurements.userId, userId)]
-    if (from) {conditions.push(gte(schema.bodyMeasurements.recordedAt, from))}
-    if (to) {conditions.push(lte(schema.bodyMeasurements.recordedAt, to))}
+    if (from) {
+      conditions.push(gte(schema.bodyMeasurements.recordedAt, from))
+    }
+    if (to) {
+      conditions.push(lte(schema.bodyMeasurements.recordedAt, to))
+    }
     return this.db
       .select()
       .from(schema.bodyMeasurements)
@@ -92,8 +106,12 @@ export class StatsService {
 
   getFrequency(userId: string, from?: number, to?: number): Promise<FrequencyPoint[]> {
     const conditions = [eq(schema.workoutSessions.userId, userId), isNotNull(schema.workoutSessions.finishedAt)]
-    if (from) {conditions.push(gte(schema.workoutSessions.startedAt, from))}
-    if (to) {conditions.push(lte(schema.workoutSessions.startedAt, to))}
+    if (from) {
+      conditions.push(gte(schema.workoutSessions.startedAt, from))
+    }
+    if (to) {
+      conditions.push(lte(schema.workoutSessions.startedAt, to))
+    }
 
     return this.db
       .select({

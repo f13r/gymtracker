@@ -208,10 +208,10 @@ cat ~/.ssh/github_actions_deploy
 
 In the GitHub repository go to **Settings → Secrets and variables → Actions** and create:
 
-| Secret name | Value |
-|---|---|
-| `SERVER_HOST` | This server's public IP address |
-| `SERVER_USER` | The Linux username used above (e.g. `ubuntu`) |
+| Secret name      | Value                                                                |
+| ---------------- | -------------------------------------------------------------------- |
+| `SERVER_HOST`    | This server's public IP address                                      |
+| `SERVER_USER`    | The Linux username used above (e.g. `ubuntu`)                        |
 | `SERVER_SSH_KEY` | The full private key printed above (including `-----BEGIN...` lines) |
 
 ## Step 12 — Verify auto-deploy works
@@ -232,11 +232,11 @@ curl http://localhost/api/health
 
 ## Maintenance reference
 
-| Task | Command |
-|---|---|
-| View API logs | `pm2 logs gymtracker` |
-| Restart API | `pm2 restart gymtracker` |
-| Check PM2 status | `pm2 status` |
-| Reload Nginx | `sudo systemctl reload nginx` |
-| Manual deploy | `cd /var/www/gymtracker && git pull && npm ci && npm run build && npm run db:migrate && pm2 reload ecosystem.config.js --env production` |
-| Open DB shell | `sudo -u postgres psql -d gymtracker` |
+| Task             | Command                                                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| View API logs    | `pm2 logs gymtracker`                                                                                                                    |
+| Restart API      | `pm2 restart gymtracker`                                                                                                                 |
+| Check PM2 status | `pm2 status`                                                                                                                             |
+| Reload Nginx     | `sudo systemctl reload nginx`                                                                                                            |
+| Manual deploy    | `cd /var/www/gymtracker && git pull && npm ci && npm run build && npm run db:migrate && pm2 reload ecosystem.config.js --env production` |
+| Open DB shell    | `sudo -u postgres psql -d gymtracker`                                                                                                    |

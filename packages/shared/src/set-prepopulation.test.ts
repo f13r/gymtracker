@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import {
-  resolvePrepopulatedSet,
-  FALLBACK_WEIGHT_KG,
-  FALLBACK_REPS,
-} from './set-prepopulation.js'
+import { resolvePrepopulatedSet, FALLBACK_WEIGHT_KG, FALLBACK_REPS } from './set-prepopulation.js'
 
 describe('resolvePrepopulatedSet', () => {
   describe('full hierarchy precedence — weight', () => {
