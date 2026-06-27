@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { Exercise } from '@gymtracker/shared'
 
@@ -19,16 +20,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: 'text-slate-400',
 }
 
-const EQUIPMENT_LABELS: Record<string, string> = {
-  barbell: 'Barbell',
-  dumbbell: 'Dumbbell',
-  machine: 'Machine',
-  bodyweight: 'Bodyweight',
-  cable: 'Cable',
-  other: 'Other',
-}
-
 export function ExercisesPage() {
+  const { t } = useTranslation('exercises')
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Exercise | null>(null)
   const [creating, setCreating] = useState(false)
@@ -53,11 +46,11 @@ export function ExercisesPage() {
       <div className="border-border space-y-3 border-b px-4 pt-4 pb-3">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Library</p>
-            <h1 className="font-display font-700 text-3xl tracking-wide">EXERCISES</h1>
+            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('eyebrow')}</p>
+            <h1 className="font-display font-700 text-3xl tracking-wide">{t('title')}</h1>
           </div>
           <button
-            aria-label="Add exercise"
+            aria-label={t('addExercise')}
             className="bg-card border-border active:bg-muted flex size-10 items-center justify-center rounded-xl border transition-colors"
             type="button"
             onClick={() => setCreating(true)}
@@ -68,9 +61,9 @@ export function ExercisesPage() {
         <div className="relative">
           <Search className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2" size={16} />
           <input
-            aria-label="Search exercises"
+            aria-label={t('searchAria')}
             className="bg-card border-border focus:border-primary w-full rounded-xl border py-2.5 pr-4 pl-9 text-sm transition-colors outline-none"
-            placeholder="Search exercises..."
+            placeholder={t('searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -84,7 +77,7 @@ export function ExercisesPage() {
               <span
                 className={`text-xs font-bold tracking-widest uppercase ${CATEGORY_COLORS[cat] ?? 'text-muted-foreground'}`}
               >
-                {cat}
+                {t(`category.${cat}`, { defaultValue: cat })}
               </span>
             </div>
             {grouped[cat].map(ex => (
@@ -97,7 +90,7 @@ export function ExercisesPage() {
                 <span className="text-sm font-medium">{ex.name}</span>
                 {ex.equipmentType && (
                   <span className="text-muted-foreground bg-muted rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
-                    {EQUIPMENT_LABELS[ex.equipmentType] ?? ex.equipmentType}
+                    {t(`equipment.${ex.equipmentType}`, { defaultValue: ex.equipmentType })}
                   </span>
                 )}
               </button>
@@ -106,7 +99,7 @@ export function ExercisesPage() {
         ))}
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
-            <p className="text-muted-foreground">No exercises found</p>
+            <p className="text-muted-foreground">{t('empty')}</p>
           </div>
         )}
       </div>
@@ -141,11 +134,12 @@ function CreateExerciseDialog({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { t } = useTranslation('exercises')
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-h-[90dvh] max-w-sm overflow-y-auto rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Add exercise</DialogTitle>
+          <DialogTitle>{t('addExercise')}</DialogTitle>
         </DialogHeader>
         {/* Only mounted while open, so the fields reset between opens. */}
         {open && <ExerciseForm onSaved={onSaved} />}
