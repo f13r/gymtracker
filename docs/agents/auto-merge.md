@@ -86,3 +86,75 @@ Both merge commits are present on `main`:
 f09dd2a FN-004: Move "Add set" button into the exercise header (#19)
 dcb13d9 FN-002: Fix "beat last time" delta to per-exercise volume diff (#18)
 ```
+
+## Stranded local branch (never pushed)
+
+A second, distinct failure mode leaves an in-review task stuck: the work is
+committed only on a **local** `fusion/fn-XXX` branch that was never pushed to
+`origin`, so no PR exists and the merger has nothing to land. Worked example:
+FN-010 (landed via FN-017 as PR #21, squash-merge `5207732`).
+
+### Symptom
+
+- The task sits in **In Review** but the merge step has no PR to act on.
+- The branch exists locally (and in its worktree) but is absent from `origin`.
+- Because `main` keeps advancing, the stranded branch usually no longer merges
+  cleanly (dependency/lockfile drift in `package.json` / `package-lock.json`).
+
+### How to detect it
+
+```sh
+# Branch missing from origin (only other fusion/* branches listed):
+git ls-remote --heads origin 'fusion/*'
+
+# No PR for the branch in either open or closed state:
+gh pr list --repo f13r/gymtracker --state all
+```
+
+### Drift check before landing
+
+Always confirm whether the stranded branch still merges cleanly before pushing:
+
+```sh
+git fetch origin
+git merge-tree $(git merge-base origin/main fusion/fn-XXX) origin/main fusion/fn-XXX \
+  | grep -c '<<<<<<<\|changed in both\|added in both'   # 0 == clean
+```
+
+### Supported recovery
+
+```sh
+# 1. Rebase the stranded branch onto current origin/main (resolve conflicts;
+#    for package.json keep the UNION of both sides' dependencies).
+cd .worktrees/<branch-worktree>
+git fetch origin && git rebase origin/main
+
+# 2. Regenerate the lockfile from the merged manifests — never hand-merge it.
+npm install
+git add package-lock.json apps/web/package.json && git rebase --continue
+
+# 3. Re-verify package-scoped (not the full workspace suite):
+npm run test --workspace=apps/web -- --reporter=dot
+npm run lint
+npm run build --workspace=apps/web
+
+# 4. Push the rebased branch and open the PR (never pass a worktree PATH to --repo).
+git push origin fusion/fn-XXX
+gh pr create --repo f13r/gymtracker --base main --head fusion/fn-XXX \
+  --title "FN-XXX: <summary>" --body "<links the in-review task>"
+
+# 5. Re-check drift is 0, then squash-merge and delete the branch.
+gh pr merge <n> --repo f13r/gymtracker --squash --delete-branch
+gh pr view <n> --repo f13r/gymtracker --json number,state   # expect MERGED
+```
+
+### Proof of landing
+
+```sh
+git fetch origin
+git merge-base --is-ancestor <squash-merge-sha> origin/main   # exits 0
+git show origin/main:<a-file-only-on-the-branch>              # succeeds
+```
+
+> Note: the same stranded-branch pattern affects FN-006 (entangled with its
+> duplicate FN-008); landing it needs this same recovery procedure.
