@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Camera, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { ProgressPhoto } from '@gymtracker/shared'
 
@@ -17,11 +18,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-function formatDate(ts: number) {
-  return new Date(ts * 1000).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })
+function formatDate(ts: number, locale: string) {
+  return new Date(ts * 1000).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export function PhotosPage() {
+  const { t, i18n } = useTranslation('photos')
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
@@ -50,8 +52,8 @@ export function PhotosPage() {
     <div className="flex min-h-full flex-col">
       <div className="border-border flex items-start justify-between border-b px-4 pt-4 pb-3">
         <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Progress</p>
-          <h1 className="font-display font-700 text-3xl tracking-wide">PHOTOS</h1>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('eyebrow')}</p>
+          <h1 className="font-display font-700 text-3xl tracking-wide">{t('title')}</h1>
         </div>
         <button
           className="bg-primary text-primary-foreground mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-transform active:scale-95 disabled:opacity-60"
@@ -64,7 +66,7 @@ export function PhotosPage() {
           ) : (
             <Plus size={16} strokeWidth={2.5} />
           )}
-          Add Photo
+          {t('addPhoto')}
         </button>
       </div>
 
@@ -89,15 +91,15 @@ export function PhotosPage() {
             <Camera className="text-muted-foreground" size={28} />
           </div>
           <div className="text-center">
-            <p className="font-semibold">No photos yet</p>
-            <p className="text-muted-foreground mt-1 text-sm">Upload your first progress photo</p>
+            <p className="font-semibold">{t('noPhotos')}</p>
+            <p className="text-muted-foreground mt-1 text-sm">{t('uploadFirst')}</p>
           </div>
           <button
             className="bg-primary text-primary-foreground font-display font-600 mt-2 rounded-xl px-5 py-2.5 text-sm tracking-wide uppercase transition-transform active:scale-95"
             type="button"
             onClick={() => fileRef.current?.click()}
           >
-            Upload Photo
+            {t('uploadPhoto')}
           </button>
         </div>
       ) : (
@@ -116,7 +118,7 @@ export function PhotosPage() {
 
               {/* delete button — top-right, large touch target */}
               <button
-                aria-label="Delete photo"
+                aria-label={t('deleteAria')}
                 className="absolute top-0 right-0 flex size-14 items-center justify-center"
                 type="button"
                 onClick={() => setPendingDeleteId(p.id)}
@@ -128,9 +130,13 @@ export function PhotosPage() {
 
               {/* date + weight badge — bottom-left */}
               <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-black/60 to-transparent px-2.5 pt-6 pb-2">
-                <p className="text-[11px] leading-tight font-semibold text-white/90">{formatDate(p.recordedAt)}</p>
+                <p className="text-[11px] leading-tight font-semibold text-white/90">
+                  {formatDate(p.recordedAt, i18n.language)}
+                </p>
                 {p.bodyWeight && (
-                  <p className="text-[11px] leading-tight font-medium text-white/70">{p.bodyWeight} kg</p>
+                  <p className="text-[11px] leading-tight font-medium text-white/70">
+                    {p.bodyWeight} {t('kg')}
+                  </p>
                 )}
               </div>
             </div>
@@ -141,18 +147,18 @@ export function PhotosPage() {
       <Dialog open={pendingDeleteId !== null} onOpenChange={open => !open && setPendingDeleteId(null)}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Delete photo?</DialogTitle>
+            <DialogTitle>{t('deleteTitle')}</DialogTitle>
             <DialogDescription>
               {pendingPhoto
-                ? `Photo from ${formatDate(pendingPhoto.recordedAt)} will be permanently removed.`
-                : 'This photo will be permanently removed.'}{' '}
-              This cannot be undone.
+                ? t('deleteDescDated', { date: formatDate(pendingPhoto.recordedAt, i18n.language) })
+                : t('deleteDescGeneric')}{' '}
+              {t('cannotUndo')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
             <DialogClose asChild>
               <Button className="flex-1" variant="outline">
-                Cancel
+                {t('cancel')}
               </Button>
             </DialogClose>
             <Button
@@ -161,7 +167,7 @@ export function PhotosPage() {
               variant="destructive"
               onClick={() => pendingDeleteId && deletePhoto(pendingDeleteId)}
             >
-              {isDeleting ? 'Deleting…' : 'Delete'}
+              {isDeleting ? t('deleting') : t('delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

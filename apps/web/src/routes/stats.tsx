@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Flame, Trophy, TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts'
 
 import type { BodyWeight, FrequencyPoint, PersonalRecord, VolumePoint } from '@gymtracker/shared'
@@ -25,6 +26,7 @@ const chartProps = {
 }
 
 export function StatsPage() {
+  const { t, i18n } = useTranslation('stats')
   const { data: prs = [] } = useQuery({ queryKey: ['stats', 'prs'], queryFn: () => statsApi.getPRs() })
   const { data: volume = [] } = useQuery({ queryKey: ['stats', 'volume'], queryFn: () => statsApi.getVolume() })
   const { data: streak } = useQuery({ queryKey: ['stats', 'streak'], queryFn: statsApi.getStreak })
@@ -37,8 +39,8 @@ export function StatsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-4">
       <div className="pt-2">
-        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Overview</p>
-        <h1 className="font-display font-700 text-3xl tracking-wide">STATISTICS</h1>
+        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('eyebrow')}</p>
+        <h1 className="font-display font-700 text-3xl tracking-wide">{t('title')}</h1>
       </div>
 
       {streak && (
@@ -48,21 +50,23 @@ export function StatsPage() {
               <div className="text-primary mb-1 flex items-center gap-1.5">
                 <Flame size={16} />
                 <span className="text-muted-foreground text-[10px] font-semibold tracking-widest uppercase">
-                  Current
+                  {t('current')}
                 </span>
               </div>
               <p className="font-display font-700 text-primary text-5xl">{streak.current}</p>
-              <p className="text-muted-foreground text-xs">day streak</p>
+              <p className="text-muted-foreground text-xs">{t('dayStreak')}</p>
             </div>
           </StatCard>
           <StatCard>
             <div className="flex flex-col items-center gap-1 p-4">
               <div className="mb-1 flex items-center gap-1.5">
                 <Trophy className="text-yellow-500" size={16} />
-                <span className="text-muted-foreground text-[10px] font-semibold tracking-widest uppercase">Best</span>
+                <span className="text-muted-foreground text-[10px] font-semibold tracking-widest uppercase">
+                  {t('best')}
+                </span>
               </div>
               <p className="font-display font-700 text-foreground text-5xl">{streak.longest}</p>
-              <p className="text-muted-foreground text-xs">day streak</p>
+              <p className="text-muted-foreground text-xs">{t('dayStreak')}</p>
             </div>
           </StatCard>
         </div>
@@ -73,7 +77,7 @@ export function StatsPage() {
           <SectionHeader>
             <div className="flex items-center gap-2">
               <Trophy className="text-yellow-500" size={14} />
-              Personal Records
+              {t('personalRecords')}
             </div>
           </SectionHeader>
           <div className="divide-border/50 divide-y">
@@ -82,7 +86,7 @@ export function StatsPage() {
                 <span className="text-sm font-medium">{pr.name}</span>
                 <div className="flex items-center gap-1">
                   <span className="font-display font-700 text-primary text-lg">{pr.maxWeightKg}</span>
-                  <span className="text-muted-foreground text-xs">kg × {pr.repsAtMax}</span>
+                  <span className="text-muted-foreground text-xs">{t('prReps', { reps: pr.repsAtMax })}</span>
                 </div>
               </div>
             ))}
@@ -95,7 +99,7 @@ export function StatsPage() {
           <SectionHeader>
             <div className="flex items-center gap-2">
               <TrendingUp size={14} />
-              Volume Over Time
+              {t('volumeOverTime')}
             </div>
           </SectionHeader>
           <div className="p-4">
@@ -117,7 +121,7 @@ export function StatsPage() {
 
       {bodyWeight.length > 0 && (
         <StatCard>
-          <SectionHeader>Body Weight</SectionHeader>
+          <SectionHeader>{t('bodyWeight')}</SectionHeader>
           <div className="p-4">
             <ResponsiveContainer height={180} width="100%">
               <LineChart data={bodyWeight as BodyWeight[]}>
@@ -125,7 +129,7 @@ export function StatsPage() {
                 <XAxis
                   dataKey="recordedAt"
                   tickFormatter={(v: number) =>
-                    new Date(v * 1000).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+                    new Date(v * 1000).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })
                   }
                   {...chartProps}
                 />
@@ -144,7 +148,7 @@ export function StatsPage() {
 
       {frequency.length > 0 && (
         <StatCard>
-          <SectionHeader>Weekly Frequency</SectionHeader>
+          <SectionHeader>{t('weeklyFrequency')}</SectionHeader>
           <div className="p-4">
             <ResponsiveContainer height={160} width="100%">
               <BarChart data={frequency as FrequencyPoint[]}>
@@ -165,7 +169,7 @@ export function StatsPage() {
       {!prs.length && !volume.length && !streak?.current && (
         <div className="border-border rounded-xl border border-dashed p-10 text-center">
           <TrendingUp className="text-muted-foreground mx-auto mb-2" size={32} />
-          <p className="text-muted-foreground text-sm">Complete workouts to see your stats</p>
+          <p className="text-muted-foreground text-sm">{t('empty')}</p>
         </div>
       )}
     </div>
