@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, Eye, Link2, Pencil, Plus, Trash2, Unlink } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { CreateTemplateDto, Exercise, WorkoutTemplateWithExercises } from '@gymtracker/shared'
 
@@ -145,6 +146,7 @@ function SortableExerciseRow({
   onPickExercise,
   onShowMedia,
 }: SortableExerciseRowProps) {
+  const { t } = useTranslation('workout')
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: row.key,
   })
@@ -169,17 +171,17 @@ function SortableExerciseRow({
           {row.exerciseId ? (
             <p className="font-display font-600 text-base tracking-wide">{displayName}</p>
           ) : (
-            <p className="text-muted-foreground text-sm">No exercise selected</p>
+            <p className="text-muted-foreground text-sm">{t('empty.noExerciseSelected')}</p>
           )}
           <div className="mt-0.5 flex items-center gap-2">
-            <p className="text-muted-foreground text-xs">Exercise {idx + 1}</p>
+            <p className="text-muted-foreground text-xs">{t('header.exerciseNumber', { number: idx + 1 })}</p>
             {groupColor && (
               <span
                 className="flex items-center gap-1 text-xs font-semibold tracking-wide uppercase"
                 style={{ color: groupColor }}
               >
                 <span className="size-2 rounded-full" style={{ backgroundColor: groupColor }} />
-                Superset {groupLabel}
+                {t('superset.label', { label: groupLabel })}
               </span>
             )}
           </div>
@@ -187,7 +189,7 @@ function SortableExerciseRow({
         <div className="flex items-center gap-1">
           {row.exerciseId && (
             <button
-              aria-label="Show exercise demonstration"
+              aria-label={t('aria.showDemonstration')}
               className="text-muted-foreground/60 active:text-primary flex size-10 items-center justify-center transition-colors"
               type="button"
               onClick={() => onShowMedia(row.key)}
@@ -196,7 +198,7 @@ function SortableExerciseRow({
             </button>
           )}
           <button
-            aria-label={row.exerciseId ? 'Change exercise' : 'Select exercise'}
+            aria-label={row.exerciseId ? t('aria.changeExercise') : t('aria.selectExercise')}
             className="text-muted-foreground/60 active:text-primary flex size-10 items-center justify-center transition-colors"
             type="button"
             onClick={() => onPickExercise(row.key)}
@@ -205,7 +207,7 @@ function SortableExerciseRow({
           </button>
           {canRemove && (
             <button
-              aria-label="Remove exercise"
+              aria-label={t('aria.removeExercise')}
               className="text-destructive/50 active:text-destructive flex size-10 items-center justify-center transition-colors"
               type="button"
               onClick={() => onRemove(row.key)}
@@ -220,7 +222,7 @@ function SortableExerciseRow({
       <div className={`border-border/50 grid gap-3 border-t px-4 py-3 ${isBodyweight ? 'grid-cols-2' : 'grid-cols-3'}`}>
         <NumericInput
           fieldKey={`sets-${row.key}`}
-          label="SETS"
+          label={t('fields.sets')}
           max={20}
           min={1}
           step={1}
@@ -229,7 +231,7 @@ function SortableExerciseRow({
         />
         <NumericInput
           fieldKey={`reps-${row.key}`}
-          label="REPS"
+          label={t('fields.reps')}
           max={100}
           min={1}
           step={1}
@@ -239,7 +241,7 @@ function SortableExerciseRow({
         {!isBodyweight && (
           <NumericInput
             fieldKey={`weight-${row.key}`}
-            label="KG"
+            label={t('fields.kg')}
             max={300}
             min={0}
             step={2.5}
@@ -264,18 +266,19 @@ interface SupersetConnectorProps {
 // The grouping control between two adjacent rows. Linking joins the rows into one Superset; because
 // it only ever acts on neighbours, Supersets stay contiguous by construction (GATE #1).
 function SupersetConnector({ linked, color, onLink, onUnlink }: SupersetConnectorProps) {
+  const { t } = useTranslation('workout')
   if (linked) {
     return (
       <div className="flex justify-center">
         <button
-          aria-label="Break this superset"
+          aria-label={t('aria.breakSuperset')}
           className="flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold tracking-wide uppercase"
           style={{ color: color ?? undefined, backgroundColor: color ? `${color}1f` : undefined }}
           type="button"
           onClick={onUnlink}
         >
           <Unlink size={12} strokeWidth={2} />
-          Superset
+          {t('superset.word')}
         </button>
       </div>
     )
@@ -283,13 +286,13 @@ function SupersetConnector({ linked, color, onLink, onUnlink }: SupersetConnecto
   return (
     <div className="flex justify-center">
       <button
-        aria-label="Group with next exercise into a superset"
+        aria-label={t('aria.groupSuperset')}
         className="text-muted-foreground/50 active:text-primary border-border flex items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs font-medium transition-colors"
         type="button"
         onClick={onLink}
       >
         <Link2 size={12} strokeWidth={2} />
-        Superset
+        {t('superset.word')}
       </button>
     </div>
   )
@@ -311,6 +314,7 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
   )
   const [pickerForKey, setPickerForKey] = useState<number | null>(null)
   const [mediaForKey, setMediaForKey] = useState<number | null>(null)
+  const { t } = useTranslation('workout')
 
   const { data: allExercises = [] } = useQuery({
     queryKey: queryKeys.exercises(),
@@ -432,12 +436,12 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
       <div className="border-border border-b px-4 pt-4 pb-3">
         <button className="text-muted-foreground mb-3 -ml-1 flex items-center gap-1" type="button" onClick={onBack}>
           <ChevronLeft size={18} />
-          <span className="text-sm">Workouts</span>
+          <span className="text-sm">{t('templateForm.back')}</span>
         </button>
         <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-          {mode === 'edit' ? 'Edit' : 'New'}
+          {mode === 'edit' ? t('templateForm.editEyebrow') : t('templateForm.newEyebrow')}
         </p>
-        <h1 className="font-display font-700 text-3xl tracking-wide">WORKOUT TEMPLATE</h1>
+        <h1 className="font-display font-700 text-3xl tracking-wide">{t('templateForm.title')}</h1>
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
@@ -445,7 +449,7 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
         <Input
           autoFocus={mode === 'create'}
           className="bg-card border-border h-12 rounded-xl text-base"
-          placeholder="Workout template name"
+          placeholder={t('templateForm.namePlaceholder')}
           value={name}
           onChange={e => setName(e.target.value)}
         />
@@ -502,7 +506,7 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
           onClick={() => setRows(prev => [...prev, makeRow()])}
         >
           <Plus size={16} strokeWidth={2} />
-          Add Exercise
+          {t('templateForm.addExercise')}
         </button>
       </div>
 
@@ -514,7 +518,11 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
           type="button"
           onClick={handleSave}
         >
-          {isSaving ? 'Saving…' : mode === 'edit' ? 'SAVE CHANGES' : 'SAVE TEMPLATE'}
+          {isSaving
+            ? t('actions.saving')
+            : mode === 'edit'
+              ? t('templateForm.saveChanges')
+              : t('templateForm.saveTemplate')}
         </button>
       </div>
 

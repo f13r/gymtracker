@@ -1,0 +1,46 @@
+{
+  "equipmentTypes": {
+    "barbell": "Штанга",
+    "dumbbell": "Гантелі",
+    "machine": "Тренажер",
+    "cable": "Блок",
+    "bodyweight": "Власна вага",
+    "other": "Інше"
+  },
+  "categories": {
+    "push": "Жим",
+    "pull": "Тяга",
+    "legs": "Ноги",
+    "core": "Кор",
+    "cardio": "Кардіо",
+    "other": "Інше"
+  },
+  "step1": {
+    "title": "Додати обладнання",
+    "photo": "Фото",
+    "previewAlt": "Попередній перегляд обладнання",
+    "tapToPhoto": "Натисніть, щоб зробити або обрати фото",
+    "equipmentType": "Тип обладнання",
+    "descriptionLabel": "Опис (допомагає ШІ)",
+    "descriptionPlaceholder": "напр. лівий блок біля вікна, подвійний блок",
+    "analysisFailed": "Не вдалося проаналізувати",
+    "analyzing": "Аналіз…",
+    "analyzePhoto": "Проаналізувати фото"
+  },
+  "step2": {
+    "title": "Перегляд пропозицій",
+    "equipmentName": "Назва обладнання",
+    "tagsLabel": "Теги (через кому)",
+    "exerciseNameAria": "Назва вправи",
+    "exercisesSelected": "Вправи (обрано {{count}})",
+    "alreadyInLibrary": "вже в бібліотеці",
+    "willBeCreated": "буде створено",
+    "saveFailed": "Не вдалося зберегти, спробуйте ще раз",
+    "saving": "Збереження…",
+    "saveEquipment": "Зберегти обладнання",
+    "renameTitle": "Перейменувати вправи у вашій бібліотеці?",
+    "renameDescription": "Ці вправи буде перейменовано всюди, де вони зустрічаються.",
+    "cancel": "Скасувати",
+    "renameSave": "Перейменувати та зберегти"
+  }
+}

@@ -1,6 +1,7 @@
 import { Navigate } from '@tanstack/react-router'
 import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon, Trash2, Loader2 } from 'lucide-react'
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { WorkoutSet } from '@gymtracker/shared'
 import { calculateVolume, getDoneSets } from '@gymtracker/shared'
@@ -52,6 +53,7 @@ function InlineSetRow({
   onDelete: () => void
   isDeletePending: boolean
 }) {
+  const { t } = useTranslation('workout')
   const [weight, setWeight] = useState(set.weightKg ?? 0)
   const [reps, setReps] = useState(set.reps ?? 8)
   const [prevSet, setPrevSet] = useState(set)
@@ -136,7 +138,7 @@ function InlineSetRow({
           ) : (
             <>
               <Trash2 size={18} />
-              Remove
+              {t('actions.remove')}
             </>
           )}
         </button>
@@ -155,7 +157,7 @@ function InlineSetRow({
               bigStep={5}
               fieldKey={`weight-${set.id}`}
               highlighted={isDone}
-              label="WEIGHT"
+              label={t('fields.weight')}
               max={300}
               min={0}
               readOnly={isDone}
@@ -169,7 +171,7 @@ function InlineSetRow({
             bigStep={5}
             fieldKey={`reps-${set.id}`}
             highlighted={isDone}
-            label="REPS"
+            label={t('fields.reps')}
             max={50}
             min={0}
             readOnly={isDone}
@@ -201,6 +203,7 @@ function ExerciseSummaryBar({
   defaultSets: number
   isBodyweight: boolean
 }) {
+  const { t } = useTranslation('workout')
   const doneSets = getDoneSets(currentSets)
   const nowReps = doneSets.reduce((s, x) => s + (x.reps ?? 0), 0)
   const nowVol = calculateVolume(doneSets)
@@ -221,28 +224,32 @@ function ExerciseSummaryBar({
       ? defaultSets * defaultReps * defaultWeightKg
       : null
 
-  const compLabel = hasPrev ? 'last time' : hasTemplate ? 'template' : null
+  const comparison = hasPrev ? t('summary.vsLastTime') : hasTemplate ? t('summary.vsTemplate') : null
 
   const deltaReps = wasReps !== null ? nowReps - wasReps : null
   const deltaVol = wasVol !== null ? nowVol - wasVol : null
 
   return (
     <div className="border-border/30 border-t px-4 pt-3 pb-4">
-      {compLabel && (
+      {comparison && (
         <p className="text-muted-foreground/50 mb-2.5 text-[9px] font-semibold tracking-widest uppercase">
-          vs {compLabel}
+          {comparison}
         </p>
       )}
       <div className={cn('grid gap-3', isBodyweight ? 'grid-cols-1' : 'grid-cols-2')}>
         {/* Volume card — hidden for bodyweight */}
         {!isBodyweight && (
           <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-            <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">VOLUME</p>
+            <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">
+              {t('summary.volume')}
+            </p>
             <p className="font-display font-700 text-[26px] leading-none tabular-nums">
               {nowVol > 0 ? (
                 <>
                   {fmtVol(nowVol)}
-                  <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">kg</span>
+                  <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">
+                    {t('summary.kg')}
+                  </span>
                 </>
               ) : (
                 '—'
@@ -250,7 +257,7 @@ function ExerciseSummaryBar({
             </p>
             <div className="mt-1.5 flex items-center gap-1.5">
               <span className="text-muted-foreground text-[11px] tabular-nums">
-                was {wasVol !== null ? `${fmtVol(wasVol)}kg` : '—'}
+                {wasVol !== null ? t('summary.wasKg', { value: fmtVol(wasVol) }) : t('summary.was', { value: '—' })}
               </span>
               {deltaVol !== null && deltaVol !== 0 && (
                 <span
@@ -269,10 +276,14 @@ function ExerciseSummaryBar({
 
         {/* Reps card */}
         <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-          <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">REPS</p>
+          <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">
+            {t('summary.reps')}
+          </p>
           <p className="font-display font-700 text-[26px] leading-none tabular-nums">{nowReps > 0 ? nowReps : '—'}</p>
           <div className="mt-1.5 flex items-center gap-1.5">
-            <span className="text-muted-foreground text-[11px] tabular-nums">was {wasReps ?? '—'}</span>
+            <span className="text-muted-foreground text-[11px] tabular-nums">
+              {t('summary.was', { value: wasReps ?? '—' })}
+            </span>
             {deltaReps !== null && deltaReps !== 0 && (
               <span
                 className={cn('text-[10px] font-bold tabular-nums', deltaReps > 0 ? 'text-accent' : 'text-destructive')}
@@ -329,6 +340,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
     updateSet,
     finishWorkout,
   } = useWorkoutLogger(sessionId, activeExerciseId)
+  const { t } = useTranslation('workout')
 
   // Superset accent/letter for the current Exercise — same assignment as the
   // overview and template editor, so a group keeps one color across all views.
@@ -376,15 +388,17 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
           onClick={() => navigate({ to: '/dashboard' })}
         >
           <ChevronLeft size={20} />
-          <span className="text-sm">Back</span>
+          <span className="text-sm">{t('topBar.back')}</span>
         </button>
-        <span className="max-w-[160px] truncate text-sm font-semibold">{session?.name ?? 'Workout'}</span>
+        <span className="max-w-[160px] truncate text-sm font-semibold">
+          {session?.name ?? t('session.fallbackName')}
+        </span>
         <div className="flex min-w-[60px] items-center justify-end gap-3">
           <span className="text-muted-foreground font-mono text-sm tabular-nums">{formatElapsed(workoutSeconds)}</span>
           <button
             className="text-destructive"
             disabled={finishWorkout.isPending}
-            title="Finish workout"
+            title={t('topBar.finish')}
             type="button"
             onClick={() => finishWorkout.mutate()}
           >
@@ -401,9 +415,9 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
         >
           <div className="mb-0.5 flex items-center gap-2">
             <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-              Exercise {activeExerciseIndex + 1} of {exercises.length}
+              {t('header.exerciseCount', { current: activeExerciseIndex + 1, total: exercises.length })}
               {' · '}
-              {doneCount}/{loggedCount} sets
+              {t('header.setsProgress', { done: doneCount, logged: loggedCount })}
             </p>
             {currentGroup && (
               <span
@@ -411,7 +425,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
                 style={{ color: currentGroup.color }}
               >
                 <span className="size-2 rounded-full" style={{ backgroundColor: currentGroup.color }} />
-                Superset {currentGroup.label}
+                {t('superset.label', { label: currentGroup.label })}
               </span>
             )}
           </div>
@@ -431,11 +445,11 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
                   }}
                 >
                   <Plus size={16} strokeWidth={2.5} />
-                  Add set
+                  {t('actions.addSet')}
                 </button>
               )}
               <button
-                aria-label="Show exercise demonstration"
+                aria-label={t('aria.showDemonstration')}
                 className="text-muted-foreground mt-1 shrink-0 active:opacity-60"
                 type="button"
                 onClick={() => setMediaOpen(true)}
@@ -455,15 +469,17 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
             >
               <div className="min-w-0">
                 <p className="text-muted-foreground mb-0.5 text-xs font-semibold tracking-widest uppercase">
-                  {exercises.length > 0 ? `Exercise ${activeExerciseIndex + 1} of ${exercises.length}` : 'Exercise'}
+                  {exercises.length > 0
+                    ? t('header.exerciseCount', { current: activeExerciseIndex + 1, total: exercises.length })
+                    : t('header.exercise')}
                 </p>
                 <p className="font-display font-700 truncate text-3xl leading-tight tracking-wide">
-                  {(pendingSelection?.name ?? currentExercise?.name ?? 'Select Exercise').toUpperCase()}
+                  {(pendingSelection?.name ?? currentExercise?.name ?? t('header.selectExercise')).toUpperCase()}
                 </p>
               </div>
               <div className="text-primary flex items-center gap-1.5">
                 <Plus size={18} strokeWidth={2.5} />
-                <span className="text-xs font-semibold tracking-wide uppercase">Add</span>
+                <span className="text-xs font-semibold tracking-wide uppercase">{t('actions.add')}</span>
               </div>
             </button>
             {canAddSet && (
@@ -477,7 +493,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
                 }}
               >
                 <Plus size={16} strokeWidth={2.5} />
-                Add set
+                {t('actions.addSet')}
               </button>
             )}
           </div>
@@ -503,11 +519,11 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
           <div className="flex flex-col items-center justify-center gap-3 py-10">
             {!isTemplateBased && !(pendingSelection?.id ?? currentExercise?.id) ? (
               <div className="text-center">
-                <p className="font-semibold">No exercise selected</p>
-                <p className="text-muted-foreground mt-1 text-sm">Tap "Add" to select one</p>
+                <p className="font-semibold">{t('empty.noExerciseSelected')}</p>
+                <p className="text-muted-foreground mt-1 text-sm">{t('empty.tapAddToSelect')}</p>
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">Log your first set</p>
+              <p className="text-muted-foreground text-sm">{t('empty.logFirstSet')}</p>
             )}
           </div>
         )}
@@ -538,14 +554,14 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
               onClick={prevExercise}
             >
               <ChevronLeft size={16} />
-              Prev
+              {t('actions.prev')}
             </button>
             <button
               className="border-border text-muted-foreground active:bg-muted flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-medium transition-colors"
               type="button"
               onClick={nextExercise}
             >
-              Next
+              {t('actions.next')}
               <ChevronUp className="rotate-90" size={16} />
             </button>
           </div>
@@ -572,11 +588,9 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
               <div className="mb-3 flex justify-center">
                 <CheckCircle2 className="text-accent" size={40} />
               </div>
-              <DrawerTitle className="text-xl">{currentExercise?.name} done!</DrawerTitle>
+              <DrawerTitle className="text-xl">{t('allDone.title', { name: currentExercise?.name })}</DrawerTitle>
               <p className="text-muted-foreground mt-1 text-sm">
-                {nextExerciseData
-                  ? 'Head back to the overview to pick your next exercise'
-                  : 'That was the last exercise.'}
+                {nextExerciseData ? t('allDone.hasNext') : t('allDone.last')}
               </p>
             </DrawerHeader>
             <DrawerFooter>
@@ -588,14 +602,14 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
                   navigate({ to: '/dashboard' })
                 }}
               >
-                BACK TO OVERVIEW
+                {t('allDone.backToOverview')}
               </button>
               <button
                 className="text-muted-foreground h-11 w-full text-sm font-medium"
                 type="button"
                 onClick={() => setAllDoneOpen(false)}
               >
-                Keep going here
+                {t('allDone.keepGoing')}
               </button>
             </DrawerFooter>
           </DrawerContent>

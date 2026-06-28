@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { exercisesApi } from '@/api/exercises'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 
@@ -16,6 +18,7 @@ export function ExerciseMediaDrawer({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useTranslation('workout')
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
@@ -24,11 +27,11 @@ export function ExerciseMediaDrawer({
         </DrawerHeader>
         <div className="flex min-h-48 flex-col items-center gap-4 overflow-y-auto px-4 pb-6">
           {!hasImage && !description && (
-            <p className="text-muted-foreground mt-8 text-sm">No demonstration available</p>
+            <p className="text-muted-foreground mt-8 text-sm">{t('media.noDemonstration')}</p>
           )}
           {hasImage && exerciseId && (
             <img
-              alt={`${exerciseName} demonstration`}
+              alt={t('aria.exerciseDemonstrationAlt', { name: exerciseName })}
               className="bg-muted max-h-64 w-auto rounded-xl object-contain p-2"
               src={exercisesApi.imageUrl(exerciseId)}
             />

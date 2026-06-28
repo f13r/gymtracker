@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Calendar, Play, Plus, Repeat, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { WorkoutTemplateWithExercises } from '@gymtracker/shared'
 
@@ -10,7 +11,8 @@ import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { dayLabelByTemplate, dayTitle, isSameDay, toYMD, workoutsForDate } from '@/lib/schedule'
+import i18n from '@/lib/i18n'
+import { dayLabelByTemplate, isSameDay, toYMD, workoutsForDate } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
 
 interface DayScheduleSheetProps {
@@ -21,6 +23,7 @@ interface DayScheduleSheetProps {
 
 export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
   const open = date != null
+  const { t } = useTranslation('workout')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [adding, setAdding] = useState(false)
@@ -74,17 +77,19 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
     <Drawer open={open} onOpenChange={o => !o && close()}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>{date ? dayTitle(date) : ''}</DrawerTitle>
+          <DrawerTitle>
+            {date ? date.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
+          </DrawerTitle>
         </DrawerHeader>
 
         <div className="space-y-2 px-4 pb-6">
           {scheduled.length === 0 && !adding && (
-            <p className="text-muted-foreground py-2 text-sm">Nothing scheduled.</p>
+            <p className="text-muted-foreground py-2 text-sm">{t('day.nothingScheduled')}</p>
           )}
 
           {scheduled.map(({ schedule, templateId }) => {
             const label = labels.get(templateId) ?? '•'
-            const name = nameById.get(templateId) ?? 'Workout'
+            const name = nameById.get(templateId) ?? t('session.fallbackName')
             return (
               <div key={schedule.id} className="bg-muted/50 flex items-center gap-3 rounded-xl px-3 py-2.5">
                 <span className="bg-card text-foreground flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold">
@@ -95,11 +100,11 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
                   <p className="text-muted-foreground flex items-center gap-1 text-xs">
                     {schedule.type === 'weekly' ? (
                       <>
-                        <Repeat size={11} /> Weekly
+                        <Repeat size={11} /> {t('schedule.weekly')}
                       </>
                     ) : (
                       <>
-                        <Calendar size={11} /> One-time
+                        <Calendar size={11} /> {t('day.oneTime')}
                       </>
                     )}
                   </p>
@@ -107,20 +112,20 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
 
                 {isToday && (
                   <button
-                    aria-label={`Start ${name}`}
+                    aria-label={t('aria.startNamed', { name })}
                     className="bg-primary text-primary-foreground flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-transform active:scale-95 disabled:opacity-60"
                     disabled={start.isPending}
                     type="button"
                     onClick={() => start.mutate({ templateId, name })}
                   >
                     <Play fill="currentColor" size={13} strokeWidth={0} />
-                    Start
+                    {t('actions.start')}
                   </button>
                 )}
 
                 {schedule.type === 'once' && (
                   <button
-                    aria-label={`Remove ${name} from this day`}
+                    aria-label={t('aria.removeFromDay', { name })}
                     className="text-destructive/60 active:text-destructive flex size-9 shrink-0 items-center justify-center transition-colors"
                     disabled={remove.isPending}
                     type="button"
@@ -137,10 +142,10 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
           {adding ? (
             <div className="space-y-1 pt-1">
               <p className="text-muted-foreground mb-1 px-1 text-xs font-semibold tracking-widest uppercase">
-                Add a workout
+                {t('day.addWorkout')}
               </p>
               {templates.length === 0 ? (
-                <p className="text-muted-foreground px-1 py-2 text-sm">No templates yet.</p>
+                <p className="text-muted-foreground px-1 py-2 text-sm">{t('day.noTemplates')}</p>
               ) : (
                 templates.map((t: WorkoutTemplateWithExercises) => (
                   <button
@@ -166,7 +171,7 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
               onClick={() => setAdding(true)}
             >
               <Plus size={16} />
-              Schedule a workout
+              {t('day.scheduleWorkout')}
             </button>
           )}
         </div>

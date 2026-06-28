@@ -2,11 +2,15 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
 import enCommon from '@/locales/en/common.json'
+import enEquipment from '@/locales/en/equipment.json'
 import enNav from '@/locales/en/nav.json'
 import enSettings from '@/locales/en/settings.json'
+import enWorkout from '@/locales/en/workout.json'
 import ukCommon from '@/locales/uk/common.json'
+import ukEquipment from '@/locales/uk/equipment.json'
 import ukNav from '@/locales/uk/nav.json'
 import ukSettings from '@/locales/uk/settings.json'
+import ukWorkout from '@/locales/uk/workout.json'
 import { type Language, usePreferencesStore } from '@/stores/preferences.store'
 
 /**
@@ -29,12 +33,12 @@ import { type Language, usePreferencesStore } from '@/stores/preferences.store'
 
 export const SUPPORTED_LANGUAGES = ['uk', 'en'] as const
 export const FALLBACK_LANGUAGE: Language = 'uk'
-export const I18N_NAMESPACES = ['common', 'nav', 'settings'] as const
+export const I18N_NAMESPACES = ['common', 'nav', 'settings', 'workout', 'equipment'] as const
 export const DEFAULT_NS = 'common'
 
 export const resources = {
-  uk: { common: ukCommon, nav: ukNav, settings: ukSettings },
-  en: { common: enCommon, nav: enNav, settings: enSettings },
+  uk: { common: ukCommon, nav: ukNav, settings: ukSettings, workout: ukWorkout, equipment: ukEquipment },
+  en: { common: enCommon, nav: enNav, settings: enSettings, workout: enWorkout, equipment: enEquipment },
 } as const
 
 const storedLanguage = usePreferencesStore.getState().language
