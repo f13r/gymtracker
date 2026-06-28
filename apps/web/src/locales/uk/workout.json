@@ -5,7 +5,9 @@
     "prev": "Назад",
     "next": "Далі",
     "remove": "Видалити",
-    "saving": "Збереження…"
+    "save": "Зберегти",
+    "saving": "Збереження…",
+    "start": "Почати"
   },
   "fields": {
     "weight": "ВАГА",
@@ -20,6 +22,7 @@
   "session": {
     "fallbackName": "Тренування"
   },
+  "exerciseFallback": "Вправа",
   "header": {
     "exerciseCount": "Вправа {{current}} з {{total}}",
     "setsProgress": "{{done}}/{{logged}} підходів",
@@ -31,13 +34,33 @@
     "label": "Суперсет {{label}}",
     "word": "Суперсет"
   },
+  "categories": {
+    "push": "Жим",
+    "pull": "Тяга",
+    "legs": "Ноги",
+    "core": "Кор",
+    "cardio": "Кардіо",
+    "other": "Інше"
+  },
+  "equipmentTypes": {
+    "barbell": "Штанга",
+    "dumbbell": "Гантелі",
+    "machine": "Тренажер",
+    "bodyweight": "Власна вага",
+    "cable": "Блок",
+    "other": "Інше"
+  },
   "aria": {
     "showDemonstration": "Показати демонстрацію вправи",
     "changeExercise": "Змінити вправу",
     "selectExercise": "Обрати вправу",
     "removeExercise": "Видалити вправу",
     "breakSuperset": "Розірвати суперсет",
-    "groupSuperset": "Об’єднати з наступною вправою в суперсет"
+    "groupSuperset": "Об’єднати з наступною вправою в суперсет",
+    "exerciseDemonstrationAlt": "Демонстрація: {{name}}",
+    "editNamed": "Редагувати {{name}}",
+    "startNamed": "Почати {{name}}",
+    "removeFromDay": "Прибрати {{name}} з цього дня"
   },
   "empty": {
     "noExerciseSelected": "Вправу не обрано",
@@ -59,6 +82,55 @@
     "last": "Це була остання вправа.",
     "backToOverview": "ДО ОГЛЯДУ",
     "keepGoing": "Залишитися тут"
+  },
+  "exerciseForm": {
+    "addPhoto": "Додати фото",
+    "removePhoto": "Видалити фото",
+    "name": "Назва",
+    "category": "Категорія",
+    "equipment": "Обладнання",
+    "notSet": "Не вказано",
+    "description": "Опис",
+    "descriptionPlaceholder": "Необов’язкові нотатки щодо техніки виконання…",
+    "addExercise": "Додати вправу"
+  },
+  "picker": {
+    "newExercise": "Нова вправа",
+    "selectExercise": "Оберіть вправу",
+    "searchPlaceholder": "Пошук вправ...",
+    "createNamed": "Створити «{{name}}»",
+    "createNew": "Створити нову вправу",
+    "addToPermanently": "Додати до <strong>{{name}}</strong> назавжди"
+  },
+  "editDialog": {
+    "title": "Редагувати вправу",
+    "deleteError": "Не вдалося видалити: ця вправа має записані підходи або історію.",
+    "deleteExercise": "Видалити вправу"
+  },
+  "media": {
+    "noDemonstration": "Демонстрація недоступна"
+  },
+  "schedule": {
+    "title": "Розклад «{{name}}»",
+    "once": "Одноразово",
+    "weekly": "Щотижня",
+    "save": "Зберегти розклад",
+    "scheduledHeading": "Заплановано",
+    "everyDay": "Щотижня, {{day}}"
+  },
+  "day": {
+    "nothingScheduled": "Нічого не заплановано.",
+    "oneTime": "Одноразово",
+    "addWorkout": "Додати тренування",
+    "noTemplates": "Ще немає шаблонів.",
+    "scheduleWorkout": "Запланувати тренування"
+  },
+  "week": {
+    "sectionLabel": "Розклад тренувань на цей тиждень",
+    "title": "Цей тиждень",
+    "restDay": "День відпочинку",
+    "dayAria": "{{day}} {{date}}: {{name}}",
+    "dayAriaToday": "{{day}} {{date}}: {{name}} (сьогодні)"
   },
   "templateForm": {
     "back": "Тренування",

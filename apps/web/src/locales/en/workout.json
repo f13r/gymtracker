@@ -5,7 +5,9 @@
     "prev": "Prev",
     "next": "Next",
     "remove": "Remove",
-    "saving": "Saving…"
+    "save": "Save",
+    "saving": "Saving…",
+    "start": "Start"
   },
   "fields": {
     "weight": "WEIGHT",
@@ -20,6 +22,7 @@
   "session": {
     "fallbackName": "Workout"
   },
+  "exerciseFallback": "Exercise",
   "header": {
     "exerciseCount": "Exercise {{current}} of {{total}}",
     "setsProgress": "{{done}}/{{logged}} sets",
@@ -31,13 +34,33 @@
     "label": "Superset {{label}}",
     "word": "Superset"
   },
+  "categories": {
+    "push": "Push",
+    "pull": "Pull",
+    "legs": "Legs",
+    "core": "Core",
+    "cardio": "Cardio",
+    "other": "Other"
+  },
+  "equipmentTypes": {
+    "barbell": "Barbell",
+    "dumbbell": "Dumbbell",
+    "machine": "Machine",
+    "bodyweight": "Bodyweight",
+    "cable": "Cable",
+    "other": "Other"
+  },
   "aria": {
     "showDemonstration": "Show exercise demonstration",
     "changeExercise": "Change exercise",
     "selectExercise": "Select exercise",
     "removeExercise": "Remove exercise",
     "breakSuperset": "Break this superset",
-    "groupSuperset": "Group with next exercise into a superset"
+    "groupSuperset": "Group with next exercise into a superset",
+    "exerciseDemonstrationAlt": "{{name}} demonstration",
+    "editNamed": "Edit {{name}}",
+    "startNamed": "Start {{name}}",
+    "removeFromDay": "Remove {{name}} from this day"
   },
   "empty": {
     "noExerciseSelected": "No exercise selected",
@@ -59,6 +82,55 @@
     "last": "That was the last exercise.",
     "backToOverview": "BACK TO OVERVIEW",
     "keepGoing": "Keep going here"
+  },
+  "exerciseForm": {
+    "addPhoto": "Add photo",
+    "removePhoto": "Remove photo",
+    "name": "Name",
+    "category": "Category",
+    "equipment": "Equipment",
+    "notSet": "Not set",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional notes on how to perform it…",
+    "addExercise": "Add exercise"
+  },
+  "picker": {
+    "newExercise": "New Exercise",
+    "selectExercise": "Select Exercise",
+    "searchPlaceholder": "Search exercises...",
+    "createNamed": "Create “{{name}}”",
+    "createNew": "Create new exercise",
+    "addToPermanently": "Add to <strong>{{name}}</strong> permanently"
+  },
+  "editDialog": {
+    "title": "Edit Exercise",
+    "deleteError": "Can’t delete: this exercise has logged sets or history.",
+    "deleteExercise": "Delete exercise"
+  },
+  "media": {
+    "noDemonstration": "No demonstration available"
+  },
+  "schedule": {
+    "title": "Schedule \"{{name}}\"",
+    "once": "One time",
+    "weekly": "Weekly",
+    "save": "Save Schedule",
+    "scheduledHeading": "Scheduled",
+    "everyDay": "Every {{day}}"
+  },
+  "day": {
+    "nothingScheduled": "Nothing scheduled.",
+    "oneTime": "One-time",
+    "addWorkout": "Add a workout",
+    "noTemplates": "No templates yet.",
+    "scheduleWorkout": "Schedule a workout"
+  },
+  "week": {
+    "sectionLabel": "This week's training schedule",
+    "title": "This Week",
+    "restDay": "Rest day",
+    "dayAria": "{{day}} {{date}}: {{name}}",
+    "dayAriaToday": "{{day}} {{date}}: {{name}} (today)"
   },
   "templateForm": {
     "back": "Workouts",

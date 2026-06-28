@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import type { Exercise } from '@gymtracker/shared'
 
@@ -32,6 +33,7 @@ function EditExerciseForm({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { t } = useTranslation('workout')
   const remove = useMutation({
     mutationFn: () => exercisesApi.remove(exercise.id),
     onSuccess: onSaved,
@@ -43,7 +45,7 @@ function EditExerciseForm({
         <button className="text-muted-foreground p-1" type="button" onClick={onClose}>
           <X size={22} />
         </button>
-        <span className="font-display font-600 text-lg tracking-wide uppercase">Edit Exercise</span>
+        <span className="font-display font-600 text-lg tracking-wide uppercase">{t('editDialog.title')}</span>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -52,10 +54,10 @@ function EditExerciseForm({
         {!exercise.isDefault && (
           <>
             {remove.isError && (
-              <p className="text-destructive mt-4 text-xs">Can’t delete: this exercise has logged sets or history.</p>
+              <p className="text-destructive mt-4 text-xs">{t('editDialog.deleteError')}</p>
             )}
             <Button className="mt-6 w-full" disabled={remove.isPending} variant="ghost" onClick={() => remove.mutate()}>
-              Delete exercise
+              {t('editDialog.deleteExercise')}
             </Button>
           </>
         )}

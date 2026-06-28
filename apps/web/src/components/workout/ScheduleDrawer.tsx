@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Calendar, Repeat, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { WorkoutSchedule } from '@gymtracker/shared'
 
@@ -9,7 +10,8 @@ import { schedulesApi } from '@/api/schedules'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { cn } from '@/lib/utils'
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+// JS getDay() index (0 = Sunday) → shared common:days key, so day labels react to language.
+const DOW_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
 interface ScheduleDrawerProps {
   open: boolean
@@ -20,6 +22,7 @@ interface ScheduleDrawerProps {
 
 export function ScheduleDrawer({ open, templateId, templateName, onClose }: ScheduleDrawerProps) {
   const queryClient = useQueryClient()
+  const { t } = useTranslation(['workout', 'common'])
   const [type, setType] = useState<'once' | 'weekly'>('weekly')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedDays, setSelectedDays] = useState<number[]>([])
@@ -71,7 +74,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
     <Drawer open={open} onOpenChange={o => !o && onClose()}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>Schedule "{templateName}"</DrawerTitle>
+          <DrawerTitle>{t('schedule.title', { name: templateName })}</DrawerTitle>
         </DrawerHeader>
 
         <div className="space-y-4 px-4 pb-2">
@@ -88,7 +91,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
               onClick={() => setType('once')}
             >
               <Calendar size={15} />
-              One time
+              {t('schedule.once')}
             </button>
             <button
               className={cn(
@@ -101,7 +104,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
               onClick={() => setType('weekly')}
             >
               <Repeat size={15} />
-              Weekly
+              {t('schedule.weekly')}
             </button>
           </div>
 
@@ -116,9 +119,9 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
             />
           ) : (
             <div className="grid grid-cols-7 gap-1">
-              {DAYS.map((label, i) => (
+              {DOW_KEYS.map((dayKey, i) => (
                 <button
-                  key={label}
+                  key={dayKey}
                   className={cn(
                     'flex flex-col items-center rounded-lg py-2 text-xs font-semibold transition-colors',
                     selectedDays.includes(i) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
@@ -126,7 +129,7 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
                   type="button"
                   onClick={() => toggleDay(i)}
                 >
-                  {label}
+                  {t(`common:days.${dayKey}`)}
                 </button>
               ))}
             </div>
@@ -143,14 +146,14 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
             type="button"
             onClick={() => create.mutate()}
           >
-            {create.isPending ? 'Saving…' : 'Save Schedule'}
+            {create.isPending ? t('actions.saving') : t('schedule.save')}
           </button>
 
           {/* Existing schedules */}
           {templateSchedules.length > 0 && (
             <div className="mt-2 space-y-1">
               <p className="text-muted-foreground mb-2 px-1 text-xs font-semibold tracking-widest uppercase">
-                Scheduled
+                {t('schedule.scheduledHeading')}
               </p>
               {templateSchedules.map((s: WorkoutSchedule) => (
                 <div key={s.id} className="bg-muted/50 flex items-center justify-between rounded-xl px-3 py-2">
@@ -161,7 +164,9 @@ export function ScheduleDrawer({ open, templateId, templateName, onClose }: Sche
                       <Repeat className="text-muted-foreground" size={14} />
                     )}
                     <span className="text-sm font-medium">
-                      {s.type === 'once' ? s.scheduledDate : `Every ${DAYS[s.dayOfWeek!]}`}
+                      {s.type === 'once'
+                        ? s.scheduledDate
+                        : t('schedule.everyDay', { day: t(`common:days.${DOW_KEYS[s.dayOfWeek!]}`) })}
                     </span>
                   </div>
                   <button

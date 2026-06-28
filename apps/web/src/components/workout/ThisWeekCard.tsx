@@ -2,13 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { programApi } from '@/api/program'
 import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
-import { DAY_SHORT, dayLabelByTemplate, isSameDay, workoutsForDate } from '@/lib/schedule'
+import { dayLabelByTemplate, isSameDay, workoutsForDate } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
+
+// JS getDay() index (0 = Sunday) → shared common:days key, so labels react to language.
+const DOW_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
 /** The seven dates of the current week, Monday-first. */
 function currentWeekDates(today: Date): Date[] {
@@ -26,6 +30,7 @@ function currentWeekDates(today: Date): Date[] {
  * an empty home.
  */
 export function ThisWeekCard() {
+  const { t } = useTranslation(['workout', 'common'])
   const { data: schedules = [] } = useQuery({ queryKey: queryKeys.schedules(), queryFn: schedulesApi.getSchedules })
   const { data: program } = useQuery({ queryKey: ['program'], queryFn: programApi.getActive })
   const { data: templates = [] } = useQuery({ queryKey: ['templates'], queryFn: workoutsApi.getTemplates })
@@ -49,7 +54,7 @@ export function ThisWeekCard() {
         continue
       }
       seen.add(templateId)
-      legend.push({ label: labels.get(templateId) ?? '•', name: nameById.get(templateId) ?? 'Workout' })
+      legend.push({ label: labels.get(templateId) ?? '•', name: nameById.get(templateId) ?? t('session.fallbackName') })
     }
   }
 
@@ -58,9 +63,9 @@ export function ThisWeekCard() {
   }
 
   return (
-    <section aria-label="This week's training schedule" className="space-y-2">
+    <section aria-label={t('week.sectionLabel')} className="space-y-2">
       <Link className="text-muted-foreground flex items-center gap-1" to="/calendar">
-        <h2 className="font-display font-600 text-lg tracking-wide uppercase">This Week</h2>
+        <h2 className="font-display font-600 text-lg tracking-wide uppercase">{t('week.title')}</h2>
         <ChevronRight size={16} />
       </Link>
 
@@ -72,9 +77,11 @@ export function ThisWeekCard() {
             const isToday = isSameDay(date, today)
             const day = date.getDay()
             const label = tid ? (labels.get(tid) ?? '•') : null
-            const ariaLabel = `${DAY_SHORT[day]} ${date.getDate()}: ${
-              tid ? (nameById.get(tid) ?? 'Workout') : 'Rest day'
-            }${isToday ? ' (today)' : ''}`
+            const dayLabel = t(`common:days.${DOW_KEYS[day]}`)
+            const workoutName = tid ? (nameById.get(tid) ?? t('session.fallbackName')) : t('week.restDay')
+            const ariaLabel = isToday
+              ? t('week.dayAriaToday', { day: dayLabel, date: date.getDate(), name: workoutName })
+              : t('week.dayAria', { day: dayLabel, date: date.getDate(), name: workoutName })
 
             return (
               <li key={date.toISOString()} aria-label={ariaLabel} className="flex flex-col items-center gap-1.5">
@@ -84,7 +91,7 @@ export function ThisWeekCard() {
                     isToday ? 'text-primary' : 'text-muted-foreground',
                   )}
                 >
-                  {DAY_SHORT[day]}
+                  {dayLabel}
                 </span>
                 <div
                   className={cn(

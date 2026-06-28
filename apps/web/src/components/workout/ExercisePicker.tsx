@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Pencil, Plus, X, Search } from 'lucide-react'
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 
 import type { Exercise } from '@gymtracker/shared'
 
@@ -25,6 +26,7 @@ interface ExercisePickerProps {
 }
 
 export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: ExercisePickerProps) {
+  const { t } = useTranslation('workout')
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Exercise | null>(null)
   const [creating, setCreating] = useState(false)
@@ -58,7 +60,12 @@ export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: 
         {permanentAdd.checked && <Check size={14} strokeWidth={3} />}
       </span>
       <span className="text-sm">
-        Add to <span className="font-semibold">{permanentAdd.templateName}</span> permanently
+        <Trans
+          components={{ strong: <span className="font-semibold" /> }}
+          i18nKey="picker.addToPermanently"
+          ns="workout"
+          values={{ name: permanentAdd.templateName }}
+        />
       </span>
     </button>
   ) : null
@@ -70,7 +77,7 @@ export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: 
           <button className="text-muted-foreground p-1" type="button" onClick={() => setCreating(false)}>
             <X size={22} />
           </button>
-          <span className="font-display font-600 text-lg tracking-wide uppercase">New Exercise</span>
+          <span className="font-display font-600 text-lg tracking-wide uppercase">{t('picker.newExercise')}</span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <ExerciseForm
@@ -92,14 +99,14 @@ export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: 
         <button className="text-muted-foreground p-1" type="button" onClick={onClose}>
           <X size={22} />
         </button>
-        <span className="font-display font-600 text-lg tracking-wide uppercase">Select Exercise</span>
+        <span className="font-display font-600 text-lg tracking-wide uppercase">{t('picker.selectExercise')}</span>
       </div>
       <div className="border-border border-b px-4 py-2">
         <div className="relative">
           <Search className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2" size={16} />
           <input
             className="bg-card border-border focus:border-primary w-full rounded-xl border py-2.5 pr-4 pl-9 text-sm outline-none"
-            placeholder="Search exercises..."
+            placeholder={t('picker.searchPlaceholder')}
             value={search}
             autoFocus
             onChange={e => setSearch(e.target.value)}
@@ -121,12 +128,14 @@ export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: 
           onClick={() => setCreating(true)}
         >
           <Plus size={16} />
-          {search.trim() ? `Create “${search.trim()}”` : 'Create new exercise'}
+          {search.trim() ? t('picker.createNamed', { name: search.trim() }) : t('picker.createNew')}
         </button>
         {Object.entries(grouped).map(([cat, exs]) => (
           <div key={cat}>
             <div className="bg-background/95 sticky top-0 px-4 py-2 backdrop-blur-sm">
-              <span className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{cat}</span>
+              <span className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+                {t(`categories.${cat}`, { defaultValue: cat })}
+              </span>
             </div>
             {exs.map(ex => (
               <div
@@ -145,12 +154,12 @@ export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: 
                   </span>
                   {ex.equipmentType && (
                     <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-xs">
-                      {ex.equipmentType}
+                      {t(`equipmentTypes.${ex.equipmentType}`, { defaultValue: ex.equipmentType })}
                     </span>
                   )}
                 </button>
                 <button
-                  aria-label={`Edit ${ex.name}`}
+                  aria-label={t('aria.editNamed', { name: ex.name })}
                   className="text-muted-foreground/60 active:text-primary flex size-10 shrink-0 items-center justify-center pr-2 transition-colors"
                   type="button"
                   onClick={() => setEditing(ex)}
