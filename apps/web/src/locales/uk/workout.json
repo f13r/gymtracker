@@ -1,0 +1,73 @@
+{
+  "actions": {
+    "add": "Додати",
+    "addSet": "Додати підхід",
+    "prev": "Назад",
+    "next": "Далі",
+    "remove": "Видалити",
+    "saving": "Збереження…"
+  },
+  "fields": {
+    "weight": "ВАГА",
+    "reps": "ПОВТОРИ",
+    "sets": "ПІДХОДИ",
+    "kg": "КГ"
+  },
+  "topBar": {
+    "back": "Назад",
+    "finish": "Завершити тренування"
+  },
+  "session": {
+    "fallbackName": "Тренування"
+  },
+  "header": {
+    "exerciseCount": "Вправа {{current}} з {{total}}",
+    "setsProgress": "{{done}}/{{logged}} підходів",
+    "exercise": "Вправа",
+    "selectExercise": "Оберіть вправу",
+    "exerciseNumber": "Вправа {{number}}"
+  },
+  "superset": {
+    "label": "Суперсет {{label}}",
+    "word": "Суперсет"
+  },
+  "aria": {
+    "showDemonstration": "Показати демонстрацію вправи",
+    "changeExercise": "Змінити вправу",
+    "selectExercise": "Обрати вправу",
+    "removeExercise": "Видалити вправу",
+    "breakSuperset": "Розірвати суперсет",
+    "groupSuperset": "Об’єднати з наступною вправою в суперсет"
+  },
+  "empty": {
+    "noExerciseSelected": "Вправу не обрано",
+    "tapAddToSelect": "Натисніть «Додати», щоб обрати",
+    "logFirstSet": "Запишіть свій перший підхід"
+  },
+  "summary": {
+    "vsLastTime": "проти минулого разу",
+    "vsTemplate": "проти шаблону",
+    "volume": "ОБ’ЄМ",
+    "reps": "ПОВТОРИ",
+    "was": "було {{value}}",
+    "wasKg": "було {{value}}кг",
+    "kg": "кг"
+  },
+  "allDone": {
+    "title": "{{name}} — готово!",
+    "hasNext": "Поверніться до огляду, щоб обрати наступну вправу",
+    "last": "Це була остання вправа.",
+    "backToOverview": "ДО ОГЛЯДУ",
+    "keepGoing": "Залишитися тут"
+  },
+  "templateForm": {
+    "back": "Тренування",
+    "editEyebrow": "Редагувати",
+    "newEyebrow": "Новий",
+    "title": "ШАБЛОН ТРЕНУВАННЯ",
+    "namePlaceholder": "Назва шаблону тренування",
+    "addExercise": "Додати вправу",
+    "saveChanges": "ЗБЕРЕГТИ ЗМІНИ",
+    "saveTemplate": "ЗБЕРЕГТИ ШАБЛОН"
+  }
+}

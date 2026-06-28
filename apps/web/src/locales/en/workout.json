@@ -1,0 +1,73 @@
+{
+  "actions": {
+    "add": "Add",
+    "addSet": "Add set",
+    "prev": "Prev",
+    "next": "Next",
+    "remove": "Remove",
+    "saving": "Saving…"
+  },
+  "fields": {
+    "weight": "WEIGHT",
+    "reps": "REPS",
+    "sets": "SETS",
+    "kg": "KG"
+  },
+  "topBar": {
+    "back": "Back",
+    "finish": "Finish workout"
+  },
+  "session": {
+    "fallbackName": "Workout"
+  },
+  "header": {
+    "exerciseCount": "Exercise {{current}} of {{total}}",
+    "setsProgress": "{{done}}/{{logged}} sets",
+    "exercise": "Exercise",
+    "selectExercise": "Select Exercise",
+    "exerciseNumber": "Exercise {{number}}"
+  },
+  "superset": {
+    "label": "Superset {{label}}",
+    "word": "Superset"
+  },
+  "aria": {
+    "showDemonstration": "Show exercise demonstration",
+    "changeExercise": "Change exercise",
+    "selectExercise": "Select exercise",
+    "removeExercise": "Remove exercise",
+    "breakSuperset": "Break this superset",
+    "groupSuperset": "Group with next exercise into a superset"
+  },
+  "empty": {
+    "noExerciseSelected": "No exercise selected",
+    "tapAddToSelect": "Tap \"Add\" to select one",
+    "logFirstSet": "Log your first set"
+  },
+  "summary": {
+    "vsLastTime": "vs last time",
+    "vsTemplate": "vs template",
+    "volume": "VOLUME",
+    "reps": "REPS",
+    "was": "was {{value}}",
+    "wasKg": "was {{value}}kg",
+    "kg": "kg"
+  },
+  "allDone": {
+    "title": "{{name}} done!",
+    "hasNext": "Head back to the overview to pick your next exercise",
+    "last": "That was the last exercise.",
+    "backToOverview": "BACK TO OVERVIEW",
+    "keepGoing": "Keep going here"
+  },
+  "templateForm": {
+    "back": "Workouts",
+    "editEyebrow": "Edit",
+    "newEyebrow": "New",
+    "title": "WORKOUT TEMPLATE",
+    "namePlaceholder": "Workout template name",
+    "addExercise": "Add Exercise",
+    "saveChanges": "SAVE CHANGES",
+    "saveTemplate": "SAVE TEMPLATE"
+  }
+}

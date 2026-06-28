@@ -1,10 +1,16 @@
 import { render, screen, within, fireEvent } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { WorkoutSet } from '@gymtracker/shared'
 
 import { WorkoutLogger } from '@/components/workout/WorkoutLogger'
 import { useWorkoutLogger } from '@/components/workout/useWorkoutLogger'
+import i18n from '@/lib/i18n'
+
+// Assertions below target the English copy, so pin the language to `en`.
+beforeAll(async () => {
+  await i18n.changeLanguage('en')
+})
 
 // ── Mock the controller hook so the component renders without React Query / Router.
 vi.mock('@/components/workout/useWorkoutLogger', () => ({
