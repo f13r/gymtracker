@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Camera, ChevronLeft, X } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { AnalyzeSuggestion, SaveExerciseInput, SuggestedExercise } from '@gymtracker/shared'
 
@@ -8,14 +9,7 @@ import { equipmentApi } from '@/api/equipment'
 import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
 
-const EQUIPMENT_TYPES = [
-  { value: 'barbell', label: 'Barbell' },
-  { value: 'dumbbell', label: 'Dumbbell' },
-  { value: 'machine', label: 'Machine' },
-  { value: 'cable', label: 'Cable' },
-  { value: 'bodyweight', label: 'Bodyweight' },
-  { value: 'other', label: 'Other' },
-] as const
+const EQUIPMENT_TYPES = ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'other'] as const
 
 type Props = {
   onClose: () => void
@@ -42,6 +36,7 @@ type Step2State = {
 }
 
 export function AddEquipmentWizard({ onClose, onSaved }: Props) {
+  const { t } = useTranslation('equipment')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [step, setStep] = useState<1 | 2>(1)
@@ -94,14 +89,14 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
         <button className="flex size-9 items-center justify-center rounded-full" type="button" onClick={onClose}>
           <X size={20} />
         </button>
-        <h2 className="flex-1 text-base font-semibold">Add Equipment</h2>
+        <h2 className="flex-1 text-base font-semibold">{t('step1.title')}</h2>
       </div>
 
       <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
         {/* Photo picker */}
         <div>
           <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
-            Photo
+            {t('step1.photo')}
           </label>
           <button
             className="bg-muted border-border flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed py-8 transition-colors active:scale-95"
@@ -109,11 +104,11 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
             onClick={() => fileRef.current?.click()}
           >
             {s1.previewUrl ? (
-              <img alt="Equipment preview" className="h-40 w-full rounded-xl object-cover" src={s1.previewUrl} />
+              <img alt={t('step1.previewAlt')} className="h-40 w-full rounded-xl object-cover" src={s1.previewUrl} />
             ) : (
               <>
                 <Camera className="text-muted-foreground" size={32} strokeWidth={1.5} />
-                <span className="text-muted-foreground text-sm">Tap to take or choose a photo</span>
+                <span className="text-muted-foreground text-sm">{t('step1.tapToPhoto')}</span>
               </>
             )}
           </button>
@@ -130,10 +125,10 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
         {/* Equipment Type */}
         <div>
           <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
-            Equipment Type
+            {t('step1.equipmentType')}
           </label>
           <div className="grid grid-cols-3 gap-2">
-            {EQUIPMENT_TYPES.map(({ value, label }) => (
+            {EQUIPMENT_TYPES.map(value => (
               <button
                 key={value}
                 className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -144,7 +139,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
                 type="button"
                 onClick={() => setS1(prev => ({ ...prev, equipmentType: value }))}
               >
-                {label}
+                {t(`equipmentTypes.${value}`)}
               </button>
             ))}
           </div>
@@ -153,11 +148,11 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
         {/* Description / hint */}
         <div>
           <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
-            Description (helps AI)
+            {t('step1.descriptionLabel')}
           </label>
           <textarea
             className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
-            placeholder="e.g. left cable tower near the window, dual pulley"
+            placeholder={t('step1.descriptionPlaceholder')}
             rows={3}
             value={s1.description}
             onChange={e => setS1(prev => ({ ...prev, description: e.target.value }))}
@@ -168,7 +163,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
       <div className="border-border pb-safe border-t p-4">
         {analyze.isError && (
           <p className="text-destructive mb-3 text-center text-sm">
-            {analyze.error instanceof Error ? analyze.error.message : 'Analysis failed'}
+            {analyze.error instanceof Error ? analyze.error.message : t('step1.analysisFailed')}
           </p>
         )}
         <Button
@@ -184,7 +179,7 @@ export function AddEquipmentWizard({ onClose, onSaved }: Props) {
             }
           }}
         >
-          {analyze.isPending ? 'Analyzing…' : 'Analyze Photo'}
+          {analyze.isPending ? t('step1.analyzing') : t('step1.analyzePhoto')}
         </Button>
       </div>
     </div>
@@ -200,6 +195,7 @@ type Step2Props = {
 }
 
 function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
+  const { t } = useTranslation('equipment')
   const queryClient = useQueryClient()
   const save = useMutation({
     mutationFn: () => {
@@ -254,7 +250,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         <button className="flex size-9 items-center justify-center rounded-full" type="button" onClick={onBack}>
           <ChevronLeft size={20} />
         </button>
-        <h2 className="flex-1 text-base font-semibold">Review Suggestions</h2>
+        <h2 className="flex-1 text-base font-semibold">{t('step2.title')}</h2>
         <button className="flex size-9 items-center justify-center rounded-full" type="button" onClick={onClose}>
           <X size={20} />
         </button>
@@ -264,7 +260,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         {/* Equipment name */}
         <div>
           <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
-            Equipment Name
+            {t('step2.equipmentName')}
           </label>
           <input
             className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
@@ -276,7 +272,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         {/* Tags */}
         <div>
           <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
-            Tags (comma-separated)
+            {t('step2.tagsLabel')}
           </label>
           <input
             className="bg-card border-border focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none"
@@ -301,7 +297,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
         {/* Exercises */}
         <div>
           <label className="text-muted-foreground mb-1.5 block text-xs font-semibold tracking-widest uppercase">
-            Exercises ({s2.selectedExercises.size} selected)
+            {t('step2.exercisesSelected', { count: s2.selectedExercises.size })}
           </label>
           <div className="space-y-1">
             {s2.suggestion.exercises.map((ex: SuggestedExercise, i: number) => (
@@ -338,7 +334,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                 </button>
                 <div className="min-w-0 flex-1 py-3 pr-3">
                   <input
-                    aria-label="Exercise name"
+                    aria-label={t('step2.exerciseNameAria')}
                     className="w-full bg-transparent text-sm font-medium outline-none"
                     value={s2.exerciseNames[i]}
                     onChange={e =>
@@ -353,8 +349,9 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                     }
                   />
                   <p className="text-muted-foreground text-xs">
-                    {ex.category} · {ex.equipmentType}
-                    {ex.existingId ? ' · already in library' : ' · will be created'}
+                    {t(`categories.${ex.category}`, { defaultValue: ex.category })} ·{' '}
+                    {t(`equipmentTypes.${ex.equipmentType}`, { defaultValue: ex.equipmentType })}
+                    {ex.existingId ? ` · ${t('step2.alreadyInLibrary')}` : ` · ${t('step2.willBeCreated')}`}
                   </p>
                 </div>
               </div>
@@ -364,7 +361,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
       </div>
 
       <div className="border-border pb-safe border-t p-4">
-        {save.isError && <p className="text-destructive mb-3 text-center text-sm">Failed to save, try again</p>}
+        {save.isError && <p className="text-destructive mb-3 text-center text-sm">{t('step2.saveFailed')}</p>}
         <Button
           className="w-full"
           disabled={save.isPending}
@@ -376,14 +373,14 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
             }
           }}
         >
-          {save.isPending ? 'Saving…' : 'Save Equipment'}
+          {save.isPending ? t('step2.saving') : t('step2.saveEquipment')}
         </Button>
       </div>
 
       {renameConfirm && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-6">
           <div className="bg-background w-full max-w-sm space-y-4 rounded-2xl p-6">
-            <h3 className="font-semibold">Rename exercises in your library?</h3>
+            <h3 className="font-semibold">{t('step2.renameTitle')}</h3>
             <ul className="space-y-1">
               {renameConfirm.map(({ from, to }) => (
                 <li key={`${from}->${to}`} className="text-muted-foreground text-sm">
@@ -391,10 +388,10 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                 </li>
               ))}
             </ul>
-            <p className="text-muted-foreground text-xs">These exercises will be renamed everywhere they appear.</p>
+            <p className="text-muted-foreground text-xs">{t('step2.renameDescription')}</p>
             <div className="flex gap-2">
               <Button className="flex-1" variant="outline" onClick={() => setRenameConfirm(null)}>
-                Cancel
+                {t('step2.cancel')}
               </Button>
               <Button
                 className="flex-1"
@@ -403,7 +400,7 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                   save.mutate()
                 }}
               >
-                Rename & Save
+                {t('step2.renameSave')}
               </Button>
             </div>
           </div>

@@ -1,0 +1,46 @@
+{
+  "equipmentTypes": {
+    "barbell": "Barbell",
+    "dumbbell": "Dumbbell",
+    "machine": "Machine",
+    "cable": "Cable",
+    "bodyweight": "Bodyweight",
+    "other": "Other"
+  },
+  "categories": {
+    "push": "Push",
+    "pull": "Pull",
+    "legs": "Legs",
+    "core": "Core",
+    "cardio": "Cardio",
+    "other": "Other"
+  },
+  "step1": {
+    "title": "Add Equipment",
+    "photo": "Photo",
+    "previewAlt": "Equipment preview",
+    "tapToPhoto": "Tap to take or choose a photo",
+    "equipmentType": "Equipment Type",
+    "descriptionLabel": "Description (helps AI)",
+    "descriptionPlaceholder": "e.g. left cable tower near the window, dual pulley",
+    "analysisFailed": "Analysis failed",
+    "analyzing": "Analyzing…",
+    "analyzePhoto": "Analyze Photo"
+  },
+  "step2": {
+    "title": "Review Suggestions",
+    "equipmentName": "Equipment Name",
+    "tagsLabel": "Tags (comma-separated)",
+    "exerciseNameAria": "Exercise name",
+    "exercisesSelected": "Exercises ({{count}} selected)",
+    "alreadyInLibrary": "already in library",
+    "willBeCreated": "will be created",
+    "saveFailed": "Failed to save, try again",
+    "saving": "Saving…",
+    "saveEquipment": "Save Equipment",
+    "renameTitle": "Rename exercises in your library?",
+    "renameDescription": "These exercises will be renamed everywhere they appear.",
+    "cancel": "Cancel",
+    "renameSave": "Rename & Save"
+  }
+}
