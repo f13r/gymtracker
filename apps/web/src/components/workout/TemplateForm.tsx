@@ -518,7 +518,11 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
           type="button"
           onClick={handleSave}
         >
-          {isSaving ? t('actions.saving') : mode === 'edit' ? t('templateForm.saveChanges') : t('templateForm.saveTemplate')}
+          {isSaving
+            ? t('actions.saving')
+            : mode === 'edit'
+              ? t('templateForm.saveChanges')
+              : t('templateForm.saveTemplate')}
         </button>
       </div>
 

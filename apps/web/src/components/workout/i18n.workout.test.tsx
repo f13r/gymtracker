@@ -1,15 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
-import type { ReactNode } from 'react'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-
-import enWorkout from '@/locales/en/workout.json'
-import ukWorkout from '@/locales/uk/workout.json'
-import i18n from '@/lib/i18n'
 
 import { TemplateForm } from '@/components/workout/TemplateForm'
 import { WorkoutLogger } from '@/components/workout/WorkoutLogger'
 import { useWorkoutLogger } from '@/components/workout/useWorkoutLogger'
+import i18n from '@/lib/i18n'
+import enWorkout from '@/locales/en/workout.json'
+import ukWorkout from '@/locales/uk/workout.json'
+import type { ReactNode } from 'react'
 
 // ── Mock the controller hook so WorkoutLogger renders without React Query / Router.
 vi.mock('@/components/workout/useWorkoutLogger', () => ({
@@ -55,9 +54,7 @@ beforeEach(() => {
 function collectKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) => {
     const path = prefix ? `${prefix}.${k}` : k
-    return v && typeof v === 'object' && !Array.isArray(v)
-      ? collectKeys(v as Record<string, unknown>, path)
-      : [path]
+    return v && typeof v === 'object' && !Array.isArray(v) ? collectKeys(v as Record<string, unknown>, path) : [path]
   })
 }
 
@@ -162,7 +159,7 @@ describe('TemplateForm renders in Ukrainian without missing keys', () => {
   }
 
   it('create mode shows Ukrainian template form copy', () => {
-    renderWithClient(<TemplateForm mode="create" isSaving={false} onBack={vi.fn()} onSave={vi.fn()} />)
+    renderWithClient(<TemplateForm isSaving={false} mode="create" onBack={vi.fn()} onSave={vi.fn()} />)
 
     expect(screen.getByText('ШАБЛОН ТРЕНУВАННЯ')).toBeInTheDocument()
     expect(screen.getByText('Додати вправу')).toBeInTheDocument()

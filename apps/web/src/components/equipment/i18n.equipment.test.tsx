@@ -7,9 +7,7 @@ import ukEquipment from '@/locales/uk/equipment.json'
 function collectKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) => {
     const path = prefix ? `${prefix}.${k}` : k
-    return v && typeof v === 'object' && !Array.isArray(v)
-      ? collectKeys(v as Record<string, unknown>, path)
-      : [path]
+    return v && typeof v === 'object' && !Array.isArray(v) ? collectKeys(v as Record<string, unknown>, path) : [path]
   })
 }
 

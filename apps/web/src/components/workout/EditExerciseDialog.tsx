@@ -53,9 +53,7 @@ function EditExerciseForm({
 
         {!exercise.isDefault && (
           <>
-            {remove.isError && (
-              <p className="text-destructive mt-4 text-xs">{t('editDialog.deleteError')}</p>
-            )}
+            {remove.isError && <p className="text-destructive mt-4 text-xs">{t('editDialog.deleteError')}</p>}
             <Button className="mt-6 w-full" disabled={remove.isPending} variant="ghost" onClick={() => remove.mutate()}>
               {t('editDialog.deleteExercise')}
             </Button>
