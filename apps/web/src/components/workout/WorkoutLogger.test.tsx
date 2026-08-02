@@ -80,6 +80,7 @@ function baseHookReturn(overrides: Record<string, unknown> = {}) {
     canAddSet: true,
     workoutSeconds: 0,
     prevSets: [],
+    previousReference: { perCurrentSet: [], extra: [] },
     exerciseMediaMap: {},
     pendingSelection: null,
     permanentAdd: false,

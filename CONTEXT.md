@@ -118,6 +118,10 @@ _Avoid_: undone set, pending set, skipped set
 A Set the user explicitly dropped from the Session by swiping it away. Soft-removed (a non-null `removedAt`; never hard-deleted) and hidden from the logger, but retained for statistics. Distinct from a **Missed** Planned Set (intended but not completed): a Removed Set records "I deliberately did not do this one today." Like all in-session edits, removal affects only this Session's record — it never changes a future Session, whose set count always returns to the Template. (A future statistic of "this set is consistently removed" could inform the Coach to amend the Template, but that is deferred Program/progression work, not an automatic plan change.)
 _Avoid_: deleted set, skipped set, dropped rep
 
+**Previous-Session Reference**:
+What the logger shows next to today's Sets: the **Done Sets** of the Exercise's **last-done** occurrence — the most recent finished Session in which that Exercise was actually done (a Session where it was only planned and skipped is not that occurrence). **Every** Done Set from that occurrence is shown, however many there were: the ones matching today's rows are paired to them by position (set 1 against set 1 — today's Sets are renumbered as they are added and Removed, so `setNumber` is not a stable join key across Sessions), and any beyond today's Template-planned set count are listed after the rows as "last time you also did". The reference is read-only history; it never changes today's structure, which still comes from the Template (see **Session Snapshot**). Shares the **last-done** notion with the **Set Pre-population Hierarchy** and the **Last-Done Comparison**.
+_Avoid_: previous workout, history, last session (as a label for the paired numbers)
+
 **RPE** (Rate of Perceived Exertion):
 An optional 1–10 effort score logged per Set. Indicates subjective difficulty.
 _Avoid_: effort, difficulty, exertion

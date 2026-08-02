@@ -76,6 +76,14 @@
     "wasKg": "was {{value}}kg",
     "kg": "kg"
   },
+  "previous": {
+    "setNumber": "Set {{number}}",
+    "lastTime": "last time {{value}}",
+    "lastTimeHeading": "Last time",
+    "alsoDid": "Last time you also did",
+    "reps": "{{reps}} reps",
+    "weightByReps": "{{weight}} kg × {{reps}}"
+  },
   "allDone": {
     "title": "{{name}} done!",
     "hasNext": "Head back to the overview to pick your next exercise",

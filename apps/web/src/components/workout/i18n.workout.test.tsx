@@ -92,6 +92,7 @@ function makeHookReturn(overrides: Record<string, unknown> = {}) {
     canAddSet: true,
     workoutSeconds: 0,
     prevSets: [],
+    previousReference: { perCurrentSet: [], extra: [] },
     exerciseMediaMap: {},
     pendingSelection: null,
     permanentAdd: false,
@@ -140,6 +141,52 @@ describe('WorkoutLogger renders in Ukrainian without missing keys', () => {
     render(<WorkoutLogger sessionId="s1" />)
 
     expect(screen.getByText('Вправу не обрано')).toBeInTheDocument()
+    expect(missingKeys).toEqual([])
+  })
+
+  it('shows the Ukrainian Previous-Session Reference on rows and for the extra Sets', () => {
+    const loggedSet = {
+      id: 'set1',
+      sessionId: 's1',
+      exerciseId: 'ex1',
+      setNumber: 1,
+      reps: 8,
+      weightKg: 50,
+      durationSec: null,
+      rpe: null,
+      completedAt: null,
+      done: false,
+      removedAt: null,
+      notes: null,
+    }
+    const currentExercise = {
+      id: 'ex1',
+      name: 'Leg V Squad',
+      equipmentType: 'barbell',
+      defaultSets: 1,
+      defaultReps: 8,
+      defaultWeightKg: 50,
+      loggedSets: [loggedSet],
+      supersetGroup: null,
+    }
+    mockedHook.mockReturnValue(
+      makeHookReturn({
+        currentExercise,
+        exercises: [currentExercise],
+        loggedCount: 1,
+        previousReference: {
+          perCurrentSet: [{ position: 1, weightKg: 55, reps: 10 }],
+          // Last time ran to a second Set the current Template doesn't plan.
+          extra: [{ position: 2, weightKg: 55, reps: 9 }],
+        },
+      }),
+    )
+    render(<WorkoutLogger sessionId="s1" />)
+
+    expect(screen.getByText('минулого разу 55 кг × 10')).toBeInTheDocument()
+    expect(screen.getByText('Минулого разу ви також зробили')).toBeInTheDocument()
+    expect(screen.getByText('Підхід 2')).toBeInTheDocument()
+    expect(screen.getByText('55 кг × 9')).toBeInTheDocument()
     expect(missingKeys).toEqual([])
   })
 
