@@ -76,6 +76,14 @@
     "wasKg": "було {{value}}кг",
     "kg": "кг"
   },
+  "previous": {
+    "setNumber": "Підхід {{number}}",
+    "lastTime": "минулого разу {{value}}",
+    "lastTimeHeading": "Минулого разу",
+    "alsoDid": "Минулого разу ви також зробили",
+    "reps": "{{reps}} повт.",
+    "weightByReps": "{{weight}} кг × {{reps}}"
+  },
   "allDone": {
     "title": "{{name}} — готово!",
     "hasNext": "Поверніться до огляду, щоб обрати наступну вправу",

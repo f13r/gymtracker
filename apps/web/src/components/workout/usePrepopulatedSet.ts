@@ -15,7 +15,7 @@ interface PrepopulatedExercise {
 interface UsePrepopulatedSetResult {
   /** The resolved pending Set (weight/reps + their sources). */
   prepopulated: PrepopulatedSet
-  /** Last finished Session's sets for this Exercise (most recent last). */
+  /** The Done Sets of this Exercise's last-done occurrence, by set number. */
   prevSets: WorkoutSet[]
   /** The last Done Set, used for the "Previous: …" hint. */
   lastDoneSet: WorkoutSet | undefined

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon, Trash2, 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { WorkoutSet } from '@gymtracker/shared'
+import type { PreviousSetReference, WorkoutSet } from '@gymtracker/shared'
 import { calculateVolume, getDoneSets } from '@gymtracker/shared'
 
 import { NumericInput } from '@/components/inputs/NumericInput'
@@ -32,6 +32,19 @@ const fmtDelta = (v: number) => {
   return abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : Math.round(abs).toString()
 }
 
+type Translate = (key: string, options?: Record<string, unknown>) => string
+
+// One previous Done Set, as "60 kg × 10" — weight is dropped for bodyweight
+// Exercises and for weightless Sets, where only the reps carry information.
+const fmtPrevSet = (t: Translate, prev: PreviousSetReference, isBodyweight: boolean) => {
+  const reps = prev.reps ?? 0
+  const w = prev.weightKg
+  if (isBodyweight || w == null || w === 0) {
+    return t('previous.reps', { reps })
+  }
+  return t('previous.weightByReps', { weight: w % 1 === 0 ? w : w.toFixed(1), reps })
+}
+
 // ─── Inline editable set row ──────────────────────────────────────────────────
 //
 // Every visible row is now backed by a real Set (the Session Snapshot
@@ -40,6 +53,8 @@ const fmtDelta = (v: number) => {
 
 function InlineSetRow({
   set,
+  setIndex,
+  previous,
   isBodyweight,
   onUpdate,
   onToggleDone,
@@ -47,6 +62,10 @@ function InlineSetRow({
   isDeletePending,
 }: {
   set: WorkoutSet
+  /** 0-based position of this row among the Exercise's Sets. */
+  setIndex: number
+  /** What was done in the same position last time, if the Exercise has history. */
+  previous: PreviousSetReference | undefined
   isBodyweight: boolean
   onUpdate: (data: { weightKg: number; reps: number }) => void
   onToggleDone: () => void
@@ -151,6 +170,28 @@ function InlineSetRow({
         onClick={handleRowClick}
         {...swipeHandlers}
       >
+        {/* Row header: which set this is, and what was done in that slot last time */}
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <span
+            className={cn(
+              'text-[10px] font-semibold tracking-widest uppercase',
+              isDone ? 'text-primary-foreground/70' : 'text-muted-foreground/70',
+            )}
+          >
+            {t('previous.setNumber', { number: setIndex + 1 })}
+          </span>
+          {previous && (
+            <span
+              className={cn(
+                'text-[11px] tabular-nums',
+                isDone ? 'text-primary-foreground/85' : 'text-muted-foreground',
+              )}
+            >
+              {t('previous.lastTime', { value: fmtPrevSet(t, previous, isBodyweight) })}
+            </span>
+          )}
+        </div>
+
         <div className={cn('grid gap-3', isBodyweight ? 'grid-cols-1' : 'grid-cols-2')}>
           {!isBodyweight && (
             <NumericInput
@@ -319,6 +360,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
     canAddSet,
     workoutSeconds,
     prevSets,
+    previousReference,
     exerciseMediaMap,
     pendingSelection,
     permanentAdd,
@@ -502,17 +544,43 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
 
       {/* Set rows — every row is a real (Planned or Done) Set from the snapshot */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {currentExercise?.loggedSets.map((s: WorkoutSet) => (
+        {currentExercise?.loggedSets.map((s: WorkoutSet, i: number) => (
           <InlineSetRow
             key={s.id}
             isBodyweight={currentExercise.equipmentType === 'bodyweight'}
             isDeletePending={deleteSet.isPending && deleteSet.variables === s.id}
+            previous={previousReference.perCurrentSet[i]}
             set={s}
+            setIndex={i}
             onDelete={() => deleteSet.mutate(s.id)}
             onToggleDone={() => toggleDone.mutate({ setId: s.id, done: !s.done })}
             onUpdate={data => updateSet.mutate({ setId: s.id, data })}
           />
         ))}
+
+        {/* Previous Sets that today's rows don't cover — last time went further
+            than the Template plans, so they're listed rather than dropped. With
+            no rows yet (a freshly picked Exercise) this is the whole occurrence,
+            so it's headed "Last time" rather than "…also did". */}
+        {currentExercise && previousReference.extra.length > 0 && (
+          <div className="border-border/40 bg-muted/20 border-b px-4 py-3">
+            <p className="text-muted-foreground/70 mb-2 text-[10px] font-semibold tracking-widest uppercase">
+              {currentExercise.loggedSets.length > 0 ? t('previous.alsoDid') : t('previous.lastTimeHeading')}
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {previousReference.extra.map(prev => (
+                <li key={prev.position} className="flex items-baseline justify-between gap-2">
+                  <span className="text-muted-foreground/70 text-[10px] font-semibold tracking-widest uppercase">
+                    {t('previous.setNumber', { number: prev.position })}
+                  </span>
+                  <span className="text-muted-foreground text-[13px] tabular-nums">
+                    {fmtPrevSet(t, prev, currentExercise.equipmentType === 'bodyweight')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Empty state (freeform with no exercise, or an exercise with all sets removed) */}
         {!currentExercise?.loggedSets.length && (

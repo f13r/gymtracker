@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
 import {
+  alignPreviousSets,
   nextSupersetExercise,
   type Exercise,
   type SessionWithSets,
@@ -201,6 +202,14 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   // Last finished Session's Sets for this Exercise — drives the "vs last time" summary.
   const { prevSets, prepopulated } = usePrepopulatedSet(currentExercise)
 
+  // Previous-Session Reference: last time's Done Sets paired to today's rows by
+  // position, plus the ones that ran past today's Template-planned set count
+  // (`extra`) — the whole previous occurrence is shown, never truncated.
+  const previousReference = useMemo(
+    () => alignPreviousSets(currentExercise?.loggedSets ?? [], prevSets),
+    [currentExercise?.loggedSets, prevSets],
+  )
+
   const workoutSeconds = useElapsedSeconds(session?.startedAt)
 
   const isTemplateBased = !!session?.templateId
@@ -357,6 +366,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
     canAddSet,
     workoutSeconds,
     prevSets,
+    previousReference,
     exerciseMediaMap,
     pendingSelection,
     permanentAdd,

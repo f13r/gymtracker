@@ -59,23 +59,32 @@ export function lastDoneAggregateSql(exerciseId: string, userId: string, beforeS
 }
 
 /**
- * Canonical query for the Done + Planned Sets of the last finished Session that
- * contains a given Exercise — the (2) tier of the Set Pre-population Hierarchy.
- * Returns sets ordered by set number. Used by exercises.getLastSets.
+ * Canonical query for the **Done** Sets of the last finished Session in which a
+ * given Exercise was done — the (2) tier of the Set Pre-population Hierarchy and
+ * the source of the logger's "last time" reference. Returns every Set that was
+ * actually performed then, ordered by set number, however many there were: the
+ * count comes from history, never from the current Template.
+ *
+ * Planned-but-not-done and Removed Sets are excluded on both sides — the session
+ * picked (a Session where the Exercise was merely planned and skipped is not the
+ * last-done occurrence) and the rows returned. Used by exercises.getLastSets.
  */
 export function lastFinishedSessionSetsSql(exerciseId: string, userId: string): SQL {
   return sql`
     SELECT s.id, s.session_id AS "sessionId", s.exercise_id AS "exerciseId",
            s.set_number AS "setNumber", s.reps, s.weight_kg AS "weightKg",
            s.duration_sec AS "durationSec", s.rpe,
-           s.completed_at AS "completedAt", s.done
+           s.completed_at AS "completedAt", s.done, s.removed_at AS "removedAt",
+           s.notes
     FROM sets s
     WHERE s.session_id = (
       SELECT ws.id FROM workout_sessions ws
       INNER JOIN sets s2 ON s2.session_id = ws.id
-      WHERE ws.user_id = ${userId} AND s2.exercise_id = ${exerciseId} AND ws.finished_at IS NOT NULL
+      WHERE ws.user_id = ${userId} AND s2.exercise_id = ${exerciseId}
+        AND s2.done = 1 AND s2.removed_at IS NULL
+        AND ws.finished_at IS NOT NULL
       ORDER BY ws.finished_at DESC LIMIT 1
-    ) AND s.exercise_id = ${exerciseId}
+    ) AND s.exercise_id = ${exerciseId} AND s.done = 1 AND s.removed_at IS NULL
     ORDER BY s.set_number ASC
   `
 }
