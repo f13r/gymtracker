@@ -6,9 +6,12 @@ import { createRoot } from 'react-dom/client'
 import './lib/i18n'
 import { queryClient } from './lib/query'
 import { router } from './router'
-import 'react-grab'
 
 import './index.css'
+
+if (import.meta.env.DEV) {
+  void import('react-grab')
+}
 
 queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries())
 

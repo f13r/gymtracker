@@ -306,7 +306,23 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   const updateSet = useMutation({
     mutationFn: ({ setId, data }: { setId: string; data: { weightKg: number; reps: number } }) =>
       setsApi.updateSet(sessionId, setId, data),
-    onSuccess: () => {
+    // Optimistic: write the edited numbers into the cache up front. Without it
+    // any refetch landing before the PATCH finishes hands the row the old
+    // values and InlineSetRow resyncs to them (new → old → new flicker).
+    onMutate: async ({ setId, data }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.session(sessionId) })
+      const previous = queryClient.getQueryData<SessionWithSets>(queryKeys.session(sessionId))
+      queryClient.setQueryData<SessionWithSets>(queryKeys.session(sessionId), old =>
+        old ? { ...old, sets: old.sets.map(s => (s.id === setId ? { ...s, ...data } : s)) } : old,
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.session(sessionId), context.previous)
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
     },
   })
