@@ -10,6 +10,8 @@ import { randomUUID } from 'crypto'
 import { mkdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
 
+const PHOTO_FILENAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-(orig|thumb)\.webp$/
+
 @Injectable()
 export class PhotosService {
   private readonly photosDir: string
@@ -77,7 +79,13 @@ export class PhotosService {
     await this.db.delete(schema.progressPhotos).where(eq(schema.progressPhotos.id, id))
   }
 
+  // Only the names uploadPhoto() writes are servable: `<uuid>-orig.webp` / `<uuid>-thumb.webp`.
+  // Anything else (path separators, `..`, other files) is a 404, so the route can never read
+  // outside the user's photo folder.
   getPhotoPath(userId: string, filename: string) {
+    if (!PHOTO_FILENAME.test(filename)) {
+      throw new NotFoundException('Photo not found')
+    }
     return join(this.photosDir, userId, filename)
   }
 }
