@@ -43,10 +43,13 @@ async function main() {
   })
 
   try {
-    console.log('Erasing user data...')
+    // Erases the WHOLE household: every User's data, the shared Gym, Equipment and Exercise library.
+    // Only the users rows (the sign-in allowlist, provisioned by migration) are kept.
+    console.log('Erasing all household data (every User; keeping the users allowlist)...')
     // Delete in FK-safe order (most dependent first)
     await pool.query(`
       DELETE FROM sets;
+      DELETE FROM session_exercises;
       DELETE FROM template_exercises;
       DELETE FROM program_phase_templates;
       DELETE FROM program_updates;
@@ -65,16 +68,8 @@ async function main() {
       DELETE FROM body_measurements;
       DELETE FROM progress_photos;
       DELETE FROM user_profiles;
-      DELETE FROM users;
     `)
-    console.log('User data erased.')
-
-    console.log('Seeding default user...')
-    await pool.query(`INSERT INTO users (id, display_name, created_at) VALUES ($1, $2, $3)`, [
-      'default-user',
-      'Viktor',
-      Math.floor(Date.now() / 1000),
-    ])
+    console.log('Household data erased.')
 
     console.log(`Seeding ${DEFAULT_EXERCISES.length} default exercises...`)
     const now = Math.floor(Date.now() / 1000)

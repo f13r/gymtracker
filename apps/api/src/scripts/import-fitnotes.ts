@@ -1,11 +1,12 @@
 /**
  * Import a FitNotes CSV export into GymTracker.
  *
- *   node -r dotenv/config dist/scripts/import-fitnotes.js <file.csv>            # dry-run
- *   node -r dotenv/config dist/scripts/import-fitnotes.js <file.csv> --commit   # write
+ *   node -r dotenv/config dist/scripts/import-fitnotes.js <file.csv> --user <id>            # dry-run
+ *   node -r dotenv/config dist/scripts/import-fitnotes.js <file.csv> --user <id> --commit   # write
  *
- * Dry-run (default) prints a report and touches nothing. --commit writes exercises, one
- * session per date, and all sets. Re-runnable: dates already imported (sessions tagged
+ * Dry-run (default) prints a report and touches nothing. --commit writes the User's history: one
+ * session per date and all sets. Exercises are matched by name against the whole shared library;
+ * missing ones are added to it. Re-runnable: dates already imported for that User (sessions tagged
  * "Imported from FitNotes") are skipped, so a second run won't duplicate history.
  *
  * Parsing/transform logic lives in ./fitnotes-parser (pure, unit-tested).
@@ -14,10 +15,10 @@
 import { Pool } from 'pg'
 
 import { buildImportPlan, parseFitnotesCsv, type ImportPlan } from './fitnotes-parser'
+import { assertUserExists, requireUserArg } from './script-args'
 import { randomUUID } from 'crypto'
 import { readFileSync } from 'fs'
 
-const USER_ID = 'default-user'
 const IMPORT_TAG = 'Imported from FitNotes'
 
 /** "YYYY-MM-DD" → Unix seconds at local noon (avoids timezone date-shift). */
@@ -54,16 +55,12 @@ function printReport(plan: ImportPlan): void {
   }
 }
 
-async function commit(plan: ImportPlan): Promise<void> {
+async function commit(plan: ImportPlan, userId: string): Promise<void> {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/gymtracker',
   })
   try {
-    // Ensure the user exists (matches reset.ts seeding).
-    await pool.query(
-      `INSERT INTO users (id, display_name, created_at) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING`,
-      [USER_ID, 'Viktor', Math.floor(Date.now() / 1000)],
-    )
+    await assertUserExists(pool, userId)
 
     // Ensure exercises: reuse the shared library's by case-insensitive name, else create.
     const existing = await pool.query<{ id: string; name: string }>(`SELECT id, name FROM exercises`)
@@ -79,20 +76,23 @@ async function commit(plan: ImportPlan): Promise<void> {
       if (exerciseIdByName.has(key)) {
         continue
       }
-      const id = randomUUID()
-      await pool.query(
+      // Another writer may have added the name since the read above: keep theirs.
+      const inserted = await pool.query(
         `INSERT INTO exercises (id, name, category, equipment_type, created_at)
-         VALUES ($1, $2, $3, NULL, $4)`,
-        [id, ex.name, ex.category, now],
+         VALUES ($1, $2, $3, NULL, $4) ON CONFLICT ((lower(name))) DO NOTHING`,
+        [randomUUID(), ex.name, ex.category, now],
       )
-      exerciseIdByName.set(key, id)
-      createdExercises++
+      const { rows } = await pool.query<{ id: string }>(`SELECT id FROM exercises WHERE lower(name) = lower($1)`, [
+        ex.name,
+      ])
+      exerciseIdByName.set(key, rows[0]!.id)
+      createdExercises += inserted.rowCount ?? 0
     }
 
     // Idempotency: which dates already have an imported session?
     const imported = await pool.query<{ started_at: number }>(
       `SELECT started_at FROM workout_sessions WHERE user_id = $1 AND notes LIKE $2`,
-      [USER_ID, `${IMPORT_TAG}%`],
+      [userId, `${IMPORT_TAG}%`],
     )
     const importedEpochs = new Set(imported.rows.map(row => Number(row.started_at)))
 
@@ -118,7 +118,7 @@ async function commit(plan: ImportPlan): Promise<void> {
       await pool.query(
         `INSERT INTO workout_sessions (id, user_id, name, started_at, finished_at, notes)
          VALUES ($1, $2, $3, $4, $4, $5)`,
-        [sessionId, USER_ID, session.name, epoch, IMPORT_TAG],
+        [sessionId, userId, session.name, epoch, IMPORT_TAG],
       )
       createdSessions++
 
@@ -148,11 +148,12 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const isCommit = args.includes('--commit')
   const sinceArg = args.find(a => a.startsWith('--since='))?.split('=')[1]
-  const file = args.find(a => !a.startsWith('--'))
+  const file = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--user')
   if (!file) {
-    console.error('Usage: import-fitnotes <file.csv> [--commit] [--since=YYYY-MM-DD]')
+    console.error('Usage: import-fitnotes <file.csv> --user <id> [--commit] [--since=YYYY-MM-DD]')
     process.exit(1)
   }
+  const userId = requireUserArg(args)
   if (sinceArg && !/^\d{4}-\d{2}-\d{2}$/.test(sinceArg)) {
     console.error(`Invalid --since value '${sinceArg}'; expected YYYY-MM-DD`)
     process.exit(1)
@@ -166,7 +167,7 @@ async function main(): Promise<void> {
     console.log('\nDRY RUN — nothing written. Re-run with --commit to apply.\n')
     return
   }
-  await commit(plan)
+  await commit(plan, userId)
   console.log('Done.\n')
 }
 

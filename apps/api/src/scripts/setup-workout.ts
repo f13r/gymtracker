@@ -1,8 +1,7 @@
 import { Pool } from 'pg'
 
+import { assertUserExists, requireUserArg } from './script-args'
 import { randomUUID } from 'crypto'
-
-const USER_ID = 'default-user'
 
 // Exercises with notes only on those that get warmup sets (defaultSets = 4)
 const USER_EXERCISES: Array<{
@@ -99,28 +98,47 @@ const SCHEDULES: Array<{ date: string; template: string }> = [
   { date: '2026-06-29', template: 'Push Day' },
 ]
 
+// One User's workout data, most dependent first. Profile, body data and the household's Gym,
+// Equipment and Exercises are shared or kept, so they are never deleted here.
+const USER_WORKOUT_DELETES = [
+  `DELETE FROM sets WHERE session_id IN (SELECT id FROM workout_sessions WHERE user_id = $1)`,
+  `DELETE FROM session_exercises WHERE session_id IN (SELECT id FROM workout_sessions WHERE user_id = $1)`,
+  `DELETE FROM workout_sessions WHERE user_id = $1`,
+  `DELETE FROM workout_schedules WHERE user_id = $1`,
+  `DELETE FROM program_phase_templates
+   WHERE phase_id IN (SELECT pp.id FROM program_phases pp JOIN programs p ON p.id = pp.program_id WHERE p.user_id = $1)
+      OR template_id IN (SELECT id FROM workout_templates WHERE user_id = $1)`,
+  `DELETE FROM program_updates WHERE program_id IN (SELECT id FROM programs WHERE user_id = $1)`,
+  `DELETE FROM program_phases WHERE program_id IN (SELECT id FROM programs WHERE user_id = $1)`,
+  `DELETE FROM programs WHERE user_id = $1`,
+  `DELETE FROM template_exercises WHERE template_id IN (SELECT id FROM workout_templates WHERE user_id = $1)`,
+  `DELETE FROM workout_templates WHERE user_id = $1`,
+  `DELETE FROM progression_suggestions WHERE user_id = $1`,
+]
+
+/** Usage: setup-workout --user <id>. Replaces that User's workout data; other Users are untouched. */
 async function main() {
+  const userId = requireUserArg(process.argv.slice(2))
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/gymtracker',
   })
 
   try {
-    console.log('Clearing workout data (keeping profile, gym, body data)...')
-    // FK-safe deletion order: most-dependent tables first
-    await pool.query(`
-      DELETE FROM sets;
-      DELETE FROM template_exercises;
-      DELETE FROM program_phase_templates;
-      DELETE FROM program_updates;
-      DELETE FROM workout_sessions;
-      DELETE FROM workout_schedules;
-      DELETE FROM program_phases;
-      DELETE FROM programs;
-      DELETE FROM workout_templates;
-      DELETE FROM equipment_exercises;
-      DELETE FROM equipment;
-      DELETE FROM progression_suggestions;
-    `)
+    await assertUserExists(pool, userId)
+    console.log(`Clearing workout data of User '${userId}' (keeping profile, body data, Gym and Exercises)...`)
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      for (const statement of USER_WORKOUT_DELETES) {
+        await client.query(statement, [userId])
+      }
+      await client.query('COMMIT')
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
     console.log('Workout data cleared.')
 
     const now = Math.floor(Date.now() / 1000)
@@ -143,7 +161,7 @@ async function main() {
         await pool.query(
           `INSERT INTO user_exercise_notes (user_id, exercise_id, notes, updated_at) VALUES ($1, $2, $3, $4)
            ON CONFLICT (user_id, exercise_id) DO UPDATE SET notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`,
-          [USER_ID, id, ex.notes, now],
+          [userId, id, ex.notes, now],
         )
       }
     }
@@ -155,7 +173,7 @@ async function main() {
       templateIds[tmpl.name] = templateId
       await pool.query(`INSERT INTO workout_templates (id, user_id, name, created_at) VALUES ($1, $2, $3, $4)`, [
         templateId,
-        USER_ID,
+        userId,
         tmpl.name,
         now,
       ])
@@ -174,12 +192,12 @@ async function main() {
       await pool.query(
         `INSERT INTO workout_schedules (id, user_id, template_id, type, scheduled_date, created_at)
          VALUES ($1, $2, $3, 'once', $4, $5)`,
-        [randomUUID(), USER_ID, templateIds[s.template], s.date, now],
+        [randomUUID(), userId, templateIds[s.template], s.date, now],
       )
       console.log(`  ✓ ${s.date} — ${s.template}`)
     }
 
-    console.log("\nDone! DB is ready for Viktor's first session.")
+    console.log(`\nDone! DB is ready for User '${userId}'s first session.`)
   } finally {
     await pool.end()
   }
