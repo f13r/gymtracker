@@ -4,6 +4,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { AuthGate } from './components/auth/AuthGate'
+import { Toaster } from './components/ui/toaster'
 import './lib/i18n'
 import { queryClient } from './lib/query'
 import { router } from './router'
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthGate>
         <RouterProvider router={router} />
+        <Toaster />
       </AuthGate>
     </QueryClientProvider>
   </StrictMode>,

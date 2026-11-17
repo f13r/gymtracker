@@ -112,8 +112,11 @@
   },
   "editDialog": {
     "title": "Edit Exercise",
-    "deleteError": "Can’t delete: this exercise has logged sets or history.",
-    "deleteExercise": "Delete exercise"
+    "removeExercise": "Remove exercise",
+    "removeHint": "If it’s used in any workout or template, it’s archived instead: hidden from pickers, kept in history, and restorable from the library.",
+    "removeError": "Couldn’t remove this exercise.",
+    "archivedToast": "“{{name}}” archived — it stays in your history. Restore it under Show archived in the library.",
+    "deletedToast": "“{{name}}” deleted"
   },
   "media": {
     "noDemonstration": "No demonstration available"

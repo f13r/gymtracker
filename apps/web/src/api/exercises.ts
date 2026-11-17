@@ -31,7 +31,10 @@ export const exercisesApi = {
       `/exercises/${id}`,
       toFormData({ ...data, ...(removeImage ? { removeImage: true } : {}) }, image),
     ),
-  remove: (id: string) => api.delete(`/exercises/${id}`),
+  // Archived (still referenced somewhere) or deleted outright (nothing used it).
+  remove: (id: string) => api.delete<{ archived: boolean }>(`/exercises/${id}`),
+  getArchived: () => api.get<Exercise[]>('/exercises?archived=true'),
+  restore: (id: string) => api.post<Exercise>(`/exercises/${id}/restore`, {}),
   // Stored demonstration media, served by exercise id. Append the row's updatedAt-like key if cache-
   // busting is ever needed; for now the id is stable and images change rarely.
   imageUrl: (id: string) => `/api/exercises/${id}/image`,

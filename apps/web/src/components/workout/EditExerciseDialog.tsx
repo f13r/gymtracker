@@ -7,6 +7,7 @@ import type { Exercise } from '@gymtracker/shared'
 import { exercisesApi } from '@/api/exercises'
 import { Button } from '@/components/ui/button'
 import { ExerciseForm } from '@/components/workout/ExerciseForm'
+import { showToast } from '@/lib/toast'
 
 // Full-screen editor panel (not a centred modal) so it can scroll freely on mobile.
 export function EditExerciseDialog({
@@ -36,7 +37,10 @@ function EditExerciseForm({
   const { t } = useTranslation('workout')
   const remove = useMutation({
     mutationFn: () => exercisesApi.remove(exercise.id),
-    onSuccess: onSaved,
+    onSuccess: ({ archived }) => {
+      showToast(t(archived ? 'editDialog.archivedToast' : 'editDialog.deletedToast', { name: exercise.name }))
+      onSaved()
+    },
   })
 
   return (
@@ -51,10 +55,11 @@ function EditExerciseForm({
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <ExerciseForm exercise={exercise} onSaved={onSaved} />
 
-        {remove.isError && <p className="text-destructive mt-4 text-xs">{t('editDialog.deleteError')}</p>}
+        {remove.isError && <p className="text-destructive mt-4 text-xs">{t('editDialog.removeError')}</p>}
         <Button className="mt-6 w-full" disabled={remove.isPending} variant="ghost" onClick={() => remove.mutate()}>
-          {t('editDialog.deleteExercise')}
+          {t('editDialog.removeExercise')}
         </Button>
+        <p className="text-muted-foreground mt-1 text-center text-xs">{t('editDialog.removeHint')}</p>
       </div>
     </div>
   )
