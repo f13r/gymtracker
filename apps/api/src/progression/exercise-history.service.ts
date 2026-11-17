@@ -77,7 +77,15 @@ export class ExerciseHistoryService {
           rpe: schema.sets.rpe,
         })
         .from(schema.sets)
-        .where(and(eq(schema.sets.sessionId, sessionId), eq(schema.sets.exerciseId, exerciseId), doneSetFilter))
+        .innerJoin(schema.workoutSessions, eq(schema.workoutSessions.id, schema.sets.sessionId))
+        .where(
+          and(
+            eq(schema.sets.sessionId, sessionId),
+            eq(schema.workoutSessions.userId, userId),
+            eq(schema.sets.exerciseId, exerciseId),
+            doneSetFilter,
+          ),
+        )
         .orderBy(schema.sets.setNumber),
 
       this.db.execute(sql`
