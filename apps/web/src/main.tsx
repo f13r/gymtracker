@@ -3,6 +3,7 @@ import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+import { AuthGate } from './components/auth/AuthGate'
 import './lib/i18n'
 import { queryClient } from './lib/query'
 import { router } from './router'
@@ -18,7 +19,9 @@ queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries())
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <AuthGate>
+        <RouterProvider router={router} />
+      </AuthGate>
     </QueryClientProvider>
   </StrictMode>,
 )

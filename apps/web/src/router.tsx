@@ -11,9 +11,20 @@ import { Loader2 } from 'lucide-react'
 import { profileApi } from './api/profile'
 import { queryKeys } from './api/queryKeys'
 import { AppLayout } from './components/layout/AppLayout'
+import { syncIdentity } from './lib/identity'
 import { queryClient } from './lib/query'
 
-const rootRoute = createRootRoute({ component: () => <Outlet /> })
+// Once per app load, before any child route (incl. the onboarding gate below)
+// reads cached data: clear the cache if a different User is now signed in.
+let identitySynced: Promise<void> | undefined
+
+const rootRoute = createRootRoute({
+  beforeLoad: async () => {
+    identitySynced ??= syncIdentity(queryClient)
+    await identitySynced
+  },
+  component: () => <Outlet />,
+})
 
 const layoutRoute = createRoute({
   getParentRoute: () => rootRoute,
