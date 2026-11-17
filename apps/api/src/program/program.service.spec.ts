@@ -254,7 +254,7 @@ describe('ProgramService.evaluateAfterSession across Users', () => {
       targetSessionCount: 10,
     })
     const svc = new ProgramService(db as any, mockGemini as any, mockCoaching as any)
-    const completed = () => db.rows(schema.programPhases)[0].completedSessionCount
+    const completed = () => db.rows(schema.programPhases)[0]?.completedSessionCount
     return { db, svc, completed }
   }
 

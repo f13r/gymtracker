@@ -45,14 +45,14 @@ function matches(row: Row, where: SQL | undefined): boolean {
   }
   const primary = (): boolean => {
     let result = true
-    while (i < tokens.length && ![')', 'and', 'or'].includes(tokens[i])) {
+    while (i < tokens.length && ![')', 'and', 'or'].includes(tokens[i] ?? '')) {
       if (tokens[i] === '(') {
         i++
         const inner = disjunction()
         i++ // ')'
         result = result && inner
       } else {
-        result = atom(tokens[i++]) && result
+        result = atom(tokens[i++] ?? '') && result
       }
     }
     return result

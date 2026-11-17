@@ -243,7 +243,7 @@ describe('WorkoutsService.startSession across Users', () => {
 
     await svc.startSession('u1', { name: 'Push', templateId: 't1' })
 
-    expect(db.rows(schema.workoutSessions)[0].programPhaseId).toBe('p1')
+    expect(db.rows(schema.workoutSessions)[0]?.programPhaseId).toBe('p1')
   })
 
   it("never links u2's Session to a Program Phase of u1's Program", async () => {
@@ -254,6 +254,6 @@ describe('WorkoutsService.startSession across Users', () => {
 
     await svc.startSession('u2', { name: 'Push', templateId: 't2' })
 
-    expect(db.rows(schema.workoutSessions)[0].programPhaseId ?? null).toBeNull()
+    expect(db.rows(schema.workoutSessions)[0]?.programPhaseId ?? null).toBeNull()
   })
 })
