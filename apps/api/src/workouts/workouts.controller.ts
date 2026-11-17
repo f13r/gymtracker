@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Req } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Body, Req, Inject } from '@nestjs/common'
 import { createZodDto } from 'nestjs-zod'
 
 import { CreateTemplateSchema, UpdateTemplateSchema, StartSessionSchema, FinishSessionSchema } from '@gymtracker/shared'
@@ -13,7 +13,7 @@ class FinishSessionDto extends createZodDto(FinishSessionSchema) {}
 
 @Controller()
 export class WorkoutsController {
-  constructor(private readonly svc: WorkoutsService) {}
+  constructor(@Inject(WorkoutsService) private readonly svc: WorkoutsService) {}
 
   @Get('templates') getTemplates(@Req() req: AuthenticatedRequest) {
     return this.svc.getTemplates(req.user.id)

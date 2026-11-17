@@ -37,7 +37,7 @@ describe('Photos HTTP routes', () => {
     }).compile()
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter())
     app.setGlobalPrefix('api')
-    // Mirror the mock auth guard: every request is `default-user`.
+    // Stand in for the auth guard: every request is `default-user`.
     app
       .getHttpAdapter()
       .getInstance()
