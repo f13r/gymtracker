@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 
 import { ProgramService } from './program.service'
+import * as schema from '../drizzle/schema'
+import { createFakeDb } from '../testing/fake-db'
 
 const mockDb = {
   select: vi.fn(),
@@ -233,5 +235,44 @@ describe('ProgramService.abandonActiveProgram', () => {
     expect(update).toHaveBeenCalledTimes(1)
     expect(del).toHaveBeenCalledTimes(1)
     expect(deleteWhere).toHaveBeenCalledTimes(1)
+  })
+})
+
+// Two Users, u1 and u2. Only the caller's own finished Session may advance the
+// caller's Program Phase (audit 3.5, defence in depth).
+describe('ProgramService.evaluateAfterSession across Users', () => {
+  function setup() {
+    const db = createFakeDb()
+    db.seed(schema.programs, { id: 'pr1', userId: 'u1', status: 'active' })
+    db.seed(schema.programPhases, {
+      id: 'p1',
+      programId: 'pr1',
+      orderIndex: 0,
+      status: 'active',
+      type: 'accumulation',
+      completedSessionCount: 0,
+      targetSessionCount: 10,
+    })
+    const svc = new ProgramService(db as any, mockGemini as any, mockCoaching as any)
+    const completed = () => db.rows(schema.programPhases)[0]?.completedSessionCount
+    return { db, svc, completed }
+  }
+
+  it("counts u1's own Session toward u1's active Program Phase", async () => {
+    const { db, svc, completed } = setup()
+    db.seed(schema.workoutSessions, { id: 's1', userId: 'u1', programPhaseId: 'p1' })
+
+    await svc.evaluateAfterSession('s1', 'u1')
+
+    expect(completed()).toBe(1)
+  })
+
+  it("never counts u2's Session toward u1's Program Phase", async () => {
+    const { db, svc, completed } = setup()
+    db.seed(schema.workoutSessions, { id: 's2', userId: 'u2', programPhaseId: 'p1' })
+
+    await svc.evaluateAfterSession('s2', 'u1')
+
+    expect(completed()).toBe(0)
   })
 })

@@ -247,11 +247,16 @@ export class ProgressionService {
       return
     }
 
+    // Any real Exercise id passes the FK, so drop ids the model invented for an
+    // Exercise this Session never trained.
+    const trained = new Set(doneRows.map(r => r.exerciseId))
     const now = Math.floor(Date.now() / 1000)
+    let persisted = 0
     for (const s of suggestions) {
-      if (!isPersistableSuggestion(s)) {
+      if (!isPersistableSuggestion(s) || !trained.has(s.exerciseId)) {
         continue
       }
+      persisted++
       await this.db
         .insert(schema.progressionSuggestions)
         .values({
@@ -278,7 +283,7 @@ export class ProgressionService {
         })
     }
 
-    this.logger.log(`Generated ${suggestions.length} progression suggestions for session ${sessionId}`)
+    this.logger.log(`Generated ${persisted} progression suggestions for session ${sessionId}`)
   }
 
   async getForExercise(exerciseId: string, userId: string) {

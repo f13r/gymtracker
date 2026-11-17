@@ -242,6 +242,10 @@ export class WorkoutsService {
     if (active) {
       throw new BadRequestException('A session is already active')
     }
+    if (dto.templateId) {
+      // 404 unless the Template is the caller's own — never copy another User's plan.
+      await this.getTemplate(dto.templateId, userId)
+    }
     const id = randomUUID()
     // The session row, its program-phase link, and the whole plan snapshot are
     // written atomically: a mid-snapshot failure must leave no session and no
@@ -261,7 +265,9 @@ export class WorkoutsService {
         const [phaseTemplate] = await tx
           .select({ phaseId: schema.programPhaseTemplates.phaseId })
           .from(schema.programPhaseTemplates)
-          .where(eq(schema.programPhaseTemplates.templateId, dto.templateId))
+          .innerJoin(schema.programPhases, eq(schema.programPhases.id, schema.programPhaseTemplates.phaseId))
+          .innerJoin(schema.programs, eq(schema.programs.id, schema.programPhases.programId))
+          .where(and(eq(schema.programPhaseTemplates.templateId, dto.templateId), eq(schema.programs.userId, userId)))
           .limit(1)
 
         if (phaseTemplate) {

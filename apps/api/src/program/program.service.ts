@@ -642,7 +642,13 @@ export class ProgramService {
       const [session] = await this.db
         .select()
         .from(schema.workoutSessions)
-        .where(and(eq(schema.workoutSessions.id, sessionId), eq(schema.workoutSessions.programPhaseId, activePhase.id)))
+        .where(
+          and(
+            eq(schema.workoutSessions.id, sessionId),
+            eq(schema.workoutSessions.userId, userId),
+            eq(schema.workoutSessions.programPhaseId, activePhase.id),
+          ),
+        )
         .limit(1)
 
       if (session) {

@@ -13,13 +13,19 @@ export type AiLogEntry = {
 
 @Injectable()
 export class AiLogService {
-  private readonly logs: AiLogEntry[] = []
+  /** One ring per owner (null = system/seed), so one User's traffic never evicts another's. */
+  private readonly logs = new Map<string | null, AiLogEntry[]>()
   private counter = 0
-  private readonly maxLogs = 200
+  private readonly maxLogsPerUser = 200
 
   /** `userId` is null for system/seed-time calls that belong to no user. */
   add(type: string, prompt: string, response: string, durationMs: number, userId: string | null = null) {
-    this.logs.push({
+    let ring = this.logs.get(userId)
+    if (!ring) {
+      ring = []
+      this.logs.set(userId, ring)
+    }
+    ring.push({
       id: ++this.counter,
       type,
       prompt,
@@ -28,13 +34,13 @@ export class AiLogService {
       createdAt: new Date().toISOString(),
       userId,
     })
-    if (this.logs.length > this.maxLogs) {
-      this.logs.shift()
+    if (ring.length > this.maxLogsPerUser) {
+      ring.shift()
     }
   }
 
   /** The requesting user's entries, newest first. System/seed entries are excluded. */
   getForUser(userId: string): AiLogEntry[] {
-    return this.logs.filter(e => e.userId === userId).reverse()
+    return [...(this.logs.get(userId) ?? [])].reverse()
   }
 }

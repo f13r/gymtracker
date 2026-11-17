@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 
 import type { ExerciseContext } from './exercise-history.service'
 import { ProgressionService } from './progression.service'
+import * as schema from '../drizzle/schema'
+import { createFakeDb } from '../testing/fake-db'
 
 const mockCoachingKnowledge = { retrieveForSituation: vi.fn().mockResolvedValue([]) }
 const mockGemini = { generateStructured: vi.fn(), embed: vi.fn() }
@@ -212,5 +214,34 @@ describe('ProgressionService.buildPrompt with coaching chunks', () => {
       [],
     )
     expect(result).not.toContain('COACHING PRINCIPLES')
+  })
+})
+
+// With a shared Exercise library any real Exercise id passes the FK, so a
+// hallucinated id must not become a Suggestion for an Exercise the Session
+// never trained (audit 3.7).
+describe('ProgressionService.generateForSession keeps only trained Exercises', () => {
+  it('persists suggestions only for Exercises with done Sets in the Session', async () => {
+    const db = createFakeDb()
+    db.seed(schema.sets, { id: 'set1', sessionId: 's1', exerciseId: 'bench-id', done: 1 })
+    const suggestion = (exerciseId: string) => ({
+      exerciseId,
+      suggestedSets: 3,
+      suggestedReps: 8,
+      suggestedWeightKg: 82.5,
+      reason: 'two-for-two',
+      evidence: ['8/8 at 80 kg'],
+    })
+    const gemini = {
+      generateStructured: vi.fn().mockResolvedValue({
+        suggestions: [suggestion('bench-id'), suggestion('squat-id')],
+      }),
+    }
+    const history = { buildExerciseContext: vi.fn().mockResolvedValue(exCtx()) }
+    const svc = new ProgressionService(db as any, mockCoachingKnowledge as any, gemini as any, history as any)
+
+    await svc.generateForSession('s1', 'u1')
+
+    expect(db.rows(schema.progressionSuggestions).map(r => [r.userId, r.exerciseId])).toEqual([['u1', 'bench-id']])
   })
 })

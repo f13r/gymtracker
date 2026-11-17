@@ -1,7 +1,9 @@
+import { NotFoundException } from '@nestjs/common'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { WorkoutsService } from './workouts.service'
 import * as schema from '../drizzle/schema'
+import { createFakeDb } from '../testing/fake-db'
 
 describe('WorkoutsService.deleteTemplate', () => {
   let deletedTables: unknown[]
@@ -199,5 +201,59 @@ describe('WorkoutsService.snapshotPlan superset carry', () => {
     await (svc as any).snapshotPlan(tx, 'sess1', 'u1', 'tpl1')
 
     expect(insertedSessionExercises.every(r => r.supersetGroup === null)).toBe(true)
+  })
+})
+
+// Two Users, u1 and u2. A Template id taken from the request body must belong
+// to the caller, or Start would copy another User's plan (audit 3.1).
+describe('WorkoutsService.startSession across Users', () => {
+  const noActiveSession = { findActive: vi.fn(() => Promise.resolve(null)) }
+
+  function setup() {
+    const db = createFakeDb()
+    db.seed(schema.workoutTemplates, { id: 't1', userId: 'u1', name: 'u1 Push' })
+    db.seed(schema.templateExercises, { id: 'te1', templateId: 't1', exerciseId: 'e1', orderIndex: 0, defaultSets: 2 })
+    const svc = new WorkoutsService(db as any, noActiveSession as any, {} as any, {} as any)
+    return { db, svc }
+  }
+
+  it("rejects u2 starting a Session from u1's Template with 404 and writes nothing", async () => {
+    const { db, svc } = setup()
+
+    await expect(svc.startSession('u2', { name: 'Push', templateId: 't1' })).rejects.toBeInstanceOf(NotFoundException)
+
+    expect(db.rows(schema.workoutSessions)).toEqual([])
+    expect(db.rows(schema.sessionExercises)).toEqual([])
+    expect(db.rows(schema.sets)).toEqual([])
+  })
+
+  it("lets u1 start a Session from u1's own Template", async () => {
+    const { db, svc } = setup()
+
+    const session = await svc.startSession('u1', { name: 'Push', templateId: 't1' })
+
+    expect(session.templateId).toBe('t1')
+    expect(db.rows(schema.sessionExercises).map(r => r.exerciseId)).toEqual(['e1'])
+    expect(db.rows(schema.sets)).toHaveLength(2)
+  })
+
+  it("links u1's Session to the Program Phase that schedules u1's Template", async () => {
+    const { db, svc } = setup()
+    db.seed(schema.programPhaseTemplates, { id: 'ppt1', phaseId: 'p1', templateId: 't1' }, { 'programs.user_id': 'u1' })
+
+    await svc.startSession('u1', { name: 'Push', templateId: 't1' })
+
+    expect(db.rows(schema.workoutSessions)[0]?.programPhaseId).toBe('p1')
+  })
+
+  it("never links u2's Session to a Program Phase of u1's Program", async () => {
+    const { db, svc } = setup()
+    db.seed(schema.workoutTemplates, { id: 't2', userId: 'u2', name: 'u2 Push' })
+    // Inconsistent data: u1's Program Phase points at u2's Template.
+    db.seed(schema.programPhaseTemplates, { id: 'ppt1', phaseId: 'p1', templateId: 't2' }, { 'programs.user_id': 'u1' })
+
+    await svc.startSession('u2', { name: 'Push', templateId: 't2' })
+
+    expect(db.rows(schema.workoutSessions)[0]?.programPhaseId ?? null).toBeNull()
   })
 })

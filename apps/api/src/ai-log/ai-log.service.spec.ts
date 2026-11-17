@@ -22,3 +22,37 @@ describe('AiLogService.getForUser', () => {
     expect(log.getForUser('alice').map(e => e.prompt)).toEqual(['p-alice'])
   })
 })
+
+describe('AiLogService cap', () => {
+  it("keeps u2's entries when u1 fills the log", () => {
+    const log = new AiLogService()
+    log.add('progression', 'p-u2', 'r', 10, 'u2')
+    for (let i = 0; i < 250; i++) {
+      log.add('progression', `p-u1-${i}`, 'r', 10, 'u1')
+    }
+
+    expect(log.getForUser('u2').map(e => e.prompt)).toEqual(['p-u2'])
+  })
+
+  it("keeps each User's newest 200 entries", () => {
+    const log = new AiLogService()
+    for (let i = 0; i < 250; i++) {
+      log.add('progression', `p-u1-${i}`, 'r', 10, 'u1')
+    }
+
+    const u1 = log.getForUser('u1')
+    expect(u1).toHaveLength(200)
+    expect(u1[0]?.prompt).toBe('p-u1-249')
+    expect(u1[199]?.prompt).toBe('p-u1-50')
+  })
+
+  it("keeps u1's entries when system calls fill the log", () => {
+    const log = new AiLogService()
+    log.add('progression', 'p-u1', 'r', 10, 'u1')
+    for (let i = 0; i < 250; i++) {
+      log.add('embedding', `seed-${i}`, '(embedding)', 5)
+    }
+
+    expect(log.getForUser('u1').map(e => e.prompt)).toEqual(['p-u1'])
+  })
+})
