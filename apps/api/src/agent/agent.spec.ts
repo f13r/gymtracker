@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config'
 import { type NestFastifyApplication } from '@nestjs/platform-fastify'
+import sharp from 'sharp'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { AgentDocumentSchema, type AgentApplyResult, type AgentExport } from '@gymtracker/shared'
@@ -11,7 +12,7 @@ import { AgentController } from './agent.controller'
 import * as schema from '../drizzle/schema'
 import { createAuthedApp } from '../testing/access-tokens'
 import { createFakeDb, type FakeDb } from '../testing/fake-db'
-import { mkdtempSync } from 'fs'
+import { mkdtempSync, readdirSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -566,5 +567,72 @@ describe('the audit trail', () => {
     expect(body.recentChanges).toEqual([
       { id: applied.changeId, createdAt: expect.any(String), targetUserId: null, summary: { created: 1 } },
     ])
+  })
+})
+
+describe('apply: Exercise images from imageUrl', () => {
+  const URL_OK = 'https://img.example.com/face-pull.png'
+  const fakeWeb = () => {
+    const calls: string[] = []
+    const fetchFn: ImageFetch = async url => {
+      calls.push(url)
+      if (url !== URL_OK) {
+        return new Response('gone', { status: 404 })
+      }
+      const png = await sharp({ create: { width: 600, height: 300, channels: 3, background: '#0f0' } })
+        .png()
+        .toBuffer()
+      return new Response(png, { headers: { 'content-type': 'image/png' } })
+    }
+    return { calls, fetchFn }
+  }
+  const files = (dir: string) => readdirSync(join(dir, 'exercises'), { withFileTypes: true }).map(f => f.name).sort()
+
+  it('dry-run says the image will be fetched and downloads nothing', async () => {
+    const web = fakeWeb()
+    const { apply } = await setup({ fetch: web.fetchFn })
+    const r = result(await apply({ exercises: [{ name: 'Face Pull', imageUrl: URL_OK }] }))
+    expect(r.changes[0]).toMatchObject({ action: 'created', note: 'image will be fetched on apply' })
+    expect(web.calls).toEqual([])
+  })
+
+  it('on confirm stores the image as the usual .webp orig + thumb in the shared folder', async () => {
+    const web = fakeWeb()
+    const { db, apply, get, photosDir } = await setup({ fetch: web.fetchFn })
+    const r = result(await apply({ exercises: [{ name: 'Face Pull', imageUrl: URL_OK }] }, true))
+    expect(r.applied).toBe(true)
+    const row = db.rows(schema.exercises).find(e => e.name === 'Face Pull')!
+    expect(row.imagePath).toBe(`exercises/${row.id}-orig.webp`)
+    expect(files(photosDir)).toEqual([`${row.id}-orig.webp`, `${row.id}-thumb.webp`])
+    const thumb = await sharp(join(photosDir, row.thumbPath as string)).metadata()
+    expect([thumb.format, thumb.width]).toEqual(['webp', 400])
+    const body = (await get('/api/agent/export')).json() as AgentExport
+    expect(body.exercises.find(e => e.name === 'Face Pull')?.hasImage).toBe(true)
+  })
+
+  it('replaces the image of an existing Exercise', async () => {
+    const { db, apply, photosDir } = await setup({ fetch: fakeWeb().fetchFn })
+    const r = result(await apply({ exercises: [{ name: 'Squat', imageUrl: URL_OK }] }, true))
+    expect(r.changes[0]).toMatchObject({ action: 'updated', changes: { image: { old: null, new: URL_OK } } })
+    expect(db.rows(schema.exercises).find(e => e.id === 'e-squat')?.thumbPath).toBe('exercises/e-squat-thumb.webp')
+    expect(files(photosDir)).toEqual(['e-squat-orig.webp', 'e-squat-thumb.webp'])
+  })
+
+  it('applies nothing when an image cannot be downloaded, and leaves no files behind', async () => {
+    const { db, apply, photosDir } = await setup({ fetch: fakeWeb().fetchFn })
+    const before = tables(db)
+    const res = await apply(
+      {
+        exercises: [
+          { name: 'Face Pull', imageUrl: URL_OK },
+          { name: 'Shrug', imageUrl: 'https://img.example.com/missing.png' },
+        ],
+      },
+      true,
+    )
+    expect(res.statusCode).toBe(422)
+    expect(result(res).errors).toEqual([{ path: 'exercises.1.imageUrl', message: 'Image download failed with HTTP 404' }])
+    expect(tables(db)).toBe(before)
+    expect(files(photosDir)).toEqual([])
   })
 })
