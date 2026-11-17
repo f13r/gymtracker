@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { and, asc, desc, eq, gte, isNotNull } from 'drizzle-orm'
+import { ConfigService } from '@nestjs/config'
+import { and, asc, desc, eq, gte, isNotNull, sql } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import {
@@ -13,6 +14,7 @@ import {
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+import { resolve, sep } from 'path'
 
 type Db = NodePgDatabase<typeof schema>
 
@@ -115,7 +117,33 @@ export function summarizeHistory(rows: HistoryRow[], exerciseNames: Map<string, 
 /** What the Agent reads before writing: the shared library and, for one named User, their plan and history. */
 @Injectable()
 export class AgentExportService {
-  constructor(@Inject(DATABASE) private db: Db) {}
+  private readonly photosDir: string
+
+  constructor(
+    @Inject(DATABASE) private db: Db,
+    @Inject(ConfigService) config: ConfigService,
+  ) {
+    this.photosDir = resolve(config.getOrThrow<string>('PHOTOS_DIR'))
+  }
+
+  /**
+   * Absolute path of an Exercise's stored image (thumb or full), found by case-insensitive name,
+   * archived ones included. 404 when there is no such Exercise or image, or the stored path would
+   * leave PHOTOS_DIR.
+   */
+  async exerciseImageFile(name: string, size: 'thumb' | 'full'): Promise<string> {
+    const [ex] = await this.db
+      .select()
+      .from(schema.exercises)
+      .where(sql`lower(${schema.exercises.name}) = lower(${name})`)
+      .limit(1)
+    const rel = size === 'thumb' ? ex?.thumbPath : ex?.imagePath
+    const full = rel ? resolve(this.photosDir, rel) : undefined
+    if (!full || !full.startsWith(this.photosDir + sep)) {
+      throw new NotFoundException('No image for that Exercise')
+    }
+    return full
+  }
 
   async export(opts: { userId?: string | undefined; weeks: number }): Promise<AgentExport> {
     const exercises = (await this.db.select().from(schema.exercises)).sort((a, b) => a.name.localeCompare(b.name))

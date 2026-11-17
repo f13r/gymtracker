@@ -12,7 +12,7 @@ import { AgentController } from './agent.controller'
 import * as schema from '../drizzle/schema'
 import { createAuthedApp } from '../testing/access-tokens'
 import { createFakeDb, type FakeDb } from '../testing/fake-db'
-import { mkdtempSync, readdirSync } from 'fs'
+import { mkdirSync, mkdtempSync, readdirSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -648,5 +648,52 @@ describe('apply: Exercise images from imageUrl', () => {
     ])
     expect(tables(db)).toBe(before)
     expect(files(photosDir)).toEqual([])
+  })
+})
+
+/** Change a seeded Exercise row in place (the fake db stores row objects by reference). */
+function patchExercise(db: FakeDb, id: string, patch: Record<string, unknown>) {
+  const row = db.rows(schema.exercises).find(r => r.id === id)
+  Object.assign(row!, patch)
+}
+
+describe('GET /api/agent/exercise-image', () => {
+  async function withImage() {
+    const ctx = await setup()
+    const dir = join(ctx.photosDir, 'exercises')
+    mkdirSync(dir, { recursive: true })
+    await sharp({ create: { width: 4, height: 4, channels: 3, background: '#f00' } })
+      .webp()
+      .toFile(join(dir, 'b-orig.webp'))
+    await sharp({ create: { width: 2, height: 2, channels: 3, background: '#0f0' } })
+      .webp()
+      .toFile(join(dir, 'b-thumb.webp'))
+    patchExercise(ctx.db, 'e-bench', { imagePath: 'exercises/b-orig.webp', thumbPath: 'exercises/b-thumb.webp' })
+    return ctx
+  }
+
+  it('streams the thumb by default and the full image on request, matching the name case-insensitively', async () => {
+    const { get } = await withImage()
+    const thumb = await get('/api/agent/exercise-image?name=bench%20press')
+    expect(thumb.statusCode).toBe(200)
+    expect(thumb.headers['content-type']).toBe('image/webp')
+    expect((await sharp(thumb.rawPayload).metadata()).width).toBe(2)
+    const full = await get('/api/agent/exercise-image?name=Bench%20Press&size=full')
+    expect((await sharp(full.rawPayload).metadata()).width).toBe(4)
+  })
+
+  it('is Agent-only, 404s for unknown names or missing images, and 400s without a name', async () => {
+    const { get } = await withImage()
+    expect((await get('/api/agent/exercise-image?name=Bench%20Press', { 'x-dev-user': 'u1' })).statusCode).toBe(403)
+    expect((await get('/api/agent/exercise-image?name=Nope')).statusCode).toBe(404)
+    expect((await get('/api/agent/exercise-image?name=Squat')).statusCode).toBe(404)
+    expect((await get('/api/agent/exercise-image')).statusCode).toBe(400)
+    expect((await get('/api/agent/exercise-image?name=Squat&size=huge')).statusCode).toBe(400)
+  })
+
+  it('refuses a stored path that would leave the photos folder', async () => {
+    const { db, get } = await withImage()
+    patchExercise(db, 'e-bench', { thumbPath: '../../etc/hostname' })
+    expect((await get('/api/agent/exercise-image?name=Bench%20Press')).statusCode).toBe(404)
   })
 })

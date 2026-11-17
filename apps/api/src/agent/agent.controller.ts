@@ -6,6 +6,7 @@ import { AgentApplyService } from './agent-apply.service'
 import { AgentExportService } from './agent-export.service'
 import { AgentOnly } from '../auth/agent-only.decorator'
 import type { FastifyReply } from 'fastify'
+import { createReadStream } from 'fs'
 
 function intParam(raw: string | undefined, name: string, fallback: number, max: number): number {
   if (raw === undefined || raw === '') {
@@ -38,6 +39,20 @@ export class AgentController {
   @Get('export')
   export(@Query('user') user?: string, @Query('weeks') weeks?: string) {
     return this.exporter.export({ userId: user?.trim() || undefined, weeks: intParam(weeks, 'weeks', 8, 104) })
+  }
+
+  /** An Exercise's picture by name, for showing a workout outside the app (`size`: thumb | full). */
+  @Get('exercise-image')
+  async exerciseImage(
+    @Query('name') name: string | undefined,
+    @Query('size') size: string | undefined,
+    @Res() res: FastifyReply,
+  ) {
+    if (!name?.trim() || (size !== undefined && size !== 'thumb' && size !== 'full')) {
+      throw new BadRequestException('Expected ?name=<exercise>[&size=thumb|full]')
+    }
+    const file = await this.exporter.exerciseImageFile(name.trim(), size === 'full' ? 'full' : 'thumb')
+    return res.type('image/webp').send(createReadStream(file))
   }
 
   @Get('changes')
