@@ -140,9 +140,7 @@ export function createFakeDb() {
             return query
           },
           then<T>(resolve: (rows: Record<string, unknown>[]) => T, reject?: (e: unknown) => T) {
-            return Promise.resolve()
-              .then(run)
-              .then(resolve, reject)
+            return Promise.resolve().then(run).then(resolve, reject)
           },
         }
         return query
