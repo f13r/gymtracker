@@ -108,7 +108,7 @@ export function PhotosPage() {
                 alt="Progress"
                 className="h-full w-full object-cover"
                 loading="lazy"
-                src={`/api/photos/file/${p.thumbPath.split('/').pop()}`}
+                src={`/api/photos/${p.id}/thumb`}
                 onError={e => {
                   ;(e.target as HTMLImageElement).style.display = 'none'
                 }}

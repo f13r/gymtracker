@@ -5,6 +5,7 @@ import type {
   Equipment,
   EquipmentWithExercises,
   Exercise,
+  ProgressPhoto,
 } from '@gymtracker/shared'
 
 import * as schema from './schema'
@@ -25,6 +26,21 @@ export function toExercise(row: DbExercise): Exercise {
     description: row.description,
     hasImage: row.imagePath != null,
     createdAt: row.createdAt,
+  }
+}
+
+export type DbProgressPhoto = typeof schema.progressPhotos.$inferSelect
+
+// Map a stored progress photo to the wire model: the client fetches the image by id, so the
+// on-disk paths are never sent.
+export function toProgressPhoto(row: DbProgressPhoto): ProgressPhoto {
+  return {
+    id: row.id,
+    userId: row.userId,
+    recordedAt: row.recordedAt,
+    bodyWeight: row.bodyWeight,
+    tags: row.tags,
+    notes: row.notes,
   }
 }
 

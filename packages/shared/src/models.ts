@@ -117,12 +117,11 @@ export type BodyMeasurement = {
   notes: string | null
 }
 
+// Served by id from `/api/photos/:id/file` and `/api/photos/:id/thumb`; on-disk paths stay server-side.
 export type ProgressPhoto = {
   id: string
   userId: string | null
   recordedAt: number
-  filePath: string
-  thumbPath: string
   bodyWeight: number | null
   tags: string | null
   notes: string | null

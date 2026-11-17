@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common'
+import { Controller, Get, Post, Delete, Inject, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common'
 
 import { PhotosService } from './photos.service'
 import { AuthenticatedRequest } from '../auth/request.types'
@@ -9,7 +9,8 @@ type FormField = { value: string }
 
 @Controller('photos')
 export class PhotosController {
-  constructor(private readonly svc: PhotosService) {}
+  // Explicit token: the class works without emitted decorator metadata (e.g. under vitest).
+  constructor(@Inject(PhotosService) private readonly svc: PhotosService) {}
 
   @Get() getPhotos(@Req() req: AuthenticatedRequest) {
     return this.svc.getPhotos(req.user.id)
@@ -41,10 +42,16 @@ export class PhotosController {
     return this.svc.deletePhoto(id, req.user.id)
   }
 
-  @Get('file/:filename')
-  serveFile(@Param('filename') filename: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
-    const filePath = this.svc.getPhotoPath(req.user.id, filename)
-    const stream = createReadStream(filePath)
-    return res.type('image/webp').send(stream)
+  @Get(':id/file') file(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
+    return this.serve(id, req, res, 'file')
+  }
+
+  @Get(':id/thumb') thumb(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
+    return this.serve(id, req, res, 'thumb')
+  }
+
+  private async serve(id: string, req: AuthenticatedRequest, res: FastifyReply, kind: 'file' | 'thumb') {
+    const filePath = await this.svc.getPhotoFile(id, req.user.id, kind)
+    return res.type('image/webp').send(createReadStream(filePath))
   }
 }

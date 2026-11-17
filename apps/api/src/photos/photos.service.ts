@@ -1,16 +1,20 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { eq, desc, and } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import sharp from 'sharp'
 
+import type { ProgressPhoto } from '@gymtracker/shared'
+
 import { DATABASE } from '../drizzle/drizzle.constants'
+import { toProgressPhoto } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
 import { randomUUID } from 'crypto'
 import { mkdirSync, unlinkSync } from 'fs'
-import { join } from 'path'
+import { join, resolve, sep } from 'path'
 
-const PHOTO_FILENAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-(orig|thumb)\.webp$/
+// The user id becomes a folder name under PHOTOS_DIR, so it must be one plain path segment.
+const SAFE_PATH_SEGMENT = /^[A-Za-z0-9_-]+$/
 
 @Injectable()
 export class PhotosService {
@@ -23,15 +27,19 @@ export class PhotosService {
     this.photosDir = config.getOrThrow<string>('PHOTOS_DIR')
   }
 
-  getPhotos(userId: string) {
-    return this.db
+  async getPhotos(userId: string): Promise<ProgressPhoto[]> {
+    const rows = await this.db
       .select()
       .from(schema.progressPhotos)
       .where(eq(schema.progressPhotos.userId, userId))
       .orderBy(desc(schema.progressPhotos.recordedAt))
+    return rows.map(toProgressPhoto)
   }
 
   async uploadPhoto(userId: string, buffer: Buffer, bodyWeight?: number, tags?: string[], notes?: string) {
+    if (!SAFE_PATH_SEGMENT.test(userId)) {
+      throw new BadRequestException('Invalid user id')
+    }
     const id = randomUUID()
     const userDir = join(this.photosDir, userId)
     mkdirSync(userDir, { recursive: true })
@@ -58,7 +66,7 @@ export class PhotosService {
       })
       .returning()
 
-    return row
+    return toProgressPhoto(row!)
   }
 
   async deletePhoto(id: string, userId: string) {
@@ -79,13 +87,26 @@ export class PhotosService {
     await this.db.delete(schema.progressPhotos).where(eq(schema.progressPhotos.id, id))
   }
 
-  // Only the names uploadPhoto() writes are servable: `<uuid>-orig.webp` / `<uuid>-thumb.webp`.
-  // Anything else (path separators, `..`, other files) is a 404, so the route can never read
-  // outside the user's photo folder.
-  getPhotoPath(userId: string, filename: string) {
-    if (!PHOTO_FILENAME.test(filename)) {
+  // Serve a progress photo by id, only to its owner: anyone else (or an unknown id) gets a 404.
+  async getPhotoFile(id: string, userId: string, kind: 'file' | 'thumb'): Promise<string> {
+    const [photo] = await this.db
+      .select()
+      .from(schema.progressPhotos)
+      .where(and(eq(schema.progressPhotos.id, id), eq(schema.progressPhotos.userId, userId)))
+      .limit(1)
+    if (!photo) {
       throw new NotFoundException('Photo not found')
     }
-    return join(this.photosDir, userId, filename)
+    return this.resolveInPhotosDir(kind === 'thumb' ? photo.thumbPath : photo.filePath)
+  }
+
+  // Defence in depth: a stored relative path must never resolve outside PHOTOS_DIR.
+  private resolveInPhotosDir(rel: string): string {
+    const root = resolve(this.photosDir)
+    const full = resolve(root, rel)
+    if (!full.startsWith(root + sep)) {
+      throw new NotFoundException('Photo not found')
+    }
+    return full
   }
 }
