@@ -164,6 +164,8 @@ PORT=3000
 NODE_ENV=production
 GEMINI_API_KEY=CHANGE_ME
 HOUSEHOLD_EMAILS=default-user:viktor@example.com,inna:inna@example.com
+CF_ACCESS_TEAM_DOMAIN=https://your-team.cloudflareaccess.com
+CF_ACCESS_AUD=0000000000000000000000000000000000000000000000000000000000000000
 EOF
 ```
 
@@ -176,7 +178,21 @@ EOF
 > file. On every boot, after migrations, the API trims and lowercases each email and sets it on the
 > existing User with that id (idempotent). Unknown ids and malformed entries are skipped with a
 > warning; unset or empty changes nothing. Logs name User ids only, never emails. A User with no
-> email cannot sign in once real auth lands (phase C), so keep every User listed.
+> email cannot sign in, so keep every User listed.
+> **`CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` are mandatory** (the values above are placeholders).
+> Every `/api` request except `GET /api/health` must carry a Cloudflare Access JWT in the
+> `Cf-Access-Jwt-Assertion` header (Access adds it at the edge). The API verifies it against
+> `<team domain>/cdn-cgi/access/certs` (RS256, `iss` = the team domain, `aud` = the AUD tag, 60 s
+> clock tolerance) and maps its `email` to `users.email`. No/invalid/expired token → **401**; valid
+> token whose email is not a User (or a service token) → **403**; the keys can't be fetched →
+> **503** (logged as `Cloudflare Access keys unavailable`, so the API needs outbound HTTPS).
+>
+> - `CF_ACCESS_TEAM_DOMAIN`: exactly `https://<team>.cloudflareaccess.com` (a trailing `/` is dropped).
+> - `CF_ACCESS_AUD`: the Access application's **AUD tag** (Zero Trust → Access → Applications →
+>   Edit → Additional settings), 64 lowercase hex characters.
+> - Missing or malformed → the API **refuses to start** (`pm2 logs` names the variable).
+> - `AUTH_MODE` must stay **unset** (or `cloudflare`) here. `AUTH_MODE=dev` (local development,
+>   no JWT) is refused when `NODE_ENV=production`.
 
 ### 6. Nginx + GitHub Actions auto-deploy
 
@@ -287,21 +303,26 @@ pm2 logs gymtracker --lines 30                         # no boot errors
 curl -fsS http://localhost:3000/api/health             # API up (direct)
 curl -fsS http://localhost:8095/api/health             # API up (via Nginx — public port 8095, NOT 80)
 curl -s http://localhost:8095/ | grep -o '<title>.*</title>'  # SPA served
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/api/me   # 401: no Access token
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Cf-Access-Jwt-Assertion: garbage' http://localhost:3000/api/me  # 401
 ```
 
 ---
 
 ## Troubleshooting
 
-| Symptom                                                                     | Cause                                                      | Fix                                                                                                               |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `npm run db:migrate` exits 1 with **no error text**, "applying migrations…" | One of the two below — drizzle-kit swallows the real error | Reproduce with the verbose probe below to see it                                                                  |
-| `connect ENOENT …/db.sqlite/.s.PGSQL.5432` (or `ECONNREFUSED`)              | `DATABASE_URL` is a file path / wrong host                 | Fix `apps/api/.env` to a real `postgresql://…` URL (see step 5)                                                   |
-| `extension "vector" is not available … vector.control: No such file`        | pgvector not installed on the Postgres host                | `sudo apt-get install -y postgresql-16-pgvector`, then step 2's `CREATE EXTENSION`                                |
-| `permission denied to create extension "vector"`                            | Migrating role isn't superuser                             | Run the `CREATE EXTENSION` once as the `postgres` superuser (step 2); the app role then just uses it              |
-| API boots then crashes on DB calls                                          | Runtime read the wrong `DATABASE_URL`                      | Confirm PM2 `cwd: apps/api` and that no `DATABASE_URL` is set in `ecosystem.config.js` (it must come from `.env`) |
-| API exits immediately on boot, log mentions `GEMINI_API_KEY` / `getOrThrow` | `GEMINI_API_KEY` missing/empty in `apps/api/.env`          | Set a real `GEMINI_API_KEY` in `.env` (step 5), then `pm2 reload …`                                               |
-| `curl http://localhost/...` → 404 / connection refused                      | Nginx public port is **8095**, not 80                      | Use `http://localhost:8095/` (see Architecture → Ports)                                                           |
+| Symptom                                                                              | Cause                                                                           | Fix                                                                                                               |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `npm run db:migrate` exits 1 with **no error text**, "applying migrations…"          | One of the two below — drizzle-kit swallows the real error                      | Reproduce with the verbose probe below to see it                                                                  |
+| `connect ENOENT …/db.sqlite/.s.PGSQL.5432` (or `ECONNREFUSED`)                       | `DATABASE_URL` is a file path / wrong host                                      | Fix `apps/api/.env` to a real `postgresql://…` URL (see step 5)                                                   |
+| `extension "vector" is not available … vector.control: No such file`                 | pgvector not installed on the Postgres host                                     | `sudo apt-get install -y postgresql-16-pgvector`, then step 2's `CREATE EXTENSION`                                |
+| `permission denied to create extension "vector"`                                     | Migrating role isn't superuser                                                  | Run the `CREATE EXTENSION` once as the `postgres` superuser (step 2); the app role then just uses it              |
+| API boots then crashes on DB calls                                                   | Runtime read the wrong `DATABASE_URL`                                           | Confirm PM2 `cwd: apps/api` and that no `DATABASE_URL` is set in `ecosystem.config.js` (it must come from `.env`) |
+| API exits immediately on boot, log mentions `GEMINI_API_KEY` / `getOrThrow`          | `GEMINI_API_KEY` missing/empty in `apps/api/.env`                               | Set a real `GEMINI_API_KEY` in `.env` (step 5), then `pm2 reload …`                                               |
+| API exits on boot, log names `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` / `AUTH_MODE` | Access config missing or malformed, or `AUTH_MODE=dev` in production            | Set both `CF_ACCESS_*` in `.env` (step 5), remove `AUTH_MODE`, then `pm2 reload …`                                |
+| Every `/api` call answers 503, log says `Cloudflare Access keys unavailable`         | API cannot fetch `<team domain>/cdn-cgi/access/certs`                           | Check outbound HTTPS / DNS from the box and the team domain in `.env`                                             |
+| Browser login works but `/api` answers 401 for everyone                              | `CF_ACCESS_AUD` is not this Access application's AUD tag (or wrong team domain) | Copy the AUD tag again from the Access application, then `pm2 reload …`                                           |
+| `curl http://localhost/...` → 404 / connection refused                               | Nginx public port is **8095**, not 80                                           | Use `http://localhost:8095/` (see Architecture → Ports)                                                           |
 
 **See the real migrate error** (drizzle-kit hides it). Test the connection directly — this prints
 the `pg` error that `db:migrate` swallows:
