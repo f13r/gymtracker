@@ -52,7 +52,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.mocked(exercisesApi.getAll).mockResolvedValue([bench, oldFly])
-  vi.mocked(exercisesApi.getOne).mockImplementation(async id => (id === bench.id ? bench : oldFly))
+  vi.mocked(exercisesApi.getOne).mockImplementation(id => Promise.resolve(id === bench.id ? bench : oldFly))
   vi.mocked(exercisesApi.create).mockReset()
 })
 

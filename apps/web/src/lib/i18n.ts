@@ -41,8 +41,24 @@ export const I18N_NAMESPACES = ['common', 'nav', 'settings', 'workout', 'equipme
 export const DEFAULT_NS = 'common'
 
 export const resources = {
-  uk: { common: ukCommon, nav: ukNav, settings: ukSettings, workout: ukWorkout, equipment: ukEquipment, auth: ukAuth, exercises: ukExercises },
-  en: { common: enCommon, nav: enNav, settings: enSettings, workout: enWorkout, equipment: enEquipment, auth: enAuth, exercises: enExercises },
+  uk: {
+    common: ukCommon,
+    nav: ukNav,
+    settings: ukSettings,
+    workout: ukWorkout,
+    equipment: ukEquipment,
+    auth: ukAuth,
+    exercises: ukExercises,
+  },
+  en: {
+    common: enCommon,
+    nav: enNav,
+    settings: enSettings,
+    workout: enWorkout,
+    equipment: enEquipment,
+    auth: enAuth,
+    exercises: enExercises,
+  },
 } as const
 
 const storedLanguage = usePreferencesStore.getState().language

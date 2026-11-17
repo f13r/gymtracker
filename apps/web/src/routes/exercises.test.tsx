@@ -59,9 +59,11 @@ beforeAll(async () => {
 beforeEach(() => {
   live = [bench]
   archived = [oldFly]
-  vi.mocked(exercisesApi.getAll).mockImplementation(async () => live)
-  vi.mocked(exercisesApi.getArchived).mockImplementation(async () => archived)
-  vi.mocked(exercisesApi.getOne).mockImplementation(async id => [...live, ...archived].find(e => e.id === id)!)
+  vi.mocked(exercisesApi.getAll).mockImplementation(() => Promise.resolve(live))
+  vi.mocked(exercisesApi.getArchived).mockImplementation(() => Promise.resolve(archived))
+  vi.mocked(exercisesApi.getOne).mockImplementation(id =>
+    Promise.resolve([...live, ...archived].find(e => e.id === id)!),
+  )
   vi.mocked(exercisesApi.create).mockReset()
   vi.mocked(exercisesApi.restore).mockReset()
 })
@@ -78,11 +80,11 @@ describe('ExercisesPage', () => {
   })
 
   it('restores an Archived Exercise back into the library', async () => {
-    vi.mocked(exercisesApi.restore).mockImplementation(async id => {
+    vi.mocked(exercisesApi.restore).mockImplementation(id => {
       const restored = { ...oldFly, archived: false }
       archived = archived.filter(e => e.id !== id)
       live = [...live, restored]
-      return restored
+      return Promise.resolve(restored)
     })
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: 'Show archived' }))

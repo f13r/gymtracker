@@ -33,9 +33,7 @@ export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: 
   const queryClient = useQueryClient()
   const { data: exercises = [] } = useQuery({ queryKey: queryKeys.exercises(), queryFn: exercisesApi.getAll })
 
-  const filtered = exercises.filter(
-    (e: Exercise) => !e.archived && e.name.toLowerCase().includes(search.toLowerCase()),
-  )
+  const filtered = exercises.filter((e: Exercise) => !e.archived && e.name.toLowerCase().includes(search.toLowerCase()))
 
   const grouped = filtered.reduce<Record<string, Exercise[]>>((acc, ex) => {
     const cat = ex.category ?? 'other'

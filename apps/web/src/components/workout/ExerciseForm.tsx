@@ -189,7 +189,12 @@ export function ExerciseForm({
             })}
           </p>
           {existingAction && existing && !existing.archived && (
-            <Button className="w-full" type="button" variant="outline" onClick={() => existingAction.onSelect(existing)}>
+            <Button
+              className="w-full"
+              type="button"
+              variant="outline"
+              onClick={() => existingAction.onSelect(existing)}
+            >
               {existingAction.label(existing.name)}
             </Button>
           )}
