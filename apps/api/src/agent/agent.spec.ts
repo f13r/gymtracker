@@ -7,7 +7,7 @@ import { AgentDocumentSchema, type AgentApplyResult, type AgentExport } from '@g
 
 import { AgentApplyService } from './agent-apply.service'
 import { AgentExportService } from './agent-export.service'
-import { IMAGE_FETCH, type ImageFetch } from './agent-images'
+import { IMAGE_CLIENT, type ImageClient } from './agent-images'
 import { AgentController } from './agent.controller'
 import * as schema from '../drizzle/schema'
 import { createAuthedApp } from '../testing/access-tokens'
@@ -129,11 +129,14 @@ afterEach(async () => {
   app = undefined
 })
 
-async function setup(opts: { fetch?: ImageFetch } = {}) {
+async function setup(opts: { images?: ImageClient } = {}) {
   const db = createFakeDb()
   seedHousehold(db)
   const photosDir = mkdtempSync(join(tmpdir(), 'agent-api-'))
-  const noFetch: ImageFetch = () => Promise.reject(new Error('no network in tests'))
+  const offline: ImageClient = {
+    resolve: () => Promise.reject(new Error('no DNS in tests')),
+    fetch: () => Promise.reject(new Error('no network in tests')),
+  }
   app = await createAuthedApp({
     config: { mode: 'dev', defaultUserId: 'u1' },
     db,
@@ -143,7 +146,7 @@ async function setup(opts: { fetch?: ImageFetch } = {}) {
         AgentApplyService,
         AgentExportService,
         { provide: ConfigService, useValue: new ConfigService({ PHOTOS_DIR: photosDir }) },
-        { provide: IMAGE_FETCH, useValue: opts.fetch ?? noFetch },
+        { provide: IMAGE_CLIENT, useValue: opts.images ?? offline },
       ],
     },
   })
@@ -577,17 +580,20 @@ describe('apply: Exercise images from imageUrl', () => {
   const URL_OK = 'https://img.example.com/face-pull.png'
   const fakeWeb = () => {
     const calls: string[] = []
-    const fetchFn: ImageFetch = async url => {
-      calls.push(url)
-      if (url !== URL_OK) {
-        return new Response('gone', { status: 404 })
-      }
-      const png = await sharp({ create: { width: 600, height: 300, channels: 3, background: '#0f0' } })
-        .png()
-        .toBuffer()
-      return new Response(new Uint8Array(png), { headers: { 'content-type': 'image/png' } })
+    const client: ImageClient = {
+      resolve: () => Promise.resolve([{ address: '93.184.215.14', family: 4 }]),
+      fetch: async ({ url }) => {
+        calls.push(url.toString())
+        if (url.toString() !== URL_OK) {
+          return new Response('gone', { status: 404 })
+        }
+        const png = await sharp({ create: { width: 600, height: 300, channels: 3, background: '#0f0' } })
+          .png()
+          .toBuffer()
+        return new Response(new Uint8Array(png), { headers: { 'content-type': 'image/png' } })
+      },
     }
-    return { calls, fetchFn }
+    return { calls, client }
   }
   const files = (dir: string) =>
     readdirSync(join(dir, 'exercises'), { withFileTypes: true })
@@ -596,7 +602,7 @@ describe('apply: Exercise images from imageUrl', () => {
 
   it('dry-run says the image will be fetched and downloads nothing', async () => {
     const web = fakeWeb()
-    const { apply } = await setup({ fetch: web.fetchFn })
+    const { apply } = await setup({ images: web.client })
     const r = result(await apply({ exercises: [{ name: 'Face Pull', imageUrl: URL_OK }] }))
     expect(r.changes[0]).toMatchObject({ action: 'created', note: 'image will be fetched on apply' })
     expect(web.calls).toEqual([])
@@ -604,7 +610,7 @@ describe('apply: Exercise images from imageUrl', () => {
 
   it('on confirm stores the image as the usual .webp orig + thumb in the shared folder', async () => {
     const web = fakeWeb()
-    const { db, apply, get, photosDir } = await setup({ fetch: web.fetchFn })
+    const { db, apply, get, photosDir } = await setup({ images: web.client })
     const r = result(await apply({ exercises: [{ name: 'Face Pull', imageUrl: URL_OK }] }, true))
     expect(r.applied).toBe(true)
     const row = db.rows(schema.exercises).find(e => e.name === 'Face Pull')!
@@ -617,7 +623,7 @@ describe('apply: Exercise images from imageUrl', () => {
   })
 
   it('replaces the image of an existing Exercise', async () => {
-    const { db, apply, photosDir } = await setup({ fetch: fakeWeb().fetchFn })
+    const { db, apply, photosDir } = await setup({ images: fakeWeb().client })
     const r = result(await apply({ exercises: [{ name: 'Squat', imageUrl: URL_OK }] }, true))
     expect(r.changes[0]).toMatchObject({ action: 'updated', changes: { image: { old: null, new: URL_OK } } })
     expect(db.rows(schema.exercises).find(e => e.id === 'e-squat')?.thumbPath).toBe('exercises/e-squat-thumb.webp')
@@ -625,7 +631,7 @@ describe('apply: Exercise images from imageUrl', () => {
   })
 
   it('applies nothing when an image cannot be downloaded, and leaves no files behind', async () => {
-    const { db, apply, photosDir } = await setup({ fetch: fakeWeb().fetchFn })
+    const { db, apply, photosDir } = await setup({ images: fakeWeb().client })
     const before = tables(db)
     const res = await apply(
       {

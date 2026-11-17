@@ -5,12 +5,12 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { AgentApplyError, AgentApplyResult, AgentDocument } from '@gymtracker/shared'
 
 import {
-  IMAGE_FETCH,
+  IMAGE_CLIENT,
   ImageFetchError,
   discardStagedImage,
   downloadImage,
   stageExerciseImage,
-  type ImageFetch,
+  type ImageClient,
   type StagedImage,
 } from './agent-images'
 import { planDocument, type Plan } from './agent-plan'
@@ -47,7 +47,7 @@ export class AgentApplyService {
   constructor(
     @Inject(DATABASE) private readonly db: NodePgDatabase<typeof schema>,
     @Inject(ConfigService) config: ConfigService,
-    @Inject(IMAGE_FETCH) private readonly fetchImage: ImageFetch,
+    @Inject(IMAGE_CLIENT) private readonly imageClient: ImageClient,
   ) {
     this.photosDir = config.getOrThrow<string>('PHOTOS_DIR')
   }
@@ -125,7 +125,7 @@ export class AgentApplyService {
         continue
       }
       try {
-        images.set(i, await stageExerciseImage(this.photosDir, await downloadImage(this.fetchImage, item.imageUrl)))
+        images.set(i, await stageExerciseImage(this.photosDir, await downloadImage(this.imageClient, item.imageUrl)))
       } catch (err) {
         const message = err instanceof ImageFetchError ? err.message : 'Image could not be processed'
         errors.push({ path: `exercises.${i}.imageUrl`, message })
