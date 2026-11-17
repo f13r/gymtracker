@@ -15,8 +15,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api')
 
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3000
-  await app.listen(port, '0.0.0.0')
-  logger.log(`API running on http://localhost:${port}`, 'Bootstrap')
+  // Loopback by default: in prod the only way in is Cloudflare → host nginx (127.0.0.1:8095) → here.
+  // Set HOST=0.0.0.0 only for a deliberate LAN dev setup.
+  const host = process.env.HOST || '127.0.0.1'
+  await app.listen(port, host)
+  logger.log(`API running on http://${host}:${port}`, 'Bootstrap')
 }
 
 bootstrap()
