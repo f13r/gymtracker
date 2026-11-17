@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { api } from './client'
+import { ApiError, api } from './client'
 import { browser, useAuthStatus } from '@/lib/auth-status'
 
 function respond(status: number, body: unknown = {}) {
@@ -97,6 +97,31 @@ describe('api client', () => {
     fetchMock.mockImplementation(async () => respond(404, { message: 'Not found' }))
     await expect(api.get('/x')).rejects.toThrow('Not found')
     expect(useAuthStatus.getState().status).toEqual({ kind: 'ok' })
+  })
+
+  it('rejects with an ApiError carrying the status and parsed body', async () => {
+    const body = { statusCode: 409, error: 'Conflict', message: 'Exercise exists', exerciseId: 'ex-1' }
+    fetchMock.mockImplementation(async () => respond(409, body))
+    const error = await api.post('/x', { a: 1 }).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toMatchObject({ status: 409, message: 'Exercise exists', body })
+  })
+
+  it('still rejects with an ApiError when the error body is not JSON', async () => {
+    fetchMock.mockImplementation(async () => new Response('boom', { status: 500, statusText: 'Server Error' }))
+    const error = await api.get('/x').catch((e: unknown) => e)
+    expect(error).toMatchObject({ status: 500, message: 'Server Error' })
+  })
+
+  it('returns the DELETE response body when there is one', async () => {
+    fetchMock.mockImplementation(async () => respond(200, { archived: true }))
+    await expect(api.delete<{ archived: boolean }>('/x')).resolves.toEqual({ archived: true })
+  })
+
+  it('resolves an empty DELETE response to undefined', async () => {
+    fetchMock.mockImplementation(async () => new Response(null, { status: 204 }))
+    await expect(api.delete('/x')).resolves.toBeUndefined()
   })
 
   it('keeps Content-Type for JSON and leaves it to the browser for FormData', async () => {
