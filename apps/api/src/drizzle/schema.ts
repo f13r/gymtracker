@@ -4,6 +4,9 @@ import { pgTable, text, integer, real, primaryKey, uniqueIndex, customType } fro
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
   displayName: text('display_name').notNull(),
+  // Sign-in identity; the users table is the allowlist. Not in the repo: set at boot from the
+  // HOUSEHOLD_EMAILS env var (seed/household-emails.ts). A User without one cannot sign in.
+  email: text('email').unique(),
   createdAt: integer('created_at').notNull(),
 })
 

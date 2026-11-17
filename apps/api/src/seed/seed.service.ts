@@ -1,8 +1,8 @@
 import { Injectable, Inject, Logger, OnModuleInit } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { eq } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
+import { applyHouseholdEmails } from './household-emails'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { relocateExerciseImages } from '../exercises/exercise-images'
@@ -55,13 +55,20 @@ export class SeedService implements OnModuleInit {
     private config: ConfigService,
   ) {}
 
-  // Runs after the DATABASE provider has applied pending migrations.
+  // Runs after the DATABASE provider has applied pending migrations. Users are not seeded: the
+  // migrations provision them (the users table is the sign-in allowlist); only their emails come
+  // from the env here.
   async onModuleInit(): Promise<void> {
     try {
-      await this.seedUser()
       await this.seedExercises()
     } catch (err) {
       this.logger.error('Seed failed', err instanceof Error ? err.stack : String(err))
+    }
+    try {
+      await applyHouseholdEmails(this.db, this.config.get<string>('HOUSEHOLD_EMAILS'), this.logger)
+    } catch (err) {
+      // No stack or message: either could quote an email.
+      this.logger.error(`Household emails failed (${err instanceof Error ? err.name : 'error'})`)
     }
     try {
       // Exercise Images are shared: move any left in old per-User folders (idempotent).
@@ -69,19 +76,6 @@ export class SeedService implements OnModuleInit {
     } catch (err) {
       this.logger.error('Exercise image move failed', err instanceof Error ? err.stack : String(err))
     }
-  }
-
-  private async seedUser() {
-    const [existing] = await this.db.select().from(schema.users).where(eq(schema.users.id, 'default-user')).limit(1)
-    if (existing) {
-      return
-    }
-
-    await this.db.insert(schema.users).values({
-      id: 'default-user',
-      displayName: 'Viktor',
-      createdAt: Math.floor(Date.now() / 1000),
-    })
   }
 
   // Seed the starting library into an empty install only, so an Exercise someone removed is never
