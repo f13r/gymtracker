@@ -1,0 +1,11 @@
+{
+  "showArchived": "Show archived",
+  "hideArchived": "Hide archived",
+  "archived": "Archived",
+  "noArchived": "No archived exercises",
+  "restore": "Restore",
+  "restoreNamed": "Restore {{name}}",
+  "restoredToast": "“{{name}}” restored",
+  "restoreError": "Couldn’t restore “{{name}}”.",
+  "openExisting": "Open “{{name}}”"
+}

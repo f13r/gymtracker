@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Plus, RotateCcw, Search } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { Exercise } from '@gymtracker/shared'
 
@@ -9,6 +10,7 @@ import { queryKeys } from '@/api/queryKeys'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EditExerciseDialog } from '@/components/workout/EditExerciseDialog'
 import { ExerciseForm } from '@/components/workout/ExerciseForm'
+import { showToast } from '@/lib/toast'
 
 const CATEGORY_COLORS: Record<string, string> = {
   push: 'text-orange-400',
@@ -29,13 +31,16 @@ const EQUIPMENT_LABELS: Record<string, string> = {
 }
 
 export function ExercisesPage() {
+  const { t } = useTranslation('exercises')
   const [search, setSearch] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
   const [editing, setEditing] = useState<Exercise | null>(null)
   const [creating, setCreating] = useState(false)
   const queryClient = useQueryClient()
   const { data: exercises = [] } = useQuery({ queryKey: queryKeys.exercises(), queryFn: exercisesApi.getAll })
 
-  const filtered = exercises.filter(e => e.name.toLowerCase().includes(search.toLowerCase()))
+  const matches = (e: Exercise) => e.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = exercises.filter(e => !e.archived && matches(e))
 
   const grouped = filtered.reduce<Record<string, Exercise[]>>((acc, ex) => {
     const cat = ex.category ?? 'other'
@@ -109,6 +114,15 @@ export function ExercisesPage() {
             <p className="text-muted-foreground">No exercises found</p>
           </div>
         )}
+
+        <button
+          className="text-muted-foreground active:bg-muted/50 w-full px-4 py-3.5 text-center text-xs font-semibold tracking-widest uppercase transition-colors"
+          type="button"
+          onClick={() => setShowArchived(s => !s)}
+        >
+          {showArchived ? t('hideArchived') : t('showArchived')}
+        </button>
+        {showArchived && <ArchivedExercises matches={matches} />}
       </div>
 
       <EditExerciseDialog
@@ -123,6 +137,10 @@ export function ExercisesPage() {
       <CreateExerciseDialog
         open={creating}
         onClose={() => setCreating(false)}
+        onOpenExisting={ex => {
+          setCreating(false)
+          setEditing(ex)
+        }}
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey: queryKeys.exercises() })
           setCreating(false)
@@ -132,7 +150,66 @@ export function ExercisesPage() {
   )
 }
 
-function CreateExerciseDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: () => void }) {
+// Archived Exercises: hidden from the library and pickers, still shown in history, restorable here.
+function ArchivedExercises({ matches }: { matches: (e: Exercise) => boolean }) {
+  const { t } = useTranslation('exercises')
+  const queryClient = useQueryClient()
+  const { data: archived = [], isSuccess } = useQuery({
+    queryKey: queryKeys.archivedExercises(),
+    queryFn: exercisesApi.getArchived,
+  })
+  const restore = useMutation({
+    mutationFn: (ex: Exercise) => exercisesApi.restore(ex.id),
+    onSuccess: (_restored, ex) => {
+      showToast(t('restoredToast', { name: ex.name }))
+      // The exercises() prefix covers both the live and the archived list.
+      queryClient.invalidateQueries({ queryKey: queryKeys.exercises() })
+    },
+  })
+  const shown = archived.filter(matches)
+
+  return (
+    <div>
+      <div className="bg-background/95 sticky top-0 px-4 py-2 backdrop-blur-sm">
+        <span className="text-muted-foreground text-xs font-bold tracking-widest uppercase">{t('archived')}</span>
+      </div>
+      {restore.isError && restore.variables && (
+        <p className="text-destructive px-4 py-2 text-xs">{t('restoreError', { name: restore.variables.name })}</p>
+      )}
+      {shown.map(ex => (
+        <div key={ex.id} className="border-border/50 flex items-center justify-between border-b px-4 py-2">
+          <span className="text-muted-foreground text-sm font-medium">{ex.name}</span>
+          <button
+            aria-label={t('restoreNamed', { name: ex.name })}
+            className="text-primary active:bg-muted/50 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors"
+            disabled={restore.isPending}
+            type="button"
+            onClick={() => restore.mutate(ex)}
+          >
+            <RotateCcw size={14} />
+            {t('restore')}
+          </button>
+        </div>
+      ))}
+      {isSuccess && shown.length === 0 && (
+        <p className="text-muted-foreground px-4 py-6 text-center text-sm">{t('noArchived')}</p>
+      )}
+    </div>
+  )
+}
+
+function CreateExerciseDialog({
+  open,
+  onClose,
+  onSaved,
+  onOpenExisting,
+}: {
+  open: boolean
+  onClose: () => void
+  onSaved: () => void
+  onOpenExisting: (existing: Exercise) => void
+}) {
+  const { t } = useTranslation('exercises')
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-h-[90dvh] max-w-sm overflow-y-auto rounded-2xl">
@@ -140,7 +217,12 @@ function CreateExerciseDialog({ open, onClose, onSaved }: { open: boolean; onClo
           <DialogTitle>Add exercise</DialogTitle>
         </DialogHeader>
         {/* Only mounted while open, so the fields reset between opens. */}
-        {open && <ExerciseForm onSaved={onSaved} />}
+        {open && (
+          <ExerciseForm
+            existingAction={{ label: name => t('openExisting', { name }), onSelect: onOpenExisting }}
+            onSaved={onSaved}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )

@@ -1,0 +1,11 @@
+{
+  "showArchived": "Показати архівні",
+  "hideArchived": "Сховати архівні",
+  "archived": "Архів",
+  "noArchived": "Архівних вправ немає",
+  "restore": "Відновити",
+  "restoreNamed": "Відновити {{name}}",
+  "restoredToast": "«{{name}}» відновлено",
+  "restoreError": "Не вдалося відновити «{{name}}».",
+  "openExisting": "Відкрити «{{name}}»"
+}
