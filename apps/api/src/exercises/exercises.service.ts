@@ -1,12 +1,13 @@
 import { Injectable, Inject, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { eq, isNotNull, isNull } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import sharp from 'sharp'
 
 import { CreateExerciseDto, UpdateExerciseDto, WorkoutSet } from '@gymtracker/shared'
 
 import { EXERCISE_IMAGE_DIR, exerciseImagePaths } from './exercise-images'
+import { findExerciseByName, removeExercise, setExerciseArchived } from './exercise-library'
 import { loadExerciseNotes, saveExerciseNotes } from './exercise-notes'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import type { DbSet, DbExercise } from '../drizzle/mappers'
@@ -57,16 +58,6 @@ export class ExercisesService {
     return ex
   }
 
-  // The Exercise whose name equals `name` case-insensitively (the unique `lower(name)` index), archived or not.
-  private async findByName(name: string): Promise<DbExercise | undefined> {
-    const [ex] = await this.db
-      .select()
-      .from(schema.exercises)
-      .where(sql`lower(${schema.exercises.name}) = lower(${name})`)
-      .limit(1)
-    return ex
-  }
-
   // 409 carrying the existing Exercise's id, so a client can offer that one instead.
   private nameTaken(ex: DbExercise) {
     return new ConflictException({
@@ -82,13 +73,13 @@ export class ExercisesService {
     if (!name) {
       throw new BadRequestException('Exercise name is required')
     }
-    const clash = await this.findByName(name)
+    const clash = await findExerciseByName(this.db, name)
     if (clash && clash.archivedAt == null) {
       throw this.nameTaken(clash)
     }
     if (clash) {
       // Re-creating an Archived Exercise restores it (its history, image and fields are kept).
-      await this.setArchived(clash.id, null)
+      await setExerciseArchived(this.db, clash.id, null)
       if (dto.notes !== undefined) {
         await saveExerciseNotes(this.db, userId, clash.id, dto.notes)
       }
@@ -127,7 +118,7 @@ export class ExercisesService {
       if (!name) {
         throw new BadRequestException('Exercise name is required')
       }
-      const clash = await this.findByName(name)
+      const clash = await findExerciseByName(this.db, name)
       if (clash && clash.id !== id) {
         throw this.nameTaken(clash)
       }
@@ -167,43 +158,17 @@ export class ExercisesService {
   // and every User's notes. See CONTEXT.md "Archived Exercise".
   async remove(id: string): Promise<{ archived: boolean }> {
     const existing = await this.findRow(id)
-    if (await this.isReferenced(id)) {
-      if (existing.archivedAt == null) {
-        await this.setArchived(id, Math.floor(Date.now() / 1000))
-      }
-      return { archived: true }
+    const result = await removeExercise(this.db, existing)
+    if (!result.archived) {
+      this.unlinkMedia(existing)
     }
-    await this.db.delete(schema.userExerciseNotes).where(eq(schema.userExerciseNotes.exerciseId, id))
-    await this.db.delete(schema.exercises).where(eq(schema.exercises.id, id))
-    this.unlinkMedia(existing)
-    return { archived: false }
+    return result
   }
 
   async restore(id: string, userId: string) {
     await this.findRow(id)
-    await this.setArchived(id, null)
+    await setExerciseArchived(this.db, id, null)
     return this.findOne(id, userId)
-  }
-
-  private async isReferenced(id: string): Promise<boolean> {
-    const refs = [
-      schema.sets.exerciseId,
-      schema.templateExercises.exerciseId,
-      schema.sessionExercises.exerciseId,
-      schema.equipmentExercises.exerciseId,
-      schema.progressionSuggestions.exerciseId,
-    ]
-    for (const col of refs) {
-      const [hit] = await this.db.select({ exerciseId: col }).from(col.table).where(eq(col, id)).limit(1)
-      if (hit) {
-        return true
-      }
-    }
-    return false
-  }
-
-  private async setArchived(id: string, archivedAt: number | null) {
-    await this.db.update(schema.exercises).set({ archivedAt }).where(eq(schema.exercises.id, id))
   }
 
   // Resolve the absolute path of an Exercise's image (or thumb) for streaming. Throws NotFound when
