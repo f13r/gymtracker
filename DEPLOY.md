@@ -166,6 +166,7 @@ GEMINI_API_KEY=CHANGE_ME
 HOUSEHOLD_EMAILS=default-user:viktor@example.com,inna:inna@example.com
 CF_ACCESS_TEAM_DOMAIN=https://your-team.cloudflareaccess.com
 CF_ACCESS_AUD=0000000000000000000000000000000000000000000000000000000000000000
+AGENT_SERVICE_TOKEN_IDS=0123456789abcdef0123456789abcdef.access
 EOF
 ```
 
@@ -184,13 +185,19 @@ EOF
 > `Cf-Access-Jwt-Assertion` header (Access adds it at the edge). The API verifies it against
 > `<team domain>/cdn-cgi/access/certs` (RS256, `iss` = the team domain, `aud` = the AUD tag, 60 s
 > clock tolerance) and maps its `email` to `users.email`. No/invalid/expired token → **401**; valid
-> token whose email is not a User (or a service token) → **403**; the keys can't be fetched →
+> token whose email is not a User (or an unlisted service token) → **403**; the keys can't be fetched →
 > **503** (logged as `Cloudflare Access keys unavailable`, so the API needs outbound HTTPS).
 >
 > - `CF_ACCESS_TEAM_DOMAIN`: exactly `https://<team>.cloudflareaccess.com` (a trailing `/` is dropped).
 > - `CF_ACCESS_AUD`: the Access application's **AUD tag** (Zero Trust → Access → Applications →
 >   Edit → Additional settings), 64 lowercase hex characters.
 > - Missing or malformed → the API **refuses to start** (`pm2 logs` names the variable).
+> - `AGENT_SERVICE_TOKEN_IDS` (optional): the Cloudflare service-token **client ids** that act as
+>   the **Agent**, comma-separated (placeholder above). Access puts `<client id>.access` in the
+>   service-token JWT's `common_name`; the API drops one trailing `.access` from that claim and from
+>   each listed id, then compares them exactly (case-sensitive), so `<id>` and `<id>.access` both
+>   work. The Agent may call only `/api/agent/*`, and no User may call those routes (403 both ways).
+>   Unset = no Agent; any other service token stays 403.
 > - `AUTH_MODE` must stay **unset** (or `cloudflare`) here. `AUTH_MODE=dev` (local development,
 >   no JWT) is refused when `NODE_ENV=production`.
 

@@ -156,7 +156,7 @@ A person admitted to the app — one of a small, fixed list of known people, ide
 _Avoid_: account, member, athlete
 
 **Agent**:
-An AI assistant trusted to maintain data on the household's behalf: it edits the shared Exercise library and writes Templates or Programs for a User it names explicitly. Not a User itself — it owns no data, logs no Sessions, and acts only through its own dedicated entry point.
+An AI assistant trusted to maintain data on the household's behalf: it edits the shared Exercise library and writes Templates and the weekly Schedule (not Programs) for a User it names explicitly. Not a User itself — it owns no data, logs no Sessions, and acts only through its own dedicated entry point (`/api/agent/*`): it reads an export, sends a document of changes as a dry-run, and applies it only after a person approves the diff. Every applied document is kept as an audit record.
 _Avoid_: bot, admin, coach (the Coach is the in-app AI)
 
 **Gym**:
