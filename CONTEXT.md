@@ -1,6 +1,6 @@
 # GymTracker
 
-A personal fitness tracking application for logging workouts, tracking body progress, and analysing training over time. Currently single-user (prototyping phase); multi-user with authentication is planned.
+A personal fitness tracking application for logging workouts, tracking body progress, and analysing training over time. Multi-user: a small, closed set of Users (a household) share one Exercise library and one Gym, while each keeps their own plans, logs and body data private.
 
 ## Internationalization (i18n)
 
@@ -11,8 +11,12 @@ The web app (`apps/web`) is translated with `react-i18next`. Ukrainian (`uk`) is
 ### Workout domain
 
 **Exercise**:
-A named movement (e.g. Bench Press, Squat) with a category and equipment type. Can be a default exercise (seeded at startup, shared as a starting library) or a custom exercise created by the user. Users may delete defaults and build their own library. May carry an Exercise Image and an optional reference `description`.
+A named movement (e.g. Bench Press, Squat) with a category and equipment type. Exercises form **one shared library** for all Users: there are no private Exercises, and any User (or the AI agent) may add, edit or remove one, which changes it for everyone. Templates, Sessions and every other plan or log referencing an Exercise stay per-User. Exercise names are unique (ignoring case). The `description` and Exercise Image are shared; `notes` are personal to each User (e.g. seat settings). May carry an Exercise Image and an optional reference `description`.
 _Avoid_: movement, lift, activity
+
+**Archived Exercise**:
+An Exercise removed from the library while something still references it (any User's Sets, Sessions or Templates). Hidden from pickers and the library, but still shown wherever it is already used, and restorable. An Exercise nothing references is deleted outright instead.
+_Avoid_: deleted exercise, hidden exercise, retired exercise
 
 **Exercise Image**:
 A single demonstration picture stored locally for an Exercise — the user's own uploaded photo, or (for the original defaults) the image carried over from the now-removed wger.de integration. Stored as a self-contained `.webp` on disk (orig + thumb), addressed via the Exercise's id, never hot-linked from a third party. Optional: an Exercise may have none. Shown in the active logger, the Template editor, and the exercise library. The Exercise also carries an optional plain-text `description` (reference/how-to text), distinct from the user's free-text `notes`.
@@ -64,6 +68,7 @@ _Avoid_: save to plan, pin exercise, promote
 
 **Program**:
 An AI-generated, multi-phase training prescription spanning weeks or months. Created once from a user intake (experience level, goal, training days per week). Contains an ordered list of Phases. Adapts over time: Phase duration can extend or compress based on performance signals; Exercises within a Phase's Templates can be swapped when adaptive resistance is detected. Only one Program is active per user at a time. A Program generates ordinary Templates (not owned — no special FK) and automatically creates weekly Schedules on the user's configured training days pointing to the correct Phase Templates. If the user deletes a Template that belongs to a Program, the system warns them that it will be removed from the Program before proceeding. Adaptation is evaluated automatically on every Session finish (fire-and-forget, same pattern as Progression Suggestions) and can also be manually re-triggered by the user from the Program view.
+In everyday speech "my workout program" usually means a User's Templates plus weekly Schedules, not this — call that the User's plan of Templates and Schedules, and reserve **Program** for the Gemini multi-phase prescription.
 _Avoid_: plan, training plan, routine, schedule
 
 **Program Update**:
@@ -146,8 +151,16 @@ _Avoid_: stall, sticking point
 The count of consecutive calendar days on which at least one Session was finished. Tracked as current streak and longest-ever streak.
 _Avoid_: consistency, run
 
+**User**:
+A person admitted to the app — one of a small, fixed list of known people, identified by their Google email. Owns their Templates, Schedules, Program, Sessions, body data and User Profile, all private to them: no User sees another's plans or logs. Shares the Exercise library and the Gym with every other User. An unknown email is never turned into a User automatically.
+_Avoid_: account, member, athlete
+
+**Agent**:
+An AI assistant trusted to maintain data on the household's behalf: it edits the shared Exercise library and writes Templates or Programs for a User it names explicitly. Not a User itself — it owns no data, logs no Sessions, and acts only through its own dedicated entry point.
+_Avoid_: bot, admin, coach (the Coach is the in-app AI)
+
 **Gym**:
-A physical training location to which Users are associated and which owns Equipment. Equipment photographed at a Gym is shared by all Users associated with that Gym.
+A physical training location which owns Equipment. Shared by the whole household: not linked to any User, and all Equipment photographed there is visible to every User.
 _Avoid_: location, facility, place
 
 **User Profile**:
