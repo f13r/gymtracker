@@ -18,6 +18,7 @@ import { assertNotArchived } from '../exercises/archived-exercises'
 import { ProgramService } from '../program/program.service'
 import { ProgressionService } from '../progression/progression.service'
 import { SessionRepository } from '../sessions/session.repository'
+import { assertTemplateNameFree, deleteTemplateCascade, replaceTemplateExercises } from './template-writes'
 import { randomUUID } from 'crypto'
 
 @Injectable()
@@ -65,6 +66,7 @@ export class WorkoutsService {
   }
 
   async createTemplate(userId: string, dto: CreateTemplateDto) {
+    await assertTemplateNameFree(this.db, userId, dto.name)
     await assertNotArchived(
       this.db,
       dto.exercises.map(e => e.exerciseId),
@@ -74,17 +76,7 @@ export class WorkoutsService {
     await this.db
       .insert(schema.workoutTemplates)
       .values({ id, userId, name: dto.name, notes: dto.notes ?? null, createdAt: now })
-    for (const ex of dto.exercises) {
-      await this.db.insert(schema.templateExercises).values({
-        id: randomUUID(),
-        templateId: id,
-        ...ex,
-        defaultWeightKg: ex.defaultWeightKg ?? null,
-        defaultSets: ex.defaultSets ?? null,
-        defaultReps: ex.defaultReps ?? null,
-        supersetGroup: ex.supersetGroup ?? null,
-      })
-    }
+    await replaceTemplateExercises(this.db, id, dto.exercises)
     return this.getTemplate(id, userId)
   }
 
@@ -97,24 +89,12 @@ export class WorkoutsService {
       this.db,
       dto.exercises.map(e => e.exerciseId).filter(exId => !kept.has(exId)),
     )
+    await assertTemplateNameFree(this.db, userId, dto.name, id)
     await this.db
       .update(schema.workoutTemplates)
       .set({ name: dto.name, notes: dto.notes ?? null })
       .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
-    await this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id))
-    for (const ex of dto.exercises) {
-      await this.db.insert(schema.templateExercises).values({
-        id: randomUUID(),
-        templateId: id,
-        exerciseId: ex.exerciseId,
-        orderIndex: ex.orderIndex,
-        defaultSets: ex.defaultSets ?? null,
-        defaultReps: ex.defaultReps ?? null,
-        defaultWeightKg: ex.defaultWeightKg ?? null,
-        equipmentId: ex.equipmentId ?? null,
-        supersetGroup: ex.supersetGroup ?? null,
-      })
-    }
+    await replaceTemplateExercises(this.db, id, dto.exercises)
     return this.getTemplate(id, userId)
   }
 
@@ -143,16 +123,7 @@ export class WorkoutsService {
 
   async deleteTemplate(id: string, userId: string) {
     await this.getTemplate(id, userId)
-    await this.db.delete(schema.programPhaseTemplates).where(eq(schema.programPhaseTemplates.templateId, id))
-    await this.db.delete(schema.workoutSchedules).where(eq(schema.workoutSchedules.templateId, id))
-    await this.db
-      .update(schema.workoutSessions)
-      .set({ templateId: null })
-      .where(eq(schema.workoutSessions.templateId, id))
-    await this.db.delete(schema.templateExercises).where(eq(schema.templateExercises.templateId, id))
-    await this.db
-      .delete(schema.workoutTemplates)
-      .where(and(eq(schema.workoutTemplates.id, id), eq(schema.workoutTemplates.userId, userId)))
+    await deleteTemplateCascade(this.db, id, userId)
   }
 
   async getSessions(userId: string) {

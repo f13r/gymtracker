@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { WorkoutsService } from './workouts.service'
@@ -118,19 +118,8 @@ describe('WorkoutsService.updateTemplate', () => {
   // createTemplate builds its insert via spread (...ex) with an explicit supersetGroup override,
   // a distinct code path from updateTemplate's field-by-field insert — cover it independently.
   it('persists supersetGroup from the DTO on createTemplate (null for standalone)', async () => {
-    const insertedValues: any[] = []
-    mockDb.insert = vi.fn((table: unknown) => {
-      insertedTables.push(table)
-      return {
-        values: vi.fn((v: unknown) => {
-          if (table === schema.templateExercises) {
-            insertedValues.push(v)
-          }
-          return Promise.resolve()
-        }),
-      }
-    })
-    const svc = new WorkoutsService(mockDb, {} as any, {} as any, {} as any)
+    const db = createFakeDb()
+    const svc = new WorkoutsService(db as any, {} as any, {} as any, {} as any)
 
     await svc.createTemplate('u1', {
       name: 'Superset day',
@@ -141,6 +130,7 @@ describe('WorkoutsService.updateTemplate', () => {
       ],
     })
 
+    const insertedValues = db.rows(schema.templateExercises)
     expect(insertedValues.map(v => v.supersetGroup)).toEqual(['g1', 'g1', null])
   })
 })
@@ -295,5 +285,34 @@ describe('WorkoutsService Templates and Archived Exercises', () => {
     ).rejects.toBeInstanceOf(BadRequestException)
     await expect(svc.addTemplateExercise('t1', 'u1', 'gone')).rejects.toBeInstanceOf(BadRequestException)
     expect(db.rows(schema.templateExercises).map(e => e.exerciseId)).toEqual(['old', 'live'])
+  })
+})
+
+describe('WorkoutsService Template names are unique per User', () => {
+  function setup() {
+    const db = createFakeDb()
+    db.seed(schema.exercises, { id: 'e1', name: 'Bench Press', archivedAt: null })
+    db.seed(schema.workoutTemplates, { id: 't1', userId: 'u1', name: 'Push' })
+    db.seed(schema.workoutTemplates, { id: 't2', userId: 'u1', name: 'Pull' })
+    const svc = new WorkoutsService(db as any, {} as any, {} as any, {} as any)
+    return { db, svc }
+  }
+  const exercises = [{ exerciseId: 'e1', orderIndex: 0 }]
+
+  it('refuses a new Template named like another of the same User’s, ignoring case (409)', async () => {
+    const { db, svc } = setup()
+    await expect(svc.createTemplate('u1', { name: 'push', exercises })).rejects.toBeInstanceOf(ConflictException)
+    expect(db.rows(schema.workoutTemplates)).toHaveLength(2)
+  })
+
+  it('refuses renaming a Template to another one’s name (409), but allows keeping its own', async () => {
+    const { svc } = setup()
+    await expect(svc.updateTemplate('t1', 'u1', { name: 'PULL', exercises })).rejects.toBeInstanceOf(ConflictException)
+    expect((await svc.updateTemplate('t1', 'u1', { name: 'PUSH', exercises })).name).toBe('PUSH')
+  })
+
+  it('lets another User use the same name', async () => {
+    const { svc } = setup()
+    expect((await svc.createTemplate('u2', { name: 'Push', exercises })).name).toBe('Push')
   })
 })
