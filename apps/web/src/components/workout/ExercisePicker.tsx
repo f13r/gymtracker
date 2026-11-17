@@ -33,7 +33,9 @@ export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: 
   const queryClient = useQueryClient()
   const { data: exercises = [] } = useQuery({ queryKey: queryKeys.exercises(), queryFn: exercisesApi.getAll })
 
-  const filtered = exercises.filter((e: Exercise) => e.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = exercises.filter(
+    (e: Exercise) => !e.archived && e.name.toLowerCase().includes(search.toLowerCase()),
+  )
 
   const grouped = filtered.reduce<Record<string, Exercise[]>>((acc, ex) => {
     const cat = ex.category ?? 'other'
@@ -81,6 +83,10 @@ export function ExercisePicker({ selectedId, onClose, onSelect, permanentAdd }: 
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <ExerciseForm
+            existingAction={{
+              label: name => t('picker.useExisting', { name }),
+              onSelect: ex => onSelect(ex.id, ex.name),
+            }}
             footerExtra={permanentAddRow}
             initialName={search}
             onSaved={created => {

@@ -100,7 +100,9 @@
     "notSet": "Not set",
     "description": "Description",
     "descriptionPlaceholder": "Optional notes on how to perform it…",
-    "addExercise": "Add exercise"
+    "addExercise": "Add exercise",
+    "alreadyExists": "“{{name}}” already exists.",
+    "alreadyExistsArchived": "“{{name}}” already exists but is archived. Restore it under Show archived in the library."
   },
   "picker": {
     "newExercise": "New Exercise",
@@ -108,7 +110,8 @@
     "searchPlaceholder": "Search exercises...",
     "createNamed": "Create “{{name}}”",
     "createNew": "Create new exercise",
-    "addToPermanently": "Add to <strong>{{name}}</strong> permanently"
+    "addToPermanently": "Add to <strong>{{name}}</strong> permanently",
+    "useExisting": "Use “{{name}}”"
   },
   "editDialog": {
     "title": "Edit Exercise",

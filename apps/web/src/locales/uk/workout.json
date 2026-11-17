@@ -100,7 +100,9 @@
     "notSet": "Не вказано",
     "description": "Опис",
     "descriptionPlaceholder": "Необов’язкові нотатки щодо техніки виконання…",
-    "addExercise": "Додати вправу"
+    "addExercise": "Додати вправу",
+    "alreadyExists": "«{{name}}» вже існує.",
+    "alreadyExistsArchived": "«{{name}}» вже існує, але в архіві. Відновити можна в бібліотеці: «Показати архівні»."
   },
   "picker": {
     "newExercise": "Нова вправа",
@@ -108,7 +110,8 @@
     "searchPlaceholder": "Пошук вправ...",
     "createNamed": "Створити «{{name}}»",
     "createNew": "Створити нову вправу",
-    "addToPermanently": "Додати до <strong>{{name}}</strong> назавжди"
+    "addToPermanently": "Додати до <strong>{{name}}</strong> назавжди",
+    "useExisting": "Обрати «{{name}}»"
   },
   "editDialog": {
     "title": "Редагувати вправу",

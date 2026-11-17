@@ -1,11 +1,13 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { ImagePlus, Trash2 } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { Exercise, ExerciseCategory, ExerciseEquipment } from '@gymtracker/shared'
 
+import { ApiError } from '@/api/client'
 import { exercisesApi } from '@/api/exercises'
+import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,12 +23,15 @@ export function ExerciseForm({
   initialName = '',
   onSaved,
   footerExtra,
+  existingAction,
 }: {
   exercise?: Exercise
   initialName?: string
   onSaved: (exercise: Exercise) => void
   /** Rendered above the action buttons — e.g. the "Add to <Template> permanently" checkbox. */
   footerExtra?: ReactNode
+  /** Offered when the name is already taken (409), e.g. pick or open that Exercise instead. */
+  existingAction?: { label: (name: string) => string; onSelect: (existing: Exercise) => void }
 }) {
   const { t } = useTranslation('workout')
   const editing = exercise != null
@@ -60,6 +65,17 @@ export function ExerciseForm({
         : exercisesApi.create(data, file)
     },
     onSuccess: onSaved,
+  })
+
+  // Exercise names are unique (ignoring case); the API answers a clash with 409 + the clashing id.
+  const conflictId =
+    save.error instanceof ApiError && save.error.status === 409 && typeof save.error.body.exerciseId === 'string'
+      ? save.error.body.exerciseId
+      : null
+  const { data: existing } = useQuery({
+    queryKey: queryKeys.exercise(conflictId),
+    queryFn: () => exercisesApi.getOne(conflictId!),
+    enabled: conflictId != null,
   })
 
   const pickFile = (f: File | null) => {
@@ -165,7 +181,22 @@ export function ExerciseForm({
         />
       </div>
 
-      {save.isError && <p className="text-destructive text-xs">{(save.error as Error).message}</p>}
+      {conflictId ? (
+        <div className="space-y-2">
+          <p className="text-destructive text-xs">
+            {t(existing?.archived ? 'exerciseForm.alreadyExistsArchived' : 'exerciseForm.alreadyExists', {
+              name: existing?.name ?? name.trim(),
+            })}
+          </p>
+          {existingAction && existing && !existing.archived && (
+            <Button className="w-full" type="button" variant="outline" onClick={() => existingAction.onSelect(existing)}>
+              {existingAction.label(existing.name)}
+            </Button>
+          )}
+        </div>
+      ) : (
+        save.isError && <p className="text-destructive text-xs">{save.error.message}</p>
+      )}
 
       {footerExtra}
 
