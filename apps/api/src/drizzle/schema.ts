@@ -158,18 +158,12 @@ export const progressPhotos = pgTable('progress_photos', {
   notes: text('notes'),
 })
 
-export const gyms = pgTable(
-  'gyms',
-  {
-    id: text('id').primaryKey(),
-    userId: text('user_id').references(() => users.id),
-    name: text('name').notNull(),
-    createdAt: integer('created_at').notNull(),
-  },
-  t => ({
-    userUnique: uniqueIndex('gyms_user_id_unique').on(t.userId),
-  }),
-)
+// One Gym for the whole household (id `household`), shared by every User.
+export const gyms = pgTable('gyms', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  createdAt: integer('created_at').notNull(),
+})
 
 export const equipment = pgTable('equipment', {
   id: text('id').primaryKey(),

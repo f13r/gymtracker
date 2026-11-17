@@ -7,6 +7,7 @@ import { estimateE1rm, GeneratedProgramSchema } from '@gymtracker/shared'
 import { GeminiService } from '../ai/gemini.service'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+import { HOUSEHOLD_GYM_ID } from '../gym/gym.service'
 import { CoachingKnowledgeService } from '../progression/coaching-knowledge.service'
 import { randomUUID } from 'crypto'
 
@@ -88,7 +89,7 @@ export class ProgramService {
   private async assembleGenerationInputs(userId: string) {
     const userCtx = await this.getUserProgramContext(userId)
 
-    const exercises = await this.getAvailableExercises(userId)
+    const exercises = await this.getAvailableExercises()
     if (exercises.length === 0) {
       throw new BadRequestException(
         'No exercises found. Add some exercises to your library first so the AI knows what to prescribe.',
@@ -422,24 +423,17 @@ export class ProgramService {
     }
   }
 
-  private async getAvailableExercises(userId: string): Promise<AvailableExercise[]> {
-    const [gym] = await this.db
-      .select({ id: schema.gyms.id })
-      .from(schema.gyms)
-      .where(eq(schema.gyms.userId, userId))
-      .limit(1)
+  private async getAvailableExercises(): Promise<AvailableExercise[]> {
+    // Exercises the household Gym's Equipment supports (archived Exercises excluded).
+    const equipmentExercises = await this.db
+      .selectDistinct({ id: schema.exercises.id, name: schema.exercises.name, category: schema.exercises.category })
+      .from(schema.exercises)
+      .innerJoin(schema.equipmentExercises, eq(schema.equipmentExercises.exerciseId, schema.exercises.id))
+      .innerJoin(schema.equipment, eq(schema.equipment.id, schema.equipmentExercises.equipmentId))
+      .where(and(eq(schema.equipment.gymId, HOUSEHOLD_GYM_ID), isNull(schema.exercises.archivedAt)))
 
-    if (gym) {
-      const equipmentExercises = await this.db
-        .selectDistinct({ id: schema.exercises.id, name: schema.exercises.name, category: schema.exercises.category })
-        .from(schema.exercises)
-        .innerJoin(schema.equipmentExercises, eq(schema.equipmentExercises.exerciseId, schema.exercises.id))
-        .innerJoin(schema.equipment, eq(schema.equipment.id, schema.equipmentExercises.equipmentId))
-        .where(eq(schema.equipment.gymId, gym.id))
-
-      if (equipmentExercises.length > 0) {
-        return equipmentExercises
-      }
+    if (equipmentExercises.length > 0) {
+      return equipmentExercises
     }
 
     // No gym/equipment configured: offer the whole shared library (archived Exercises excluded).

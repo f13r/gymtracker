@@ -170,8 +170,6 @@ export type Equipment = {
   equipmentType: string | null
   description: string | null
   tags: string[] | null
-  photoPath: string
-  thumbPath: string
   createdAt: number
 }
 

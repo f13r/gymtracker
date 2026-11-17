@@ -1,6 +1,13 @@
-import { Injectable, Inject, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import {
+  ConflictException,
+  Injectable,
+  Inject,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { eq, and, inArray, desc, sql } from 'drizzle-orm'
+import { eq, inArray, desc, sql } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import sharp from 'sharp'
 
@@ -14,7 +21,10 @@ import { loadExerciseNotes } from '../exercises/exercise-notes'
 import { GymService } from '../gym/gym.service'
 import { randomUUID } from 'crypto'
 import { mkdirSync, unlinkSync } from 'fs'
-import { join } from 'path'
+import { join, resolve, sep } from 'path'
+
+// Equipment photos are shared by the household: one folder under PHOTOS_DIR, not per User.
+const EQUIPMENT_DIR = 'equipment'
 
 type GeminiParsed = {
   equipment: { name: string; tags: string[] }
@@ -35,8 +45,18 @@ export class EquipmentService {
     this.photosDir = config.getOrThrow<string>('PHOTOS_DIR')
   }
 
-  getPhotosDir(): string {
-    return this.photosDir
+  /** Absolute path of an Equipment's photo or thumbnail, read from its row. */
+  async getPhotoFile(id: string, kind: 'photo' | 'thumb'): Promise<string> {
+    const [row] = await this.db.select().from(schema.equipment).where(eq(schema.equipment.id, id)).limit(1)
+    if (!row) {
+      throw new NotFoundException('Photo not found')
+    }
+    const root = resolve(this.photosDir)
+    const full = resolve(root, kind === 'thumb' ? row.thumbPath : row.photoPath)
+    if (!full.startsWith(root + sep)) {
+      throw new NotFoundException('Photo not found')
+    }
+    return full
   }
 
   async analyze(
@@ -124,83 +144,82 @@ export class EquipmentService {
     tags: string[],
     exercises: Array<{ existingId?: string; name: string; category: string; equipmentType: string }>,
   ): Promise<EquipmentWithExercises> {
-    const gym = await this.gymService.getOrCreateForUser(userId)
+    const gym = await this.gymService.getOrCreateHousehold()
 
     const id = randomUUID()
-    const equipDir = join(this.photosDir, userId, 'equipment')
-    mkdirSync(equipDir, { recursive: true })
+    mkdirSync(join(this.photosDir, EQUIPMENT_DIR), { recursive: true })
 
-    const relOrig = `${userId}/equipment/${id}-orig.webp`
-    const relThumb = `${userId}/equipment/${id}-thumb.webp`
+    const relOrig = `${EQUIPMENT_DIR}/${id}-orig.webp`
+    const relThumb = `${EQUIPMENT_DIR}/${id}-thumb.webp`
 
     await sharp(buffer).rotate().webp({ quality: 85 }).toFile(join(this.photosDir, relOrig))
     await sharp(buffer).rotate().resize({ width: 400 }).webp({ quality: 75 }).toFile(join(this.photosDir, relThumb))
 
+    const now = Math.floor(Date.now() / 1000)
     let equipRow: typeof schema.equipment.$inferSelect
     try {
-      const [row] = await this.db
-        .insert(schema.equipment)
-        .values({
-          id,
-          gymId: gym.id,
-          name,
-          equipmentType: equipmentType ?? null,
-          description: description ?? null,
-          tags: tags.length ? JSON.stringify(tags) : null,
-          photoPath: relOrig,
-          thumbPath: relThumb,
-          createdAt: Math.floor(Date.now() / 1000),
-        })
-        .returning()
-      equipRow = row!
-    } catch (err) {
-      for (const abs of [join(this.photosDir, relOrig), join(this.photosDir, relThumb)]) {
-        try {
-          unlinkSync(abs)
-        } catch {
-          // ignore — file may not exist if upload was partial
-        }
-      }
-      throw err
-    }
-
-    const exerciseIds: string[] = []
-    const now = Math.floor(Date.now() / 1000)
-
-    for (const ex of exercises) {
-      if (ex.existingId) {
-        await this.db.update(schema.exercises).set({ name: ex.name }).where(eq(schema.exercises.id, ex.existingId))
-        exerciseIds.push(ex.existingId)
-      } else {
-        // The name may already be taken (unique, ignoring case): link the existing Exercise.
-        const [newEx] = await this.db
-          .insert(schema.exercises)
+      // One transaction: a failure part-way through the Exercises leaves no Equipment row behind.
+      equipRow = await this.db.transaction(async tx => {
+        const [row] = await tx
+          .insert(schema.equipment)
           .values({
-            id: randomUUID(),
-            name: ex.name,
-            category: ex.category,
-            equipmentType: ex.equipmentType,
+            id,
+            gymId: gym.id,
+            name,
+            equipmentType: equipmentType ?? null,
+            description: description ?? null,
+            tags: tags.length ? JSON.stringify(tags) : null,
+            photoPath: relOrig,
+            thumbPath: relThumb,
             createdAt: now,
           })
-          .onConflictDoNothing()
           .returning()
-        const [taken] = newEx
-          ? [newEx]
-          : await this.db
-              .select()
-              .from(schema.exercises)
-              .where(sql`lower(${schema.exercises.name}) = lower(${ex.name})`)
-              .limit(1)
-        if (taken && !exerciseIds.includes(taken.id)) {
-          exerciseIds.push(taken.id)
-        }
-      }
-    }
 
-    if (exerciseIds.length > 0) {
-      await this.db
-        .insert(schema.equipmentExercises)
-        .values(exerciseIds.map(exerciseId => ({ equipmentId: id, exerciseId })))
+        const exerciseIds = new Set<string>()
+        for (const ex of exercises) {
+          if (ex.existingId) {
+            // The library is shared: any User may rename an Exercise (a name clash fails with 409).
+            await tx.update(schema.exercises).set({ name: ex.name }).where(eq(schema.exercises.id, ex.existingId))
+            exerciseIds.add(ex.existingId)
+            continue
+          }
+          // The name may already be taken (unique, ignoring case): link the existing Exercise.
+          const [created] = await tx
+            .insert(schema.exercises)
+            .values({
+              id: randomUUID(),
+              name: ex.name,
+              category: ex.category,
+              equipmentType: ex.equipmentType,
+              createdAt: now,
+            })
+            .onConflictDoNothing()
+            .returning({ id: schema.exercises.id })
+          const [taken] = created
+            ? [created]
+            : await tx
+                .select({ id: schema.exercises.id })
+                .from(schema.exercises)
+                .where(sql`lower(${schema.exercises.name}) = lower(${ex.name})`)
+                .limit(1)
+          if (taken) {
+            exerciseIds.add(taken.id)
+          }
+        }
+
+        if (exerciseIds.size > 0) {
+          await tx
+            .insert(schema.equipmentExercises)
+            .values([...exerciseIds].map(exerciseId => ({ equipmentId: id, exerciseId })))
+        }
+        return row!
+      })
+    } catch (err) {
+      this.unlinkPhotos(relOrig, relThumb)
+      if (isUniqueViolation(err)) {
+        throw new ConflictException('An Exercise with that name already exists')
+      }
+      throw err
     }
 
     const linked = await this.db
@@ -210,25 +229,21 @@ export class EquipmentService {
       .where(eq(schema.equipmentExercises.equipmentId, id))
 
     return toEquipmentWithExercises(
-      equipRow!,
+      equipRow,
       linked.map(r => r.exercise),
       await loadExerciseNotes(this.db, userId),
     )
   }
 
+  /** All Equipment in the household Gym, newest first. `userId` only picks whose Exercise notes to show. */
   async findAll(userId: string): Promise<EquipmentWithExercises[]> {
-    const rows = await this.db
-      .select({ equipment: schema.equipment })
-      .from(schema.equipment)
-      .innerJoin(schema.gyms, eq(schema.equipment.gymId, schema.gyms.id))
-      .where(eq(schema.gyms.userId, userId))
-      .orderBy(desc(schema.equipment.createdAt))
+    const rows = await this.db.select().from(schema.equipment).orderBy(desc(schema.equipment.createdAt))
 
     if (rows.length === 0) {
       return []
     }
 
-    const equipmentIds = rows.map(r => r.equipment.id)
+    const equipmentIds = rows.map(r => r.id)
     const links = await this.db
       .select({
         equipmentId: schema.equipmentExercises.equipmentId,
@@ -246,30 +261,32 @@ export class EquipmentService {
     }
 
     const notes = await loadExerciseNotes(this.db, userId)
-    return rows.map(r => toEquipmentWithExercises(r.equipment, byEquipment.get(r.equipment.id) ?? [], notes))
+    return rows.map(r => toEquipmentWithExercises(r, byEquipment.get(r.id) ?? [], notes))
   }
 
-  async delete(id: string, userId: string): Promise<void> {
-    const [row] = await this.db
-      .select({ equipment: schema.equipment })
-      .from(schema.equipment)
-      .innerJoin(schema.gyms, eq(schema.equipment.gymId, schema.gyms.id))
-      .where(and(eq(schema.equipment.id, id), eq(schema.gyms.userId, userId)))
-      .limit(1)
-
+  /** Any User may delete any Equipment: the Gym is shared. */
+  async delete(id: string): Promise<void> {
+    const [row] = await this.db.select().from(schema.equipment).where(eq(schema.equipment.id, id)).limit(1)
     if (!row) {
       throw new NotFoundException('Equipment not found')
     }
 
-    for (const rel of [row.equipment.photoPath, row.equipment.thumbPath]) {
-      if (!rel) {
-        continue
-      }
+    await this.db.delete(schema.equipment).where(eq(schema.equipment.id, id))
+    this.unlinkPhotos(row.photoPath, row.thumbPath)
+  }
+
+  private unlinkPhotos(...relPaths: string[]) {
+    for (const rel of relPaths) {
       try {
         unlinkSync(join(this.photosDir, rel))
-      } catch {} // eslint-disable-line no-empty
+      } catch {
+        // already gone
+      }
     }
-
-    await this.db.delete(schema.equipment).where(eq(schema.equipment.id, id))
   }
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  const e = err as { code?: string; cause?: { code?: string } } | null
+  return e?.code === '23505' || e?.cause?.code === '23505'
 }

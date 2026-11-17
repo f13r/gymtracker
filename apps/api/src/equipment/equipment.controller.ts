@@ -1,16 +1,16 @@
-import { Controller, Get, Post, Delete, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common'
+import { Controller, Get, Post, Delete, Inject, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common'
 
 import { EquipmentService } from './equipment.service'
 import { AuthenticatedRequest } from '../auth/request.types'
 import type { FastifyReply } from 'fastify'
 import { createReadStream } from 'fs'
-import { join, basename } from 'path'
 
 type FormField = { value: string }
 
 @Controller('equipment')
 export class EquipmentController {
-  constructor(private readonly svc: EquipmentService) {}
+  // Explicit token: the class works without emitted decorator metadata (e.g. under vitest).
+  constructor(@Inject(EquipmentService) private readonly svc: EquipmentService) {}
 
   @Get()
   findAll(@Req() req: AuthenticatedRequest) {
@@ -75,18 +75,22 @@ export class EquipmentController {
     return res.send(result)
   }
 
+  // Equipment is household-shared: any User may delete it or see its photo.
   @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    return this.svc.delete(id, req.user.id)
+  remove(@Param('id') id: string) {
+    return this.svc.delete(id)
   }
 
-  @Get('photo/:filename')
-  servePhoto(@Param('filename') filename: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
-    const safe = basename(filename)
-    if (safe !== filename || filename.includes('..')) {
-      return res.code(400).send({ message: 'Invalid filename' })
-    }
-    const filePath = join(this.svc.getPhotosDir(), req.user.id, 'equipment', safe)
+  @Get(':id/photo') photo(@Param('id') id: string, @Res() res: FastifyReply) {
+    return this.serve(id, res, 'photo')
+  }
+
+  @Get(':id/thumb') thumb(@Param('id') id: string, @Res() res: FastifyReply) {
+    return this.serve(id, res, 'thumb')
+  }
+
+  private async serve(id: string, res: FastifyReply, kind: 'photo' | 'thumb') {
+    const filePath = await this.svc.getPhotoFile(id, kind)
     const stream = createReadStream(filePath)
     stream.on('error', () => res.code(404).send({ message: 'Photo not found' }))
     return res.type('image/webp').send(stream)
