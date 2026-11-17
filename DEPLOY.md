@@ -163,6 +163,7 @@ PHOTOS_DIR=/var/data/gymtracker/photos
 PORT=3000
 NODE_ENV=production
 GEMINI_API_KEY=CHANGE_ME
+HOUSEHOLD_EMAILS=default-user:viktor@example.com,inna:inna@example.com
 EOF
 ```
 
@@ -170,6 +171,12 @@ EOF
 > **`GEMINI_API_KEY` is mandatory** — `gemini.service.ts` reads it with `getOrThrow`, so a missing
 > or empty value makes the API **crash on boot**. Obtain the key out-of-band (it is intentionally
 > not committed to the repo) and paste the real value here.
+> **`HOUSEHOLD_EMAILS`** holds each User's sign-in email as `userId:email` pairs, comma-separated
+> (the values above are placeholders). The repo is public, so the real emails live **only** in this
+> file. On every boot, after migrations, the API trims and lowercases each email and sets it on the
+> existing User with that id (idempotent). Unknown ids and malformed entries are skipped with a
+> warning; unset or empty changes nothing. Logs name User ids only, never emails. A User with no
+> email cannot sign in once real auth lands (phase C), so keep every User listed.
 
 ### 6. Nginx + GitHub Actions auto-deploy
 
@@ -224,6 +231,12 @@ automatically — adding a migration to the repo needs no extra deploy step. New
   `PHOTOS_DIR/exercises/` (old `<userId>/exercises/` and `_defaults/`) into it and rewrites
   `image_path`/`thumb_path`. It is idempotent, finishes an interrupted move, and never deletes an
   image it cannot place (it logs a warning and leaves that row as it was).
+- **`0016_users_email`** — nullable, unique `users.email`: the `users` table is the sign-in
+  allowlist (no admin UI; add a User with SQL). No email is in the migration (public repo): the API
+  sets them on every boot from `HOUSEHOLD_EMAILS` (step 5). It also ensures the household's Users
+  exist, `default-user` and the second User `inna`, creating both on a fresh install; the API seed
+  creates no User. Applies automatically; verify with `SELECT id, email IS NOT NULL FROM users;` →
+  2 rows, both `t` once `HOUSEHOLD_EMAILS` is set.
 
 ### One-time: migrate Exercise media off wger.de (ADR-0010) — DONE on prod 2026-06-18
 
@@ -236,6 +249,8 @@ server reaches wger.de and owns the live DB + `PHOTOS_DIR`, so no dump/file-copy
 cd /var/www/gymtracker && npm run backfill:exercise-media   # reads apps/api/.env
 ```
 
+The backfill script has since been deleted (it read the dropped `wger_id`); it is in git history.
+
 Result: 45 exercises processed, 43 images + 45 descriptions written (2 had no wger image). The
 `wger_id` column was the backfill's join key, so the order was load-bearing: `0011` added the
 columns and **kept** `wger_id`; the backfill ran; then `0012` dropped `wger_id`. If this ever needs
@@ -243,16 +258,23 @@ re-running on a fresh environment, restore the column and the `wger_id` values f
 normal `db:pull-prod` the local DB simply mirrors prod's already-migrated state.
 
 > If you ever re-clone into a fresh `PHOTOS_DIR`, the image **files** are not in a DB dump — copy
-> `PHOTOS_DIR/exercises/` from prod (or re-run the backfill against a DB that still has `wger_id`).
+> `PHOTOS_DIR/exercises/` from prod.
 
 ---
 
 ## Personal workout data
 
 Personal data (custom exercises, templates, schedules, body data, workout history) lives **only
-in the production database** — no deploy step seeds, restores, or otherwise touches it. The old
-`npm run db:setup-workout` script still exists in the repo but is **stale** (its hard-coded
-exercise list has diverged from the live data) — do **not** run it as part of deploy.
+in the production database** — no deploy step seeds, restores, or otherwise touches it. Manual
+scripts (never part of deploy):
+
+- `db:setup-workout -- --user <id>` replaces that one User's templates, schedules, programs and
+  history with a hard-coded plan (stale vs. the live data). Other Users, the Gym, Equipment and
+  Exercises are untouched; missing Exercises are added to the shared library by name.
+- `import:fitnotes -- <file.csv> --user <id> [--commit]` imports a FitNotes export into that User's
+  history, matching Exercises by name against the whole library.
+- `db:reset` erases the **whole household** (every User's data, the Gym, Equipment and Exercise
+  library) and re-seeds the starting Exercises; only the `users` rows are kept. Local dev only.
 
 ---
 
