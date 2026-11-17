@@ -19,7 +19,7 @@ An Exercise removed from the library while something still references it (any Us
 _Avoid_: deleted exercise, hidden exercise, retired exercise
 
 **Exercise Image**:
-A single demonstration picture stored locally for an Exercise — the user's own uploaded photo, or (for the original defaults) the image carried over from the now-removed wger.de integration. Stored as a self-contained `.webp` on disk (orig + thumb), addressed via the Exercise's id, never hot-linked from a third party. Optional: an Exercise may have none. Shown in the active logger, the Template editor, and the exercise library. The Exercise also carries an optional plain-text `description` (reference/how-to text), distinct from the user's free-text `notes`.
+A single demonstration picture stored locally for an Exercise — a User's uploaded photo, or (for the original defaults) the image carried over from the now-removed wger.de integration. Shared like the Exercise itself: one image per Exercise, seen by every User. Stored as a self-contained `.webp` on disk (orig + thumb) in the one shared Exercise image folder, addressed via the Exercise's id, never hot-linked from a third party. Optional: an Exercise may have none. Shown in the active logger, the Template editor, and the exercise library. The Exercise also carries an optional plain-text `description` (reference/how-to text), distinct from each User's own free-text `notes`.
 _Avoid_: demonstration, media, wger image, thumbnail
 
 **Category**:

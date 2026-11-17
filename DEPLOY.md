@@ -215,6 +215,15 @@ automatically — adding a migration to the repo needs no extra deploy step. New
   `thumb_path`, `description`. Applies automatically.
 - **`0012_great_guardian`** — drops the legacy `exercises.wger_id` column after the one-time media
   backfill (below) had used it. Applies automatically.
+- **`0014_shared_exercise_library`** — one shared Exercise library (ADR-0012). Merges
+  case-insensitive duplicate names (references repointed to the surviving copy), moves non-empty
+  `exercises.notes` into the new per-User `user_exercise_notes`, adds `archived_at` and a unique
+  `lower(name)` index, and drops `exercises.user_id`, `is_default`, `notes`. Applies automatically.
+  The image **files** cannot move in SQL: on every boot the API (`SeedService` →
+  `relocateExerciseImages`) moves any Exercise image still outside the shared folder
+  `PHOTOS_DIR/exercises/` (old `<userId>/exercises/` and `_defaults/`) into it and rewrites
+  `image_path`/`thumb_path`. It is idempotent, finishes an interrupted move, and never deletes an
+  image it cannot place (it logs a warning and leaves that row as it was).
 
 ### One-time: migrate Exercise media off wger.de (ADR-0010) — DONE on prod 2026-06-18
 
@@ -234,7 +243,7 @@ re-running on a fresh environment, restore the column and the `wger_id` values f
 normal `db:pull-prod` the local DB simply mirrors prod's already-migrated state.
 
 > If you ever re-clone into a fresh `PHOTOS_DIR`, the image **files** are not in a DB dump — copy
-> `PHOTOS_DIR/_defaults/` from prod (or re-run the backfill against a DB that still has `wger_id`).
+> `PHOTOS_DIR/exercises/` from prod (or re-run the backfill against a DB that still has `wger_id`).
 
 ---
 
