@@ -120,22 +120,32 @@ async function main() {
       DELETE FROM equipment_exercises;
       DELETE FROM equipment;
       DELETE FROM progression_suggestions;
-      DELETE FROM exercises WHERE is_default = 0;
     `)
     console.log('Workout data cleared.')
 
     const now = Math.floor(Date.now() / 1000)
 
-    console.log(`Adding ${USER_EXERCISES.length} user exercises...`)
+    // Exercises are a shared library: never delete them, reuse one with the same name.
+    console.log(`Ensuring ${USER_EXERCISES.length} exercises...`)
     const exerciseIds: Record<string, string> = {}
     for (const ex of USER_EXERCISES) {
-      const id = randomUUID()
-      exerciseIds[ex.name] = id
       await pool.query(
-        `INSERT INTO exercises (id, user_id, name, category, equipment_type, notes, is_default, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 0, $7)`,
-        [id, USER_ID, ex.name, ex.category, ex.equipmentType, ex.notes ?? null, now],
+        `INSERT INTO exercises (id, name, category, equipment_type, created_at)
+         VALUES ($1, $2, $3, $4, $5) ON CONFLICT ((lower(name))) DO NOTHING`,
+        [randomUUID(), ex.name, ex.category, ex.equipmentType, now],
       )
+      const { rows } = await pool.query<{ id: string }>(`SELECT id FROM exercises WHERE lower(name) = lower($1)`, [
+        ex.name,
+      ])
+      const id = rows[0]!.id
+      exerciseIds[ex.name] = id
+      if (ex.notes) {
+        await pool.query(
+          `INSERT INTO user_exercise_notes (user_id, exercise_id, notes, updated_at) VALUES ($1, $2, $3, $4)
+           ON CONFLICT (user_id, exercise_id) DO UPDATE SET notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`,
+          [USER_ID, id, ex.notes, now],
+        )
+      }
     }
 
     console.log('Creating 3 workout templates...')

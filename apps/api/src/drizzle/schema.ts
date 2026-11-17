@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import { pgTable, text, integer, real, primaryKey, uniqueIndex, customType } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
@@ -6,21 +7,47 @@ export const users = pgTable('users', {
   createdAt: integer('created_at').notNull(),
 })
 
-export const exercises = pgTable('exercises', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id),
-  name: text('name').notNull(),
-  category: text('category'),
-  equipmentType: text('equipment_type'),
-  notes: text('notes'),
-  isDefault: integer('is_default').default(0),
-  // Local demonstration media: relative paths under PHOTOS_DIR (orig + thumb .webp). Null when
-  // the Exercise has no image. `description` is reference/how-to text, distinct from user `notes`.
-  imagePath: text('image_path'),
-  thumbPath: text('thumb_path'),
-  description: text('description'),
-  createdAt: integer('created_at').notNull(),
-})
+// One shared library (ADR 0012): no owner, and the name is unique ignoring case.
+export const exercises = pgTable(
+  'exercises',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    category: text('category'),
+    equipmentType: text('equipment_type'),
+    // Local demonstration media: relative paths under PHOTOS_DIR, in the shared `exercises/` folder
+    // (orig + thumb .webp). Null when the Exercise has no image. `description` is shared
+    // reference/how-to text, distinct from each User's own notes (`user_exercise_notes`).
+    imagePath: text('image_path'),
+    thumbPath: text('thumb_path'),
+    description: text('description'),
+    // Set (unix seconds) when a referenced Exercise is removed: hidden from pickers, kept for history.
+    archivedAt: integer('archived_at'),
+    createdAt: integer('created_at').notNull(),
+  },
+  t => ({
+    nameLowerUnique: uniqueIndex('exercises_name_lower_unique').on(sql`lower(${t.name})`),
+  }),
+)
+
+// A User's personal notes on a shared Exercise (e.g. machine setup). Not a reference that keeps an
+// Exercise alive: deleting the Exercise deletes its notes.
+export const userExerciseNotes = pgTable(
+  'user_exercise_notes',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id),
+    exerciseId: text('exercise_id')
+      .notNull()
+      .references(() => exercises.id, { onDelete: 'cascade' }),
+    notes: text('notes').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  t => ({
+    pk: primaryKey({ columns: [t.userId, t.exerciseId] }),
+  }),
+)
 
 export const workoutTemplates = pgTable('workout_templates', {
   id: text('id').primaryKey(),

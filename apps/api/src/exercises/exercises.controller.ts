@@ -42,11 +42,11 @@ export class ExercisesController {
   @Get(':id/last-sets') getLastSets(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.getLastSets(id, req.user.id)
   }
-  @Get(':id/image') image(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
-    return this.serve(id, req, res, 'image')
+  @Get(':id/image') image(@Param('id') id: string, @Res() res: FastifyReply) {
+    return this.serve(id, res, 'image')
   }
-  @Get(':id/thumb') thumb(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
-    return this.serve(id, req, res, 'thumb')
+  @Get(':id/thumb') thumb(@Param('id') id: string, @Res() res: FastifyReply) {
+    return this.serve(id, res, 'thumb')
   }
   @Get(':id') findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.findOne(id, req.user.id)
@@ -65,12 +65,12 @@ export class ExercisesController {
     return res.send(await this.svc.update(id, req.user.id, dto, { image, removeImage: removeImage === 'true' }))
   }
 
-  @Delete(':id') remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    return this.svc.remove(id, req.user.id)
+  @Delete(':id') remove(@Param('id') id: string) {
+    return this.svc.remove(id)
   }
 
-  private async serve(id: string, req: AuthenticatedRequest, res: FastifyReply, kind: 'image' | 'thumb') {
-    const filePath = await this.svc.getImageFile(id, req.user.id, kind)
+  private async serve(id: string, res: FastifyReply, kind: 'image' | 'thumb') {
+    const filePath = await this.svc.getImageFile(id, kind)
     return res.type('image/webp').send(createReadStream(filePath))
   }
 }

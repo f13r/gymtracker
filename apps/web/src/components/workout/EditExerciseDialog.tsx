@@ -51,14 +51,10 @@ function EditExerciseForm({
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <ExerciseForm exercise={exercise} onSaved={onSaved} />
 
-        {!exercise.isDefault && (
-          <>
-            {remove.isError && <p className="text-destructive mt-4 text-xs">{t('editDialog.deleteError')}</p>}
-            <Button className="mt-6 w-full" disabled={remove.isPending} variant="ghost" onClick={() => remove.mutate()}>
-              {t('editDialog.deleteExercise')}
-            </Button>
-          </>
-        )}
+        {remove.isError && <p className="text-destructive mt-4 text-xs">{t('editDialog.deleteError')}</p>}
+        <Button className="mt-6 w-full" disabled={remove.isPending} variant="ghost" onClick={() => remove.mutate()}>
+          {t('editDialog.deleteExercise')}
+        </Button>
       </div>
     </div>
   )

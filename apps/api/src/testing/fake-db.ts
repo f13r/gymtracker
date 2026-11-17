@@ -9,7 +9,8 @@ import { PgDialect } from 'drizzle-orm/pg-core'
  * names). A query's WHERE clause is rendered to SQL, and every
  * `"table"."column" = $n` term in it filters the rows: a row is returned only if
  * each such term agrees with its `match` value. Terms on columns a row does not
- * know about, and non-equality terms (`>=`, `is not null`, …), are ignored.
+ * know about, and other terms (`>=`, `is not null`, …), are ignored; `is null`
+ * is honoured.
  *
  * So a query that does *not* filter by owner returns another User's row — just
  * like the real database would — and a test can catch the leak.
@@ -22,6 +23,7 @@ type Row = { match: Record<string, unknown>; value: Record<string, unknown> }
 
 const dialect = new PgDialect()
 const EQ_TERM = /^"(\w+)"\."(\w+)" = \$(\d+)$/
+const IS_NULL_TERM = /^"(\w+)"\."(\w+)" is null$/
 
 /** Evaluates the rendered WHERE (`and` / `or` / parentheses) against one row. */
 function matches(row: Row, where: SQL | undefined): boolean {
@@ -36,6 +38,11 @@ function matches(row: Row, where: SQL | undefined): boolean {
   let i = 0
 
   const atom = (text: string) => {
+    const n = IS_NULL_TERM.exec(text)
+    if (n) {
+      const key = `${n[1]}.${n[2]}`
+      return !(key in row.match) || row.match[key] == null
+    }
     const m = EQ_TERM.exec(text)
     if (!m) {
       return true

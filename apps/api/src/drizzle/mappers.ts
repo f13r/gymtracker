@@ -13,17 +13,16 @@ import * as schema from './schema'
 export type DbExercise = typeof schema.exercises.$inferSelect
 
 // Map a stored Exercise to the wire model: expose a `hasImage` flag instead of the on-disk paths
-// (and never leak the legacy wger_id).
-export function toExercise(row: DbExercise): Exercise {
+// (and never leak the legacy wger_id). `notes` are the requesting User's, from user_exercise_notes.
+export function toExercise(row: DbExercise, notes: string | null): Exercise {
   return {
     id: row.id,
-    userId: row.userId,
     name: row.name,
     category: row.category,
     equipmentType: row.equipmentType,
-    notes: row.notes,
-    isDefault: row.isDefault,
+    notes,
     description: row.description,
+    archived: row.archivedAt != null,
     hasImage: row.imagePath != null,
     createdAt: row.createdAt,
   }
@@ -106,6 +105,11 @@ export function toEquipment(row: DbEquipment): Equipment {
   }
 }
 
-export function toEquipmentWithExercises(row: DbEquipment, exercises: DbExercise[]): EquipmentWithExercises {
-  return { ...toEquipment(row), exercises: exercises.map(toExercise) }
+// `notes` maps Exercise id → the requesting User's notes.
+export function toEquipmentWithExercises(
+  row: DbEquipment,
+  exercises: DbExercise[],
+  notes: ReadonlyMap<string, string>,
+): EquipmentWithExercises {
+  return { ...toEquipment(row), exercises: exercises.map(e => toExercise(e, notes.get(e.id) ?? null)) }
 }

@@ -1,11 +1,13 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { eq, and, or } from 'drizzle-orm'
+import { eq, isNull } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import sharp from 'sharp'
 
 import { CreateExerciseDto, UpdateExerciseDto, WorkoutSet } from '@gymtracker/shared'
 
+import { EXERCISE_IMAGE_DIR, exerciseImagePaths } from './exercise-images'
+import { loadExerciseNotes, saveExerciseNotes } from './exercise-notes'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import type { DbSet, DbExercise } from '../drizzle/mappers'
 import { toWorkoutSet, toExercise } from '../drizzle/mappers'
@@ -15,6 +17,8 @@ import { randomUUID } from 'crypto'
 import { mkdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
 
+// One shared Exercise library (ADR 0012): Exercises have no owner. `userId` only selects the
+// caller's own notes (user_exercise_notes).
 @Injectable()
 export class ExercisesService {
   private readonly photosDir: string
@@ -27,26 +31,21 @@ export class ExercisesService {
   }
 
   async findAll(userId: string) {
-    const rows = await this.db
-      .select()
-      .from(schema.exercises)
-      .where(or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1)))
-    return rows.map(toExercise)
+    const rows = await this.db.select().from(schema.exercises).where(isNull(schema.exercises.archivedAt))
+    const notes = await loadExerciseNotes(this.db, userId)
+    return rows.map(row => toExercise(row, notes.get(row.id) ?? null))
   }
 
   async findOne(id: string, userId: string) {
-    return toExercise(await this.findRow(id, userId))
+    const row = await this.findRow(id)
+    const notes = await loadExerciseNotes(this.db, userId, id)
+    return toExercise(row, notes.get(id) ?? null)
   }
 
   // Internal: the raw row, used where the on-disk image paths are needed (serving, deletion).
-  private async findRow(id: string, userId: string): Promise<DbExercise> {
-    const [ex] = await this.db
-      .select()
-      .from(schema.exercises)
-      .where(
-        and(eq(schema.exercises.id, id), or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1))),
-      )
-      .limit(1)
+  // Archived Exercises stay readable: history and images still reference them.
+  private async findRow(id: string): Promise<DbExercise> {
+    const [ex] = await this.db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).limit(1)
     if (!ex) {
       throw new NotFoundException('Exercise not found')
     }
@@ -59,25 +58,22 @@ export class ExercisesService {
       throw new BadRequestException('Exercise name is required')
     }
     const id = randomUUID()
-    const media = image ? await this.writeImage(userId, id, image) : null
+    const media = image ? await this.writeImage(id, image) : null
 
-    const [row] = await this.db
-      .insert(schema.exercises)
-      .values({
-        id,
-        userId,
-        name,
-        category: dto.category ?? null,
-        equipmentType: dto.equipmentType ?? null,
-        notes: dto.notes ?? null,
-        description: dto.description?.trim() || null,
-        imagePath: media?.imagePath ?? null,
-        thumbPath: media?.thumbPath ?? null,
-        isDefault: 0,
-        createdAt: Math.floor(Date.now() / 1000),
-      })
-      .returning()
-    return toExercise(row!)
+    await this.db.insert(schema.exercises).values({
+      id,
+      name,
+      category: dto.category ?? null,
+      equipmentType: dto.equipmentType ?? null,
+      description: dto.description?.trim() || null,
+      imagePath: media?.imagePath ?? null,
+      thumbPath: media?.thumbPath ?? null,
+      createdAt: Math.floor(Date.now() / 1000),
+    })
+    if (dto.notes !== undefined) {
+      await saveExerciseNotes(this.db, userId, id, dto.notes)
+    }
+    return this.findOne(id, userId)
   }
 
   async update(
@@ -86,9 +82,9 @@ export class ExercisesService {
     dto: UpdateExerciseDto,
     opts: { image?: Buffer | undefined; removeImage?: boolean } = {},
   ) {
-    const existing = await this.findRow(id, userId)
+    const existing = await this.findRow(id)
 
-    const patch: Record<string, unknown> = {}
+    const patch: Partial<typeof schema.exercises.$inferInsert> = {}
     if (dto.name !== undefined) {
       patch.name = dto.name.trim()
     }
@@ -98,43 +94,40 @@ export class ExercisesService {
     if (dto.equipmentType !== undefined) {
       patch.equipmentType = dto.equipmentType ?? null
     }
-    if (dto.notes !== undefined) {
-      patch.notes = dto.notes ?? null
-    }
     if (dto.description !== undefined) {
       patch.description = dto.description?.trim() || null
     }
     if (opts.image) {
-      const media = await this.writeImage(userId, id, opts.image)
+      const media = await this.writeImage(id, opts.image)
       patch.imagePath = media.imagePath
       patch.thumbPath = media.thumbPath
-      this.unlinkMedia(existing) // remove the superseded files
+      this.unlinkMedia(existing, media) // remove the superseded files, never the ones just written
     } else if (opts.removeImage) {
       patch.imagePath = null
       patch.thumbPath = null
       this.unlinkMedia(existing)
     }
 
-    const [row] = await this.db
-      .update(schema.exercises)
-      .set(patch)
-      .where(and(eq(schema.exercises.id, id), eq(schema.exercises.userId, userId)))
-      .returning()
-    return toExercise(row!)
+    if (Object.keys(patch).length > 0) {
+      await this.db.update(schema.exercises).set(patch).where(eq(schema.exercises.id, id))
+    }
+    if (dto.notes !== undefined) {
+      await saveExerciseNotes(this.db, userId, id, dto.notes)
+    }
+    return this.findOne(id, userId)
   }
 
-  async remove(id: string, userId: string) {
-    const existing = await this.findRow(id, userId)
-    await this.db
-      .delete(schema.exercises)
-      .where(and(eq(schema.exercises.id, id), eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 0)))
+  // Hard delete; a referenced Exercise still fails on its FKs. Archive-on-remove comes later.
+  async remove(id: string) {
+    const existing = await this.findRow(id)
+    await this.db.delete(schema.exercises).where(eq(schema.exercises.id, id))
     this.unlinkMedia(existing)
   }
 
-  // Resolve the absolute path of an Exercise's image (or thumb) for streaming, enforcing the usual
-  // own-or-default authz via findRow. Throws NotFound when the Exercise has no such image.
-  async getImageFile(id: string, userId: string, kind: 'image' | 'thumb'): Promise<string> {
-    const ex = await this.findRow(id, userId)
+  // Resolve the absolute path of an Exercise's image (or thumb) for streaming. Throws NotFound when
+  // the Exercise has no such image.
+  async getImageFile(id: string, kind: 'image' | 'thumb'): Promise<string> {
+    const ex = await this.findRow(id)
     const rel = kind === 'thumb' ? ex.thumbPath : ex.imagePath
     if (!rel) {
       throw new NotFoundException('Exercise has no image')
@@ -147,20 +140,18 @@ export class ExercisesService {
     return result.rows.map(r => toWorkoutSet(r as DbSet))
   }
 
-  // Write orig + thumb .webp under PHOTOS_DIR/<userId>/exercises and return the relative paths.
-  private async writeImage(userId: string, id: string, buffer: Buffer) {
-    const dir = join(this.photosDir, userId, 'exercises')
-    mkdirSync(dir, { recursive: true })
-    const relOrig = `${userId}/exercises/${id}-orig.webp`
-    const relThumb = `${userId}/exercises/${id}-thumb.webp`
-    await sharp(buffer).rotate().webp({ quality: 85 }).toFile(join(this.photosDir, relOrig))
-    await sharp(buffer).rotate().resize({ width: 400 }).webp({ quality: 75 }).toFile(join(this.photosDir, relThumb))
-    return { imagePath: relOrig, thumbPath: relThumb }
+  // Write orig + thumb .webp into the shared Exercise image folder and return the relative paths.
+  private async writeImage(id: string, buffer: Buffer) {
+    mkdirSync(join(this.photosDir, EXERCISE_IMAGE_DIR), { recursive: true })
+    const { imagePath, thumbPath } = exerciseImagePaths(id)
+    await sharp(buffer).rotate().webp({ quality: 85 }).toFile(join(this.photosDir, imagePath))
+    await sharp(buffer).rotate().resize({ width: 400 }).webp({ quality: 75 }).toFile(join(this.photosDir, thumbPath))
+    return { imagePath, thumbPath }
   }
 
-  private unlinkMedia(ex: DbExercise) {
+  private unlinkMedia(ex: DbExercise, keep?: { imagePath: string; thumbPath: string }) {
     for (const rel of [ex.imagePath, ex.thumbPath]) {
-      if (rel) {
+      if (rel && rel !== keep?.imagePath && rel !== keep?.thumbPath) {
         try {
           unlinkSync(join(this.photosDir, rel))
         } catch {} // eslint-disable-line no-empty

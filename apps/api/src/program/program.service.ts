@@ -1,5 +1,5 @@
 import { Injectable, Inject, Logger, BadRequestException } from '@nestjs/common'
-import { eq, and, desc, gte } from 'drizzle-orm'
+import { eq, and, desc, gte, isNull } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { estimateE1rm, GeneratedProgramSchema } from '@gymtracker/shared'
@@ -442,12 +442,11 @@ export class ProgramService {
       }
     }
 
-    // No gym/equipment configured: offer the user's whole library (their imported
-    // and custom exercises plus the seeded defaults), not just the defaults.
+    // No gym/equipment configured: offer the whole shared library (archived Exercises excluded).
     return this.db
       .select({ id: schema.exercises.id, name: schema.exercises.name, category: schema.exercises.category })
       .from(schema.exercises)
-      .where(eq(schema.exercises.userId, userId))
+      .where(isNull(schema.exercises.archivedAt))
   }
 
   private async persistProgram(userId: string, parsed: ParsedProgram, trainingDays: string[]) {

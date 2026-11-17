@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { eq, and, or, inArray, desc } from 'drizzle-orm'
+import { eq, and, inArray, desc, sql } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import sharp from 'sharp'
 
@@ -10,6 +10,7 @@ import { GeminiService } from '../ai/gemini.service'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import { toEquipmentWithExercises } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
+import { loadExerciseNotes } from '../exercises/exercise-notes'
 import { GymService } from '../gym/gym.service'
 import { randomUUID } from 'crypto'
 import { mkdirSync, unlinkSync } from 'fs'
@@ -98,10 +99,8 @@ export class EquipmentService {
       throw new UnprocessableEntityException('AI analysis failed — try again or fill in manually')
     }
 
-    const allExercises = await this.db
-      .select()
-      .from(schema.exercises)
-      .where(or(eq(schema.exercises.userId, userId), eq(schema.exercises.isDefault, 1)))
+    // The whole shared library, archived names included: they are taken (unique name index).
+    const allExercises = await this.db.select().from(schema.exercises)
 
     const byName = new Map(allExercises.map(e => [e.name.toLowerCase(), e.id]))
 
@@ -170,32 +169,31 @@ export class EquipmentService {
 
     for (const ex of exercises) {
       if (ex.existingId) {
-        await this.db
-          .update(schema.exercises)
-          .set({ name: ex.name })
-          .where(
-            and(
-              eq(schema.exercises.id, ex.existingId),
-              eq(schema.exercises.userId, userId),
-              eq(schema.exercises.isDefault, 0),
-            ),
-          )
+        await this.db.update(schema.exercises).set({ name: ex.name }).where(eq(schema.exercises.id, ex.existingId))
         exerciseIds.push(ex.existingId)
       } else {
+        // The name may already be taken (unique, ignoring case): link the existing Exercise.
         const [newEx] = await this.db
           .insert(schema.exercises)
           .values({
             id: randomUUID(),
-            userId,
             name: ex.name,
             category: ex.category,
             equipmentType: ex.equipmentType,
-            notes: null,
-            isDefault: 0,
             createdAt: now,
           })
+          .onConflictDoNothing()
           .returning()
-        exerciseIds.push(newEx!.id)
+        const [taken] = newEx
+          ? [newEx]
+          : await this.db
+              .select()
+              .from(schema.exercises)
+              .where(sql`lower(${schema.exercises.name}) = lower(${ex.name})`)
+              .limit(1)
+        if (taken && !exerciseIds.includes(taken.id)) {
+          exerciseIds.push(taken.id)
+        }
       }
     }
 
@@ -214,6 +212,7 @@ export class EquipmentService {
     return toEquipmentWithExercises(
       equipRow!,
       linked.map(r => r.exercise),
+      await loadExerciseNotes(this.db, userId),
     )
   }
 
@@ -246,7 +245,8 @@ export class EquipmentService {
       byEquipment.set(link.equipmentId, arr)
     }
 
-    return rows.map(r => toEquipmentWithExercises(r.equipment, byEquipment.get(r.equipment.id) ?? []))
+    const notes = await loadExerciseNotes(this.db, userId)
+    return rows.map(r => toEquipmentWithExercises(r.equipment, byEquipment.get(r.equipment.id) ?? [], notes))
   }
 
   async delete(id: string, userId: string): Promise<void> {

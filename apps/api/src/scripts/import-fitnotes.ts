@@ -65,11 +65,8 @@ async function commit(plan: ImportPlan): Promise<void> {
       [USER_ID, 'Viktor', Math.floor(Date.now() / 1000)],
     )
 
-    // Ensure exercises: reuse existing by case-insensitive name, else create.
-    const existing = await pool.query<{ id: string; name: string }>(
-      `SELECT id, name FROM exercises WHERE user_id = $1`,
-      [USER_ID],
-    )
+    // Ensure exercises: reuse the shared library's by case-insensitive name, else create.
+    const existing = await pool.query<{ id: string; name: string }>(`SELECT id, name FROM exercises`)
     const exerciseIdByName = new Map<string, string>()
     for (const row of existing.rows) {
       exerciseIdByName.set(row.name.trim().toLowerCase(), row.id)
@@ -84,9 +81,9 @@ async function commit(plan: ImportPlan): Promise<void> {
       }
       const id = randomUUID()
       await pool.query(
-        `INSERT INTO exercises (id, user_id, name, category, equipment_type, is_default, created_at)
-         VALUES ($1, $2, $3, $4, NULL, 0, $5)`,
-        [id, USER_ID, ex.name, ex.category, now],
+        `INSERT INTO exercises (id, name, category, equipment_type, created_at)
+         VALUES ($1, $2, $3, NULL, $4)`,
+        [id, ex.name, ex.category, now],
       )
       exerciseIdByName.set(key, id)
       createdExercises++

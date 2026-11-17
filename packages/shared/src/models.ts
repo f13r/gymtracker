@@ -1,14 +1,15 @@
 // Entity types matching the DB schema — used on both BE (return types) and FE (API response types)
 
+// One shared library across Users (ADR 0012). `notes` are the requesting User's own notes.
 export type Exercise = {
   id: string
-  userId: string | null
   name: string
   category: string | null
   equipmentType: string | null
   notes: string | null
-  isDefault: number | null
   description: string | null
+  // Removed while still referenced: hidden from pickers, still shown in history.
+  archived: boolean
   // True when the Exercise has a stored image; the bytes are fetched from
   // GET /exercises/:id/image (and /thumb). File paths are never exposed.
   hasImage: boolean

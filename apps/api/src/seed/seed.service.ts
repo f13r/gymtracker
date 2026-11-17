@@ -1,9 +1,11 @@
 import { Injectable, Inject, Logger, OnModuleInit } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { eq } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
+import { relocateExerciseImages } from '../exercises/exercise-images'
 import { randomUUID } from 'crypto'
 
 // The shared starting library. Demonstration images are not seeded here — on the live install they
@@ -48,14 +50,24 @@ const DEFAULT_EXERCISES = [
 export class SeedService implements OnModuleInit {
   private readonly logger = new Logger(SeedService.name)
 
-  constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
+  constructor(
+    @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
+    private config: ConfigService,
+  ) {}
 
+  // Runs after the DATABASE provider has applied pending migrations.
   async onModuleInit(): Promise<void> {
     try {
       await this.seedUser()
       await this.seedExercises()
     } catch (err) {
       this.logger.error('Seed failed', err instanceof Error ? err.stack : String(err))
+    }
+    try {
+      // Exercise Images are shared: move any left in old per-User folders (idempotent).
+      await relocateExerciseImages(this.db, this.config.getOrThrow<string>('PHOTOS_DIR'), this.logger)
+    } catch (err) {
+      this.logger.error('Exercise image move failed', err instanceof Error ? err.stack : String(err))
     }
   }
 
@@ -72,23 +84,26 @@ export class SeedService implements OnModuleInit {
     })
   }
 
+  // Seed the starting library into an empty install only, so an Exercise someone removed is never
+  // brought back on the next boot.
   private async seedExercises() {
-    const [existing] = await this.db.select().from(schema.exercises).where(eq(schema.exercises.isDefault, 1)).limit(1)
+    const [existing] = await this.db.select({ id: schema.exercises.id }).from(schema.exercises).limit(1)
     if (existing) {
       return
     }
 
     const now = Math.floor(Date.now() / 1000)
     for (const ex of DEFAULT_EXERCISES) {
-      await this.db.insert(schema.exercises).values({
-        id: randomUUID(),
-        userId: 'default-user',
-        name: ex.name,
-        category: ex.category,
-        equipmentType: ex.equipmentType,
-        isDefault: 1,
-        createdAt: now,
-      })
+      await this.db
+        .insert(schema.exercises)
+        .values({
+          id: randomUUID(),
+          name: ex.name,
+          category: ex.category,
+          equipmentType: ex.equipmentType,
+          createdAt: now,
+        })
+        .onConflictDoNothing()
     }
   }
 }

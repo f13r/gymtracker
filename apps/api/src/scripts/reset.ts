@@ -59,6 +59,7 @@ async function main() {
       DELETE FROM equipment;
       DELETE FROM gyms;
       DELETE FROM progression_suggestions;
+      DELETE FROM user_exercise_notes;
       DELETE FROM exercises;
       DELETE FROM body_weights;
       DELETE FROM body_measurements;
@@ -79,9 +80,9 @@ async function main() {
     const now = Math.floor(Date.now() / 1000)
     for (const ex of DEFAULT_EXERCISES) {
       await pool.query(
-        `INSERT INTO exercises (id, user_id, name, category, equipment_type, is_default, created_at)
-         VALUES ($1, $2, $3, $4, $5, 1, $6)`,
-        [randomUUID(), 'default-user', ex.name, ex.category, ex.equipmentType, now],
+        `INSERT INTO exercises (id, name, category, equipment_type, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [randomUUID(), ex.name, ex.category, ex.equipmentType, now],
       )
     }
 
