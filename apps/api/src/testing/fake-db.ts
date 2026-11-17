@@ -230,8 +230,18 @@ export function createFakeDb() {
       }
     },
     execute: () => Promise.resolve({ rows: [] }),
-    transaction<T>(fn: (tx: unknown) => Promise<T>) {
-      return fn(db)
+    /** Runs `fn` against the same store; a throw rolls every table back to how it was before. */
+    async transaction<T>(fn: (tx: unknown) => Promise<T>) {
+      const snapshot = new Map([...store].map(([name, rows]) => [name, rows.map(r => ({ match: { ...r.match }, value: { ...r.value } }))]))
+      try {
+        return await fn(db)
+      } catch (err) {
+        store.clear()
+        for (const [name, rows] of snapshot) {
+          store.set(name, rows)
+        }
+        throw err
+      }
     },
 
     /** Put a row in the fake. `extraMatch` adds joined columns (`"table.column"` keys). */

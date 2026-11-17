@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { APP_INTERCEPTOR } from '@nestjs/core'
 
+import { AgentModule } from './agent/agent.module'
 import { AiLogModule } from './ai-log/ai-log.module'
 import { AuthModule } from './auth/auth.module'
 import { BodyModule } from './body/body.module'
@@ -38,6 +39,7 @@ import { WorkoutsModule } from './workouts/workouts.module'
     ProgressionModule,
     ProgramModule,
     ProfileModule,
+    AgentModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: CacheControlInterceptor }],
