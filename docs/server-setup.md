@@ -149,12 +149,8 @@ server {
     root /var/www/gymtracker/apps/web/dist;
     index index.html;
 
-    # Uploaded photos served directly by Nginx
-    location /photos/ {
-        alias /var/data/gymtracker/photos/;
-        expires 30d;
-        add_header Cache-Control "public";
-    }
+    # No `location /photos/`: uploaded photos are private and are served only through the
+    # owner-checked API routes (e.g. /api/photos/:id/thumb). Never expose PHOTOS_DIR directly.
 
     # API proxy
     location /api/ {
