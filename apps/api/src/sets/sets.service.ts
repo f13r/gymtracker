@@ -7,6 +7,7 @@ import { CreateSetDto, UpdateSetDto } from '@gymtracker/shared'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import { toWorkoutSet } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
+import { archivedExercise, findArchived } from '../exercises/archived-exercises'
 import { SessionRepository } from '../sessions/session.repository'
 import { randomUUID } from 'crypto'
 
@@ -25,6 +26,7 @@ export class SetsService {
 
   async logSet(sessionId: string, userId: string, dto: CreateSetDto) {
     await this.sessions.assertActive(sessionId, userId)
+    await this.assertUsableInSession(sessionId, dto.exerciseId)
     const [row] = await this.db
       .insert(schema.sets)
       .values({
@@ -81,5 +83,30 @@ export class SetsService {
       .update(schema.sets)
       .set({ removedAt: Math.floor(Date.now() / 1000) })
       .where(eq(schema.sets.id, setId))
+  }
+
+  // An Archived Exercise may still be logged where the Session already uses it (its plan or earlier
+  // Sets), but not newly picked.
+  private async assertUsableInSession(sessionId: string, exerciseId: string) {
+    const [archived] = await findArchived(this.db, [exerciseId])
+    if (!archived) {
+      return
+    }
+    const [planned] = await this.db
+      .select({ id: schema.sessionExercises.id })
+      .from(schema.sessionExercises)
+      .where(and(eq(schema.sessionExercises.sessionId, sessionId), eq(schema.sessionExercises.exerciseId, exerciseId)))
+      .limit(1)
+    if (planned) {
+      return
+    }
+    const [logged] = await this.db
+      .select({ id: schema.sets.id })
+      .from(schema.sets)
+      .where(and(eq(schema.sets.sessionId, sessionId), eq(schema.sets.exerciseId, exerciseId)))
+      .limit(1)
+    if (!logged) {
+      throw archivedExercise(archived)
+    }
   }
 }

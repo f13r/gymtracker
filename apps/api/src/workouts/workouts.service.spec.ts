@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { WorkoutsService } from './workouts.service'
@@ -255,5 +255,45 @@ describe('WorkoutsService.startSession across Users', () => {
     await svc.startSession('u2', { name: 'Push', templateId: 't2' })
 
     expect(db.rows(schema.workoutSessions)[0]?.programPhaseId ?? null).toBeNull()
+  })
+})
+
+// An Archived Exercise stays in the Templates that already use it, but no Template may newly
+// pick it (audit 3.3).
+describe('WorkoutsService Templates and Archived Exercises', () => {
+  const ex = (orderIndex: number, exerciseId: string) => ({ exerciseId, orderIndex })
+
+  function setup() {
+    const db = createFakeDb()
+    db.seed(schema.exercises, { id: 'live', name: 'Bench Press', archivedAt: null })
+    db.seed(schema.exercises, { id: 'old', name: 'Old Machine', archivedAt: 100 })
+    db.seed(schema.exercises, { id: 'gone', name: 'Pec Deck', archivedAt: 100 })
+    db.seed(schema.workoutTemplates, { id: 't1', userId: 'u1', name: 'Push' })
+    db.seed(schema.templateExercises, { id: 'te1', templateId: 't1', exerciseId: 'old', orderIndex: 0 })
+    const svc = new WorkoutsService(db as any, {} as any, {} as any, {} as any)
+    return { db, svc }
+  }
+
+  it('refuses a new Template with an Archived Exercise and writes nothing', async () => {
+    const { db, svc } = setup()
+
+    await expect(
+      svc.createTemplate('u1', { name: 'Pull', exercises: [ex(0, 'live'), ex(1, 'gone')] }),
+    ).rejects.toBeInstanceOf(BadRequestException)
+
+    expect(db.rows(schema.workoutTemplates)).toHaveLength(1)
+  })
+
+  it('keeps an Archived Exercise a Template already has, but refuses adding another', async () => {
+    const { db, svc } = setup()
+
+    const kept = await svc.updateTemplate('t1', 'u1', { name: 'Push', exercises: [ex(0, 'old'), ex(1, 'live')] })
+    expect(kept.exercises.map(e => e.exerciseId)).toEqual(['old', 'live'])
+
+    await expect(
+      svc.updateTemplate('t1', 'u1', { name: 'Push', exercises: [ex(0, 'old'), ex(1, 'gone')] }),
+    ).rejects.toBeInstanceOf(BadRequestException)
+    await expect(svc.addTemplateExercise('t1', 'u1', 'gone')).rejects.toBeInstanceOf(BadRequestException)
+    expect(db.rows(schema.templateExercises).map(e => e.exerciseId)).toEqual(['old', 'live'])
   })
 })

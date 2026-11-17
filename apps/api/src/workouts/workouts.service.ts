@@ -14,6 +14,7 @@ import { DATABASE } from '../drizzle/drizzle.constants'
 import { toWorkoutSession, toWorkoutSet, toSessionExercise } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
 import { lastDoneAggregateSql, lastFinishedSessionSetsSql } from '../drizzle/set-queries'
+import { assertNotArchived } from '../exercises/archived-exercises'
 import { ProgramService } from '../program/program.service'
 import { ProgressionService } from '../progression/progression.service'
 import { SessionRepository } from '../sessions/session.repository'
@@ -64,6 +65,10 @@ export class WorkoutsService {
   }
 
   async createTemplate(userId: string, dto: CreateTemplateDto) {
+    await assertNotArchived(
+      this.db,
+      dto.exercises.map(e => e.exerciseId),
+    )
     const id = randomUUID()
     const now = Math.floor(Date.now() / 1000)
     await this.db
@@ -86,7 +91,12 @@ export class WorkoutsService {
   // Mutates the Template in place — same id, full-replace of its exercises — so every Schedule and
   // Session that references it by templateId stays intact. See docs/adr/0007.
   async updateTemplate(id: string, userId: string, dto: UpdateTemplateDto) {
-    await this.getTemplate(id, userId)
+    const current = await this.getTemplate(id, userId)
+    const kept = new Set(current.exercises.map(e => e.exerciseId))
+    await assertNotArchived(
+      this.db,
+      dto.exercises.map(e => e.exerciseId).filter(exId => !kept.has(exId)),
+    )
     await this.db
       .update(schema.workoutTemplates)
       .set({ name: dto.name, notes: dto.notes ?? null })
@@ -115,6 +125,7 @@ export class WorkoutsService {
     if (tpl.exercises.some(e => e.exerciseId === exerciseId)) {
       return tpl
     }
+    await assertNotArchived(this.db, [exerciseId])
     const nextOrder = tpl.exercises.reduce((max, e) => Math.max(max, e.orderIndex + 1), 0)
     await this.db.insert(schema.templateExercises).values({
       id: randomUUID(),
