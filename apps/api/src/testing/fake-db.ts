@@ -9,8 +9,8 @@ import { PgDialect } from 'drizzle-orm/pg-core'
  * names). A query's WHERE clause is rendered to SQL, and every
  * `"table"."column" = $n` term in it filters the rows: a row is returned only if
  * each such term agrees with its `match` value. Terms on columns a row does not
- * know about, and other terms (`>=`, `is not null`, …), are ignored; `is null`
- * is honoured.
+ * know about, and other terms (`>=`, `in`, …), are ignored; `is null`, `is not null`
+ * and the case-insensitive `lower("table"."column") = lower($n)` are honoured.
  *
  * So a query that does *not* filter by owner returns another User's row — just
  * like the real database would — and a test can catch the leak.
@@ -24,6 +24,10 @@ type Row = { match: Record<string, unknown>; value: Record<string, unknown> }
 const dialect = new PgDialect()
 const EQ_TERM = /^"(\w+)"\."(\w+)" = \$(\d+)$/
 const IS_NULL_TERM = /^"(\w+)"\."(\w+)" is null$/
+const IS_NOT_NULL_TERM = /^"(\w+)"\."(\w+)" is not null$/
+// Rewritten before tokenising (its parentheses would split it): lower(col) = lower($n) → col ~ci $n
+const LOWER_EQ = /lower\(("\w+"\."\w+")\) = lower\((\$\d+)\)/g
+const CI_EQ_TERM = /^"(\w+)"\."(\w+)" ~ci \$(\d+)$/
 
 /** Evaluates the rendered WHERE (`and` / `or` / parentheses) against one row. */
 function matches(row: Row, where: SQL | undefined): boolean {
@@ -32,6 +36,7 @@ function matches(row: Row, where: SQL | undefined): boolean {
   }
   const { sql, params } = dialect.sqlToQuery(where)
   const tokens = sql
+    .replace(LOWER_EQ, '$1 ~ci $2')
     .split(/(\(|\)|\band\b|\bor\b)/)
     .map(t => t.trim())
     .filter(Boolean)
@@ -42,6 +47,17 @@ function matches(row: Row, where: SQL | undefined): boolean {
     if (n) {
       const key = `${n[1]}.${n[2]}`
       return !(key in row.match) || row.match[key] == null
+    }
+    const nn = IS_NOT_NULL_TERM.exec(text)
+    if (nn) {
+      const key = `${nn[1]}.${nn[2]}`
+      return !(key in row.match) || row.match[key] != null
+    }
+    const ci = CI_EQ_TERM.exec(text)
+    if (ci) {
+      const key = `${ci[1]}.${ci[2]}`
+      const want = String(params[Number(ci[3]) - 1]).toLowerCase()
+      return !(key in row.match) || String(row.match[key]).toLowerCase() === want
     }
     const m = EQ_TERM.exec(text)
     if (!m) {

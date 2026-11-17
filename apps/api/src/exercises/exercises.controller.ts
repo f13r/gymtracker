@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Req, Res, PayloadTooLargeException } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Query, Req, Res, PayloadTooLargeException } from '@nestjs/common'
 
 import { CreateExerciseSchema, UpdateExerciseSchema } from '@gymtracker/shared'
 
@@ -36,8 +36,9 @@ async function readMultipart(
 export class ExercisesController {
   constructor(private readonly svc: ExercisesService) {}
 
-  @Get() findAll(@Req() req: AuthenticatedRequest) {
-    return this.svc.findAll(req.user.id)
+  // `?archived=true` lists only Archived Exercises; otherwise the live library.
+  @Get() findAll(@Req() req: AuthenticatedRequest, @Query('archived') archived?: string) {
+    return this.svc.findAll(req.user.id, { archived: archived === 'true' })
   }
   @Get(':id/last-sets') getLastSets(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.getLastSets(id, req.user.id)
@@ -65,6 +66,11 @@ export class ExercisesController {
     return res.send(await this.svc.update(id, req.user.id, dto, { image, removeImage: removeImage === 'true' }))
   }
 
+  @Post(':id/restore') restore(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.svc.restore(id, req.user.id)
+  }
+
+  // Responds `{ archived: true }` when the Exercise is still used somewhere, `{ archived: false }` when deleted.
   @Delete(':id') remove(@Param('id') id: string) {
     return this.svc.remove(id)
   }

@@ -1,6 +1,6 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { eq, isNull } from 'drizzle-orm'
+import { eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import sharp from 'sharp'
 
@@ -30,8 +30,13 @@ export class ExercisesService {
     this.photosDir = config.getOrThrow<string>('PHOTOS_DIR')
   }
 
-  async findAll(userId: string) {
-    const rows = await this.db.select().from(schema.exercises).where(isNull(schema.exercises.archivedAt))
+  // The live library, or with `archived: true` only the Archived Exercises (to restore them).
+  async findAll(userId: string, opts: { archived?: boolean } = {}) {
+    const archivedAt = schema.exercises.archivedAt
+    const rows = await this.db
+      .select()
+      .from(schema.exercises)
+      .where(opts.archived ? isNotNull(archivedAt) : isNull(archivedAt))
     const notes = await loadExerciseNotes(this.db, userId)
     return rows.map(row => toExercise(row, notes.get(row.id) ?? null))
   }
@@ -52,10 +57,42 @@ export class ExercisesService {
     return ex
   }
 
+  // The Exercise whose name equals `name` case-insensitively (the unique `lower(name)` index), archived or not.
+  private async findByName(name: string): Promise<DbExercise | undefined> {
+    const [ex] = await this.db
+      .select()
+      .from(schema.exercises)
+      .where(sql`lower(${schema.exercises.name}) = lower(${name})`)
+      .limit(1)
+    return ex
+  }
+
+  // 409 carrying the existing Exercise's id, so a client can offer that one instead.
+  private nameTaken(ex: DbExercise) {
+    return new ConflictException({
+      statusCode: 409,
+      error: 'Conflict',
+      message: `An exercise named "${ex.name}" already exists`,
+      exerciseId: ex.id,
+    })
+  }
+
   async create(userId: string, dto: CreateExerciseDto, image?: Buffer) {
     const name = dto.name?.trim()
     if (!name) {
       throw new BadRequestException('Exercise name is required')
+    }
+    const clash = await this.findByName(name)
+    if (clash && clash.archivedAt == null) {
+      throw this.nameTaken(clash)
+    }
+    if (clash) {
+      // Re-creating an Archived Exercise restores it (its history, image and fields are kept).
+      await this.setArchived(clash.id, null)
+      if (dto.notes !== undefined) {
+        await saveExerciseNotes(this.db, userId, clash.id, dto.notes)
+      }
+      return this.findOne(clash.id, userId)
     }
     const id = randomUUID()
     const media = image ? await this.writeImage(id, image) : null
@@ -86,7 +123,15 @@ export class ExercisesService {
 
     const patch: Partial<typeof schema.exercises.$inferInsert> = {}
     if (dto.name !== undefined) {
-      patch.name = dto.name.trim()
+      const name = dto.name.trim()
+      if (!name) {
+        throw new BadRequestException('Exercise name is required')
+      }
+      const clash = await this.findByName(name)
+      if (clash && clash.id !== id) {
+        throw this.nameTaken(clash)
+      }
+      patch.name = name
     }
     if (dto.category !== undefined) {
       patch.category = dto.category ?? null
@@ -117,11 +162,48 @@ export class ExercisesService {
     return this.findOne(id, userId)
   }
 
-  // Hard delete; a referenced Exercise still fails on its FKs. Archive-on-remove comes later.
-  async remove(id: string) {
+  // Removing an Exercise something still references (any User's Sets, Session snapshots, Templates,
+  // Equipment or Suggestions) archives it; one nothing references is deleted outright, with its image
+  // and every User's notes. See CONTEXT.md "Archived Exercise".
+  async remove(id: string): Promise<{ archived: boolean }> {
     const existing = await this.findRow(id)
+    if (await this.isReferenced(id)) {
+      if (existing.archivedAt == null) {
+        await this.setArchived(id, Math.floor(Date.now() / 1000))
+      }
+      return { archived: true }
+    }
+    await this.db.delete(schema.userExerciseNotes).where(eq(schema.userExerciseNotes.exerciseId, id))
     await this.db.delete(schema.exercises).where(eq(schema.exercises.id, id))
     this.unlinkMedia(existing)
+    return { archived: false }
+  }
+
+  async restore(id: string, userId: string) {
+    await this.findRow(id)
+    await this.setArchived(id, null)
+    return this.findOne(id, userId)
+  }
+
+  private async isReferenced(id: string): Promise<boolean> {
+    const refs = [
+      schema.sets.exerciseId,
+      schema.templateExercises.exerciseId,
+      schema.sessionExercises.exerciseId,
+      schema.equipmentExercises.exerciseId,
+      schema.progressionSuggestions.exerciseId,
+    ]
+    for (const col of refs) {
+      const [hit] = await this.db.select({ exerciseId: col }).from(col.table).where(eq(col, id)).limit(1)
+      if (hit) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private async setArchived(id: string, archivedAt: number | null) {
+    await this.db.update(schema.exercises).set({ archivedAt }).where(eq(schema.exercises.id, id))
   }
 
   // Resolve the absolute path of an Exercise's image (or thumb) for streaming. Throws NotFound when
