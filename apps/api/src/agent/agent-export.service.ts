@@ -44,10 +44,7 @@ export function supersetLabels(groups: (string | null | undefined)[]): (string |
 
 /** A User's Templates in the apply document's shape, sorted by name. */
 export async function loadTemplatesForExport(db: Db, userId: string, exerciseNames: Map<string, string>) {
-  const templates = await db
-    .select()
-    .from(schema.workoutTemplates)
-    .where(eq(schema.workoutTemplates.userId, userId))
+  const templates = await db.select().from(schema.workoutTemplates).where(eq(schema.workoutTemplates.userId, userId))
   const result: (AgentTemplateExport & { id: string })[] = []
   for (const t of templates) {
     const rows = (
@@ -95,7 +92,9 @@ export function summarizeHistory(rows: HistoryRow[], exerciseNames: Map<string, 
     for (const s of done) {
       if (s.weightKg != null && s.weightKg > 0) {
         const better =
-          !best || s.weightKg > (best.weightKg ?? 0) || (s.weightKg === best.weightKg && (s.reps ?? 0) > (best.reps ?? 0))
+          !best ||
+          s.weightKg > (best.weightKg ?? 0) ||
+          (s.weightKg === best.weightKg && (s.reps ?? 0) > (best.reps ?? 0))
         best = better ? s : best
       }
     }
@@ -166,7 +165,11 @@ export class AgentExportService {
     }))
   }
 
-  private async userPart(userId: string, weeks: number, names: Map<string, string>): Promise<NonNullable<AgentExport['user']>> {
+  private async userPart(
+    userId: string,
+    weeks: number,
+    names: Map<string, string>,
+  ): Promise<NonNullable<AgentExport['user']>> {
     const [user] = await this.db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1)
     if (!user) {
       throw new NotFoundException(`No User "${userId}"`)
@@ -226,7 +229,7 @@ export class AgentExportService {
             sessionDurationMinutes: profile.sessionDurationMinutes,
           }
         : null,
-      templates: templates.map(({ id: _id, ...t }) => t),
+      templates: templates.map(t => ({ name: t.name, notes: t.notes, exercises: t.exercises })),
       weekly,
       history: {
         weeks,

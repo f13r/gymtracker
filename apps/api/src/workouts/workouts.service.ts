@@ -10,6 +10,7 @@ import {
   UpdateTemplateDto,
 } from '@gymtracker/shared'
 
+import { assertTemplateNameFree, deleteTemplateCascade, replaceTemplateExercises } from './template-writes'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import { toWorkoutSession, toWorkoutSet, toSessionExercise } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
@@ -18,7 +19,6 @@ import { assertNotArchived } from '../exercises/archived-exercises'
 import { ProgramService } from '../program/program.service'
 import { ProgressionService } from '../progression/progression.service'
 import { SessionRepository } from '../sessions/session.repository'
-import { assertTemplateNameFree, deleteTemplateCascade, replaceTemplateExercises } from './template-writes'
 import { randomUUID } from 'crypto'
 
 @Injectable()

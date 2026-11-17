@@ -232,7 +232,9 @@ export function createFakeDb() {
     execute: () => Promise.resolve({ rows: [] }),
     /** Runs `fn` against the same store; a throw rolls every table back to how it was before. */
     async transaction<T>(fn: (tx: unknown) => Promise<T>) {
-      const snapshot = new Map([...store].map(([name, rows]) => [name, rows.map(r => ({ match: { ...r.match }, value: { ...r.value } }))]))
+      const snapshot = new Map(
+        [...store].map(([name, rows]) => [name, rows.map(r => ({ match: { ...r.match }, value: { ...r.value } }))]),
+      )
       try {
         return await fn(db)
       } catch (err) {

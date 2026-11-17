@@ -16,9 +16,13 @@ import type { DbExercise } from '../drizzle/mappers'
 import * as schema from '../drizzle/schema'
 import { exerciseImagePaths } from '../exercises/exercise-images'
 import { removeExercise } from '../exercises/exercise-library'
-import { deleteTemplateCascade, replaceTemplateExercises, type TemplateExerciseInput } from '../workouts/template-writes'
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import {
+  deleteTemplateCascade,
+  replaceTemplateExercises,
+  type TemplateExerciseInput,
+} from '../workouts/template-writes'
 import { randomUUID } from 'crypto'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { unlinkSync } from 'fs'
 import { join } from 'path'
 
@@ -180,7 +184,13 @@ export async function planDocument(
         unlinkStale(opts.photosDir, [row.imagePath, row.thumbPath], [paths.imagePath, paths.thumbPath])
       })
     }
-    const action = restored ? 'restored' : renamedFrom ? 'renamed' : Object.keys(changes).length ? 'updated' : 'unchanged'
+    const action = restored
+      ? 'restored'
+      : renamedFrom
+        ? 'renamed'
+        : Object.keys(changes).length
+          ? 'updated'
+          : 'unchanged'
     plan.changes.push({
       ...entry,
       action,
@@ -210,8 +220,12 @@ export async function planDocument(
       .select()
       .from(schema.workoutTemplates)
       .where(eq(schema.workoutTemplates.userId, user.id))
-    const templates = new Map<string, TemplateState>(templateRows.map(row => [key(row.name), { id: row.id, name: row.name, row }]))
-    const templateName = new Map<string, TemplateState>(templateRows.map(row => [row.id, templates.get(key(row.name))!]))
+    const templates = new Map<string, TemplateState>(
+      templateRows.map(row => [key(row.name), { id: row.id, name: row.name, row }]),
+    )
+    const templateName = new Map<string, TemplateState>(
+      templateRows.map(row => [row.id, templates.get(key(row.name))!]),
+    )
     const schedules = await db.select().from(schema.workoutSchedules).where(eq(schema.workoutSchedules.userId, user.id))
     const exerciseName = new Map([...library.values()].map(e => [e.id, e.name]))
 
@@ -319,7 +333,9 @@ export async function planDocument(
         }
         changes.exercises = { old: [], new: newList }
         plan.ops.push(async tx => {
-          await tx.insert(schema.workoutTemplates).values({ id, userId: user!.id, name: item.name, notes, createdAt: now })
+          await tx
+            .insert(schema.workoutTemplates)
+            .values({ id, userId: user!.id, name: item.name, notes, createdAt: now })
           await replaceTemplateExercises(tx, id, newRows)
         })
         plan.changes.push({ entity: 'template', name: item.name, action: 'created', changes })

@@ -5,7 +5,12 @@ import { AgentDocumentSchema, agentDocumentJsonSchema } from './agent.schema.js'
 const full = {
   user: 'inna',
   exercises: [
-    { name: 'Bulgarian Split Squat', category: 'legs', equipmentType: 'dumbbell', imageUrl: 'https://example.com/b.png' },
+    {
+      name: 'Bulgarian Split Squat',
+      category: 'legs',
+      equipmentType: 'dumbbell',
+      imageUrl: 'https://example.com/b.png',
+    },
     { name: 'Lat Pulldown (wide)', renameFrom: 'Lat Pulldown', description: null },
   ],
   templates: [

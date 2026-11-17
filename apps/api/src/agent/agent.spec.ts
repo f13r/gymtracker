@@ -234,7 +234,6 @@ describe('GET /api/agent/export', () => {
   })
 })
 
-
 const tables = (db: FakeDb) =>
   JSON.stringify(
     [
@@ -505,7 +504,11 @@ describe('apply: Templates and the weekly Schedule', () => {
 
   it('renames a Template with renameFrom', async () => {
     const { db, apply } = await setup()
-    const lower = { name: 'Lower', renameFrom: 'Legs', exercises: [{ exercise: 'Squat', sets: 5, reps: 5, weightKg: 100 }] }
+    const lower = {
+      name: 'Lower',
+      renameFrom: 'Legs',
+      exercises: [{ exercise: 'Squat', sets: 5, reps: 5, weightKg: 100 }],
+    }
     expect(result(await apply({ user: 'u1', templates: [lower] }, true)).changes).toEqual([
       { entity: 'template', name: 'Lower', action: 'renamed', renamedFrom: 'Legs' },
     ])
@@ -582,11 +585,14 @@ describe('apply: Exercise images from imageUrl', () => {
       const png = await sharp({ create: { width: 600, height: 300, channels: 3, background: '#0f0' } })
         .png()
         .toBuffer()
-      return new Response(png, { headers: { 'content-type': 'image/png' } })
+      return new Response(new Uint8Array(png), { headers: { 'content-type': 'image/png' } })
     }
     return { calls, fetchFn }
   }
-  const files = (dir: string) => readdirSync(join(dir, 'exercises'), { withFileTypes: true }).map(f => f.name).sort()
+  const files = (dir: string) =>
+    readdirSync(join(dir, 'exercises'), { withFileTypes: true })
+      .map(f => f.name)
+      .sort()
 
   it('dry-run says the image will be fetched and downloads nothing', async () => {
     const web = fakeWeb()
@@ -631,7 +637,9 @@ describe('apply: Exercise images from imageUrl', () => {
       true,
     )
     expect(res.statusCode).toBe(422)
-    expect(result(res).errors).toEqual([{ path: 'exercises.1.imageUrl', message: 'Image download failed with HTTP 404' }])
+    expect(result(res).errors).toEqual([
+      { path: 'exercises.1.imageUrl', message: 'Image download failed with HTTP 404' },
+    ])
     expect(tables(db)).toBe(before)
     expect(files(photosDir)).toEqual([])
   })

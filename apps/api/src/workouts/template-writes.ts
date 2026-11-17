@@ -2,8 +2,8 @@ import { ConflictException } from '@nestjs/common'
 import { and, eq, sql } from 'drizzle-orm'
 
 import * as schema from '../drizzle/schema'
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { randomUUID } from 'crypto'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 /**
  * Template writes shared by the Template endpoints and the Agent's apply. Each takes the database

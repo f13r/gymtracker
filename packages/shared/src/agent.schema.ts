@@ -121,7 +121,7 @@ export const AgentDocumentSchema = z
     once(doc.templates?.map(t => t.name) ?? [], 'templates')
   })
   .describe(
-    'Changes for the shared Exercise library and one User\'s Templates and weekly Schedule. Only listed items change; removals are explicit in `remove`. Applied all-or-nothing.',
+    "Changes for the shared Exercise library and one User's Templates and weekly Schedule. Only listed items change; removals are explicit in `remove`. Applied all-or-nothing.",
   )
 
 export type AgentDocument = z.infer<typeof AgentDocumentSchema>
@@ -169,7 +169,13 @@ export type AgentApplyResult = {
 export type AgentTemplateExport = {
   name: string
   notes: string | null
-  exercises: { exercise: string; sets: number | null; reps: number | null; weightKg: number | null; supersetGroup?: string }[]
+  exercises: {
+    exercise: string
+    sets: number | null
+    reps: number | null
+    weightKg: number | null
+    supersetGroup?: string
+  }[]
 }
 
 export type AgentExerciseSummary = {

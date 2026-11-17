@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { downloadImage, MAX_IMAGE_BYTES, type ImageFetch } from './agent-images'
 
-const png = () => sharp({ create: { width: 8, height: 8, channels: 3, background: '#f00' } }).png().toBuffer()
+const png = () =>
+  sharp({ create: { width: 8, height: 8, channels: 3, background: '#f00' } })
+    .png()
+    .toBuffer()
 
 /** A fake web: each URL answers with the given response. */
 function web(routes: Record<string, () => Response | Promise<Response>>): ImageFetch & { calls: string[] } {
@@ -16,7 +19,7 @@ function web(routes: Record<string, () => Response | Promise<Response>>): ImageF
   return Object.assign(fetchFn, { calls })
 }
 
-const image = async () => new Response(await png(), { headers: { 'content-type': 'image/png' } })
+const image = async () => new Response(new Uint8Array(await png()), { headers: { 'content-type': 'image/png' } })
 
 describe('downloadImage', () => {
   it('downloads an https image', async () => {
@@ -27,7 +30,10 @@ describe('downloadImage', () => {
 
   it('follows an https redirect, but never one to http', async () => {
     const redirect = (to: string) => () => new Response(null, { status: 302, headers: { location: to } })
-    const ok = web({ 'https://a.example.com/x': redirect('https://b.example.com/y.png'), 'https://b.example.com/y.png': image })
+    const ok = web({
+      'https://a.example.com/x': redirect('https://b.example.com/y.png'),
+      'https://b.example.com/y.png': image,
+    })
     await expect(downloadImage(ok, 'https://a.example.com/x')).resolves.toBeInstanceOf(Buffer)
 
     const bad = web({ 'https://a.example.com/x': redirect('http://b.example.com/y.png') })
@@ -47,7 +53,9 @@ describe('downloadImage', () => {
   })
 
   it('refuses a response that is not an image', async () => {
-    const fetchFn = web({ 'https://x.example.com/p': () => new Response('<html>', { headers: { 'content-type': 'text/html' } }) })
+    const fetchFn = web({
+      'https://x.example.com/p': () => new Response('<html>', { headers: { 'content-type': 'text/html' } }),
+    })
     await expect(downloadImage(fetchFn, 'https://x.example.com/p')).rejects.toThrow(/Not an image/)
   })
 
@@ -67,8 +75,8 @@ describe('downloadImage', () => {
         }),
         { headers: { 'content-type': 'image/png' } },
       )
-    await expect(downloadImage(web({ 'https://x.example.com/big.png': stream }), 'https://x.example.com/big.png')).rejects.toThrow(
-      /10 MB/,
-    )
+    await expect(
+      downloadImage(web({ 'https://x.example.com/big.png': stream }), 'https://x.example.com/big.png'),
+    ).rejects.toThrow(/10 MB/)
   })
 })

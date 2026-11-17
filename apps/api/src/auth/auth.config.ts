@@ -51,10 +51,7 @@ export function loadAuthConfig(env: Record<string, string | undefined>): AuthCon
   if (!AUD.test(audience)) {
     throw new Error('CF_ACCESS_AUD must be set to the Access application AUD tag (64 lowercase hex characters)')
   }
-  const agentTokenIds = read('AGENT_SERVICE_TOKEN_IDS')
-    .split(',')
-    .map(agentTokenId)
-    .filter(Boolean)
+  const agentTokenIds = read('AGENT_SERVICE_TOKEN_IDS').split(',').map(agentTokenId).filter(Boolean)
   if (agentTokenIds.some(id => !TOKEN_ID.test(id))) {
     throw new Error('AGENT_SERVICE_TOKEN_IDS must be comma-separated service-token client ids')
   }
