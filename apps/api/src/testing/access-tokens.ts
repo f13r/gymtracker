@@ -12,10 +12,11 @@ import type { ModuleMetadata } from '@nestjs/common'
 export const TEST_TEAM_DOMAIN = 'https://test-team.cloudflareaccess.com'
 export const TEST_AUD = '0123456789abcdef'.repeat(4)
 
-export const cloudflareTestConfig: AuthConfig = {
+export const cloudflareTestConfig: Extract<AuthConfig, { mode: 'cloudflare' }> = {
   mode: 'cloudflare',
   teamDomain: TEST_TEAM_DOMAIN,
   audience: TEST_AUD,
+  agentTokenIds: [],
 }
 
 export async function createTestAccess() {

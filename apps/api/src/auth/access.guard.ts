@@ -16,7 +16,8 @@ import { errors, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose'
 import type { AuthUser } from '@gymtracker/shared'
 
 import { ACCESS_KEYS, type AccessKeys } from './access-keys'
-import { AUTH_CONFIG, type AuthConfig } from './auth.config'
+import { IS_AGENT_ONLY } from './agent-only.decorator'
+import { AUTH_CONFIG, agentTokenId, type AuthConfig } from './auth.config'
 import { IS_PUBLIC } from './public.decorator'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
@@ -29,12 +30,13 @@ const KEYS_UNAVAILABLE = new Set(['ERR_JWKS_TIMEOUT', 'ERR_JWKS_INVALID'])
 type CloudflareConfig = Extract<AuthConfig, { mode: 'cloudflare' }>
 
 /**
- * Who is calling, before it is resolved to a User. A new kind (the Agent, phase E) is a new member
- * here plus a branch in `resolve`.
+ * Who is calling, before it is resolved to a User. A new kind is a new member here plus a branch in
+ * `resolve`.
  */
 type Principal =
   | { kind: 'email'; email: string } // a person signed in through Access
-  | { kind: 'service-token'; commonName: string } // a non-browser Access client
+  | { kind: 'agent' } // a service token listed in AGENT_SERVICE_TOKEN_IDS, or X-Dev-Agent in dev
+  | { kind: 'service-token'; commonName: string } // any other non-browser Access client
   | { kind: 'dev'; userId: string } // AUTH_MODE=dev
   | { kind: 'anonymous' } // a valid token naming no identity
 
@@ -44,6 +46,9 @@ type Principal =
  * In `cloudflare` mode the `Cf-Access-Jwt-Assertion` header must hold a valid Access JWT (else 401),
  * and its email must belong to a User (else 403 with that email). In `dev` mode the User is
  * `X-Dev-User` or `DEV_USER_ID`. Never logs tokens or emails.
+ *
+ * The Agent (CONTEXT.md) is not a User: it may call only `@AgentOnly()` routes, which nobody else
+ * may call (403 both ways). Its requests carry no `req.user`.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -61,12 +66,24 @@ export class AuthGuard implements CanActivate {
       return true
     }
     const req = ctx.switchToHttp().getRequest<FastifyRequest & { user?: AuthUser }>()
-    req.user = await this.resolve(await this.principalOf(req))
+    const principal = await this.principalOf(req)
+    const agentRoute = this.reflector.getAllAndOverride<boolean>(IS_AGENT_ONLY, [ctx.getHandler(), ctx.getClass()])
+    if (principal.kind === 'agent' || agentRoute) {
+      if (principal.kind !== 'agent' || !agentRoute) {
+        this.logger.warn(principal.kind === 'agent' ? 'Refused the Agent off its routes' : 'Refused a non-Agent caller')
+        throw new ForbiddenException({ statusCode: 403, message: 'Not authorised' })
+      }
+      return true
+    }
+    req.user = await this.resolve(principal)
     return true
   }
 
   private async principalOf(req: FastifyRequest): Promise<Principal> {
     if (this.config.mode === 'dev') {
+      if (req.headers['x-dev-agent'] === '1') {
+        return { kind: 'agent' }
+      }
       const header = req.headers['x-dev-user']
       const userId = typeof header === 'string' && header.trim() ? header.trim() : this.config.defaultUserId
       return { kind: 'dev', userId }
@@ -81,12 +98,15 @@ export class AuthGuard implements CanActivate {
       return { kind: 'email', email }
     }
     if (typeof claims.common_name === 'string' && claims.common_name) {
-      return { kind: 'service-token', commonName: claims.common_name }
+      const id = agentTokenId(claims.common_name)
+      return this.config.agentTokenIds.includes(id)
+        ? { kind: 'agent' }
+        : { kind: 'service-token', commonName: claims.common_name }
     }
     return { kind: 'anonymous' }
   }
 
-  private async resolve(principal: Principal): Promise<AuthUser> {
+  private async resolve(principal: Exclude<Principal, { kind: 'agent' }>): Promise<AuthUser> {
     switch (principal.kind) {
       case 'email': {
         const user = await this.findUser(eq(schema.users.email, principal.email))
@@ -105,7 +125,7 @@ export class AuthGuard implements CanActivate {
       }
       case 'service-token':
       case 'anonymous':
-        // Service tokens get their own identity (the Agent) later; until then they are no User.
+        // A service token not listed as the Agent is nobody.
         this.logger.warn(`Refused a verified Access token with no User identity (${principal.kind})`)
         throw new ForbiddenException({ statusCode: 403, message: 'Not authorised' })
     }

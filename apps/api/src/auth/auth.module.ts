@@ -7,7 +7,7 @@ import { AuthGuard } from './access.guard'
 import { AUTH_CONFIG, type AuthConfig, loadAuthConfig } from './auth.config'
 import { MeController } from './me.controller'
 
-const ENV_KEYS = ['AUTH_MODE', 'NODE_ENV', 'CF_ACCESS_TEAM_DOMAIN', 'CF_ACCESS_AUD', 'DEV_USER_ID']
+const ENV_KEYS = ['AUTH_MODE', 'NODE_ENV', 'CF_ACCESS_TEAM_DOMAIN', 'CF_ACCESS_AUD', 'DEV_USER_ID', 'AGENT_SERVICE_TOKEN_IDS']
 
 @Module({
   controllers: [MeController],

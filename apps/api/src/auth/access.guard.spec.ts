@@ -1,8 +1,9 @@
-import { Logger } from '@nestjs/common'
+import { Controller, Get, Logger } from '@nestjs/common'
 import { type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { generateKeyPair, UnsecuredJWT } from 'jose'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { AgentOnly } from './agent-only.decorator'
 import * as schema from '../drizzle/schema'
 import { HealthController } from '../health.controller'
 import { cloudflareTestConfig, createAuthedApp, createTestAccess } from '../testing/access-tokens'
@@ -170,5 +171,100 @@ describe('AUTH_MODE=dev', () => {
     const token = await access.sign({ email: 'two@example.com' })
     const res = await app.inject({ ...ME, headers: { 'cf-access-jwt-assertion': token } })
     expect(res.json()).toEqual({ id: 'u1', displayName: 'User One' })
+  })
+})
+
+@AgentOnly()
+@Controller('agent-probe')
+class AgentProbeController {
+  @Get() probe() {
+    return { ok: true }
+  }
+}
+
+describe('the Agent: only on @AgentOnly routes, and only the Agent there', () => {
+  const AGENT_PROBE = { method: 'GET' as const, url: '/api/agent-probe' }
+
+  describe('through Cloudflare Access', () => {
+    let app: NestFastifyApplication
+    let access: Awaited<ReturnType<typeof createTestAccess>>
+    const as = (req: typeof ME, token: string) => ({ ...req, headers: { 'cf-access-jwt-assertion': token } })
+    const serviceToken = (commonName: string) => access.sign({ sub: '', common_name: commonName })
+
+    beforeAll(async () => {
+      access = await createTestAccess()
+      app = await createAuthedApp({
+        config: { ...cloudflareTestConfig, agentTokenIds: ['agent-client-id'] },
+        db: seedUsers(),
+        keys: access.jwks,
+        metadata: { controllers: [AgentProbeController] },
+      })
+    })
+
+    afterAll(async () => {
+      await app.close()
+    })
+
+    it('lets a listed service token (common_name "<id>.access") call an Agent route', async () => {
+      const res = await app.inject(as(AGENT_PROBE, await serviceToken('agent-client-id.access')))
+      expect(res.statusCode).toBe(200)
+      expect(res.json()).toEqual({ ok: true })
+    })
+
+    it('accepts a common_name without the .access suffix too', async () => {
+      expect((await app.inject(as(AGENT_PROBE, await serviceToken('agent-client-id')))).statusCode).toBe(200)
+    })
+
+    it('refuses the Agent on every other route (403)', async () => {
+      const res = await app.inject(as(ME, await serviceToken('agent-client-id.access')))
+      expect(res.statusCode).toBe(403)
+    })
+
+    it('refuses an unlisted service token everywhere (403)', async () => {
+      const token = await serviceToken('other-client.access')
+      expect((await app.inject(as(AGENT_PROBE, token))).statusCode).toBe(403)
+      expect((await app.inject(as(ME, token))).statusCode).toBe(403)
+    })
+
+    it('refuses a near-miss id (prefix, other case, doubled suffix)', async () => {
+      for (const commonName of ['agent-client-i.access', 'AGENT-CLIENT-ID.access', 'agent-client-id.access.access']) {
+        expect((await app.inject(as(AGENT_PROBE, await serviceToken(commonName)))).statusCode).toBe(403)
+      }
+    })
+
+    it('refuses a signed-in User on an Agent route (403)', async () => {
+      const token = await access.sign({ email: 'one@example.com' })
+      expect((await app.inject(as(AGENT_PROBE, token))).statusCode).toBe(403)
+      expect((await app.inject(as(ME, token))).statusCode).toBe(200)
+    })
+
+    it('still needs a token on an Agent route (401)', async () => {
+      expect((await app.inject(AGENT_PROBE)).statusCode).toBe(401)
+    })
+  })
+
+  describe('AUTH_MODE=dev', () => {
+    let app: NestFastifyApplication
+
+    beforeAll(async () => {
+      app = await createAuthedApp({
+        config: { mode: 'dev', defaultUserId: 'u1' },
+        db: seedUsers(),
+        metadata: { controllers: [AgentProbeController] },
+      })
+    })
+
+    afterAll(async () => {
+      await app.close()
+    })
+
+    it('X-Dev-Agent: 1 acts as the Agent, and only on Agent routes', async () => {
+      expect((await app.inject({ ...AGENT_PROBE, headers: { 'x-dev-agent': '1' } })).statusCode).toBe(200)
+      expect((await app.inject({ ...ME, headers: { 'x-dev-agent': '1' } })).statusCode).toBe(403)
+    })
+
+    it('without the header the dev User is refused on Agent routes', async () => {
+      expect((await app.inject(AGENT_PROBE)).statusCode).toBe(403)
+    })
   })
 })

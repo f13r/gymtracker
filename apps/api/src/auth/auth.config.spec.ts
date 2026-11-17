@@ -11,7 +11,22 @@ describe('loadAuthConfig', () => {
       mode: 'cloudflare',
       teamDomain: TEAM,
       audience: AUD,
+      agentTokenIds: [],
     })
+  })
+
+  it('reads the Agent service-token client ids, with or without the .access suffix', () => {
+    const config = loadAuthConfig({
+      CF_ACCESS_TEAM_DOMAIN: TEAM,
+      CF_ACCESS_AUD: AUD,
+      AGENT_SERVICE_TOKEN_IDS: ' abc123.access , def456,, ',
+    })
+    expect(config).toMatchObject({ agentTokenIds: ['abc123', 'def456'] })
+  })
+
+  it('refuses an Agent service-token id with spaces or other odd characters', () => {
+    const env = { CF_ACCESS_TEAM_DOMAIN: TEAM, CF_ACCESS_AUD: AUD, AGENT_SERVICE_TOKEN_IDS: 'abc 123' }
+    expect(() => loadAuthConfig(env)).toThrow(/AGENT_SERVICE_TOKEN_IDS/)
   })
 
   it('drops a trailing slash from the team domain (the iss claim has none)', () => {
