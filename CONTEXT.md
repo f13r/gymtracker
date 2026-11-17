@@ -225,7 +225,7 @@ _Avoid_: progress, last workout, session diff
 - A **Progression Suggestion** belongs to one **Exercise** and one **User**; one active suggestion per exercise, replaced on each Session finish; pre-populates weight/reps in the logger ahead of last-done Sets and Template defaults
 - A **User Profile** belongs to one **User** and provides physical context (age, height, experience level) for Progression Suggestions
 - A **Progress Photo** optionally records **Body Weight** at the time of the photo
-- A **Gym** owns zero or more **Equipment** records; a User is associated with exactly one Gym (multi-Gym deferred)
+- A **Gym** owns zero or more **Equipment** records; the household has exactly one Gym, shared by every User (multi-Gym deferred)
 - **Equipment** and **Exercise** are linked many-to-many; one Equipment can support many Exercises, one Exercise can be performed on many Equipment instances
 
 ## Example dialogue

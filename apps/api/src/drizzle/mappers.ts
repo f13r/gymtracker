@@ -99,8 +99,6 @@ export function toEquipment(row: DbEquipment): Equipment {
     equipmentType: row.equipmentType,
     description: row.description,
     tags: row.tags ? (JSON.parse(row.tags) as string[]) : null,
-    photoPath: row.photoPath,
-    thumbPath: row.thumbPath,
     createdAt: row.createdAt,
   }
 }

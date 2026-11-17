@@ -1,4 +1,4 @@
-import { Column, getTableColumns, getTableName, type SQL, type Table } from 'drizzle-orm'
+import { Column, Table, getTableColumns, getTableName, is, type SQL } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
 
 /**
@@ -110,6 +110,15 @@ function matchFor(table: Table, value: Record<string, unknown>): Record<string, 
   return match
 }
 
+const isTable = (f: unknown): f is Table => is(f, Table)
+
+function joinedRow(table: Table, row: Row): Record<string, unknown> {
+  const name = getTableName(table)
+  return Object.fromEntries(
+    Object.entries(getTableColumns(table)).map(([key, column]) => [key, row.match[`${name}.${column.name}`]]),
+  )
+}
+
 export function createFakeDb() {
   const store = new Map<string, Row[]>()
   const rowsOf = (table: Table) => {
@@ -132,8 +141,8 @@ export function createFakeDb() {
           if (!fields) {
             return found.map(r => ({ ...r.value }))
           }
-          // A non-column field (e.g. count()) can only be an aggregate here.
-          const aggregate = Object.values(fields).some(f => !(f instanceof Column))
+          // A non-column, non-table field (e.g. count()) can only be an aggregate here.
+          const aggregate = Object.values(fields).some(f => !(f instanceof Column) && !isTable(f))
           if (aggregate) {
             return [
               Object.fromEntries(
@@ -144,6 +153,10 @@ export function createFakeDb() {
           return found.map(r =>
             Object.fromEntries(
               Object.entries(fields).map(([k, f]) => {
+                if (isTable(f)) {
+                  // A whole table: the row itself, or a joined table rebuilt from its match columns.
+                  return [k, f === table ? { ...r.value } : joinedRow(f, r)]
+                }
                 const col = f as Column
                 return [k, r.match[`${getTableName(col.table)}.${col.name}`]]
               }),
