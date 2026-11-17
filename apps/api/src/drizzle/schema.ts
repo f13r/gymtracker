@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { pgTable, text, integer, real, primaryKey, uniqueIndex, customType } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, real, primaryKey, uniqueIndex, customType, jsonb } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -52,13 +52,20 @@ export const userExerciseNotes = pgTable(
   }),
 )
 
-export const workoutTemplates = pgTable('workout_templates', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id),
-  name: text('name').notNull(),
-  notes: text('notes'),
-  createdAt: integer('created_at').notNull(),
-})
+// A Template's name is unique per User, ignoring case: the Agent addresses Templates by name.
+export const workoutTemplates = pgTable(
+  'workout_templates',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').references(() => users.id),
+    name: text('name').notNull(),
+    notes: text('notes'),
+    createdAt: integer('created_at').notNull(),
+  },
+  t => ({
+    userNameLowerUnique: uniqueIndex('workout_templates_user_name_lower_unique').on(t.userId, sql`lower(${t.name})`),
+  }),
+)
 
 export const templateExercises = pgTable('template_exercises', {
   id: text('id').primaryKey(),
@@ -302,4 +309,14 @@ export const programUpdates = pgTable('program_updates', {
   proposedChanges: text('proposed_changes').notNull(), // JSON: structured payload
   status: text('status').notNull().default('pending'), // 'pending' | 'accepted' | 'dismissed'
   createdAt: integer('created_at').notNull(),
+})
+
+// Audit trail of the Agent's applied documents (POST /api/agent/apply?confirm=true): the document as
+// sent and the diff as applied. Dry-runs are not recorded.
+export const agentChanges = pgTable('agent_changes', {
+  id: text('id').primaryKey(),
+  createdAt: integer('created_at').notNull(),
+  targetUserId: text('target_user_id').references(() => users.id),
+  document: jsonb('document').notNull(),
+  diff: jsonb('diff').notNull(),
 })
