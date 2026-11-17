@@ -13,6 +13,7 @@ export const queryKeys = {
   exercises: () => ['exercises'] as const,
   // Under the exercises() prefix, so invalidating exercises() refreshes these too.
   archivedExercises: () => ['exercises', 'archived'] as const,
+  exercisesWithArchived: () => ['exercises', 'with-archived'] as const,
   exercise: (id: Id) => ['exercises', 'one', id] as const,
   session: (id: Id) => ['session', id] as const,
   sessionComparison: (id: Id) => ['session', id, 'comparison'] as const,

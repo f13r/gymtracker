@@ -317,8 +317,8 @@ export function TemplateForm({ mode, initialTemplate, isSaving, onSave, onBack }
   const { t } = useTranslation('workout')
 
   const { data: allExercises = [] } = useQuery({
-    queryKey: queryKeys.exercises(),
-    queryFn: exercisesApi.getAll,
+    queryKey: queryKeys.exercisesWithArchived(),
+    queryFn: exercisesApi.getAllWithArchived,
   })
   const exerciseMap = useMemo(() => new Map(allExercises.map((e: Exercise) => [e.id, e])), [allExercises])
 

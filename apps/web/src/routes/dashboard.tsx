@@ -149,8 +149,8 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
   })
 
   const { data: allExercises = [] } = useQuery({
-    queryKey: queryKeys.exercises(),
-    queryFn: exercisesApi.getAll,
+    queryKey: queryKeys.exercisesWithArchived(),
+    queryFn: exercisesApi.getAllWithArchived,
   })
 
   const { data: allSessions = [] } = useQuery({

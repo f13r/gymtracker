@@ -32,8 +32,8 @@ export function HistoryDetailPage() {
   })
 
   const { data: allExercises = [] } = useQuery({
-    queryKey: queryKeys.exercises(),
-    queryFn: exercisesApi.getAll,
+    queryKey: queryKeys.exercisesWithArchived(),
+    queryFn: exercisesApi.getAllWithArchived,
   })
 
   const { data: comparison = [] } = useQuery({

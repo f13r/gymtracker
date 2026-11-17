@@ -70,8 +70,8 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   })
 
   const { data: allExercises = [] } = useQuery({
-    queryKey: queryKeys.exercises(),
-    queryFn: exercisesApi.getAll,
+    queryKey: queryKeys.exercisesWithArchived(),
+    queryFn: exercisesApi.getAllWithArchived,
   })
 
   const exerciseNameMap = useMemo(() => {
