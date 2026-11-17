@@ -21,20 +21,59 @@ import { PgDialect } from 'drizzle-orm/pg-core'
 type Row = { match: Record<string, unknown>; value: Record<string, unknown> }
 
 const dialect = new PgDialect()
-const EQ_TERM = /"(\w+)"\."(\w+)" = \$(\d+)/g
+const EQ_TERM = /^"(\w+)"\."(\w+)" = \$(\d+)$/
 
+/** Evaluates the rendered WHERE (`and` / `or` / parentheses) against one row. */
 function matches(row: Row, where: SQL | undefined): boolean {
   if (!where) {
     return true
   }
   const { sql, params } = dialect.sqlToQuery(where)
-  for (const [, table, column, n] of sql.matchAll(EQ_TERM)) {
-    const key = `${table}.${column}`
-    if (key in row.match && row.match[key] !== params[Number(n) - 1]) {
-      return false
+  const tokens = sql
+    .split(/(\(|\)|\band\b|\bor\b)/)
+    .map(t => t.trim())
+    .filter(Boolean)
+  let i = 0
+
+  const atom = (text: string) => {
+    const m = EQ_TERM.exec(text)
+    if (!m) {
+      return true
     }
+    const key = `${m[1]}.${m[2]}`
+    return !(key in row.match) || row.match[key] === params[Number(m[3]) - 1]
   }
-  return true
+  const primary = (): boolean => {
+    let result = true
+    while (i < tokens.length && ![')', 'and', 'or'].includes(tokens[i])) {
+      if (tokens[i] === '(') {
+        i++
+        const inner = disjunction()
+        i++ // ')'
+        result = result && inner
+      } else {
+        result = atom(tokens[i++]) && result
+      }
+    }
+    return result
+  }
+  const conjunction = (): boolean => {
+    let result = primary()
+    while (tokens[i] === 'and') {
+      i++
+      result = primary() && result
+    }
+    return result
+  }
+  const disjunction = (): boolean => {
+    let result = conjunction()
+    while (tokens[i] === 'or') {
+      i++
+      result = conjunction() || result
+    }
+    return result
+  }
+  return disjunction()
 }
 
 function matchFor(table: Table, value: Record<string, unknown>): Record<string, unknown> {

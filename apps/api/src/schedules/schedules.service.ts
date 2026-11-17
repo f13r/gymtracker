@@ -23,6 +23,9 @@ export class SchedulesService {
     if (dto.type === 'weekly' && dto.dayOfWeek === undefined) {
       throw new BadRequestException('dayOfWeek is required for weekly schedules')
     }
+    if (!(await this.findOwnTemplate(dto.templateId, userId))) {
+      throw new NotFoundException('Template not found')
+    }
     const [row] = await this.db
       .insert(schema.workoutSchedules)
       .values({
@@ -92,11 +95,11 @@ export class SchedulesService {
       return null
     }
 
-    const [template] = await this.db
-      .select()
-      .from(schema.workoutTemplates)
-      .where(eq(schema.workoutTemplates.id, match.templateId!))
-      .limit(1)
+    // Never reveal another User's Template, even if an old Schedule points at one.
+    const template = await this.findOwnTemplate(match.templateId!, userId)
+    if (!template) {
+      return null
+    }
 
     const exercises = await this.db
       .select()
@@ -105,8 +108,17 @@ export class SchedulesService {
 
     return {
       schedule: match,
-      templateName: template?.name ?? 'Workout',
+      templateName: template.name,
       exerciseCount: exercises.length,
     }
+  }
+
+  private async findOwnTemplate(templateId: string, userId: string) {
+    const [template] = await this.db
+      .select()
+      .from(schema.workoutTemplates)
+      .where(and(eq(schema.workoutTemplates.id, templateId), eq(schema.workoutTemplates.userId, userId)))
+      .limit(1)
+    return template
   }
 }
