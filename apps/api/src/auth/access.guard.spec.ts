@@ -35,7 +35,7 @@ describe('Cloudflare Access guard', () => {
   it('resolves a valid token to the User with that email (case and spaces ignored)', async () => {
     const res = await app.inject(withToken(await access.sign({ email: ' Two@Example.com ' })))
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ id: 'u2', displayName: 'User Two' })
+    expect(res.json()).toEqual({ id: 'u2', displayName: 'User Two', athletes: [], trainers: [] })
   })
 
   it('answers 401 without the Cf-Access-Jwt-Assertion header', async () => {
@@ -153,12 +153,12 @@ describe('AUTH_MODE=dev', () => {
   it('acts as DEV_USER_ID without any token', async () => {
     const res = await app.inject(ME)
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ id: 'u1', displayName: 'User One' })
+    expect(res.json()).toEqual({ id: 'u1', displayName: 'User One', athletes: [], trainers: [] })
   })
 
   it('acts as the User named in X-Dev-User', async () => {
     const res = await app.inject({ ...ME, headers: { 'x-dev-user': 'u2' } })
-    expect(res.json()).toEqual({ id: 'u2', displayName: 'User Two' })
+    expect(res.json()).toEqual({ id: 'u2', displayName: 'User Two', athletes: [], trainers: [] })
   })
 
   it('answers 403 when X-Dev-User names no User', async () => {
@@ -170,7 +170,7 @@ describe('AUTH_MODE=dev', () => {
     const access = await createTestAccess()
     const token = await access.sign({ email: 'two@example.com' })
     const res = await app.inject({ ...ME, headers: { 'cf-access-jwt-assertion': token } })
-    expect(res.json()).toEqual({ id: 'u1', displayName: 'User One' })
+    expect(res.json()).toEqual({ id: 'u1', displayName: 'User One', athletes: [], trainers: [] })
   })
 })
 

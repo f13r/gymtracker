@@ -177,6 +177,30 @@ describe('acting as an athlete (Cloudflare)', () => {
     expect((await get('/api/who', 'u3', 'u2')).json()).toMatchObject({ reason: 'not-your-athlete' })
   })
 
+  it('/me names the signed-in User with their athletes and Trainers', async () => {
+    expect((await get('/api/me', 'u1')).json()).toEqual({
+      id: 'u1',
+      displayName: 'User One',
+      athletes: [{ id: 'u2', displayName: 'User Two' }],
+      trainers: [],
+    })
+    expect((await get('/api/me', 'u2')).json()).toEqual({
+      id: 'u2',
+      displayName: 'User Two',
+      athletes: [],
+      trainers: [{ id: 'u1', displayName: 'User One' }],
+    })
+  })
+
+  it('/me is still the Trainer’s own while acting as an athlete', async () => {
+    expect((await get('/api/me', 'u1', 'u2')).json()).toEqual({
+      id: 'u1',
+      displayName: 'User One',
+      athletes: [{ id: 'u2', displayName: 'User Two' }],
+      trainers: [],
+    })
+  })
+
   it('ignores x-act-as on a @Public route', async () => {
     const res = await get('/api/public', 'u1', 'u2')
     expect(res.statusCode).toBe(200)

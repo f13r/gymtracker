@@ -156,6 +156,9 @@ export type AuthUser = {
   displayName: string
 }
 
+/** The signed-in person (never the athlete being acted as), with who they train and who trains them. */
+export type Me = AuthUser & { athletes: AuthUser[]; trainers: AuthUser[] }
+
 export type Gym = {
   id: string
   userId: string | null
