@@ -11,17 +11,24 @@ import { Loader2 } from 'lucide-react'
 import { profileApi } from './api/profile'
 import { queryKeys } from './api/queryKeys'
 import { AppLayout } from './components/layout/AppLayout'
+import { isBlockedWhileActing, shouldRunOnboardingGate } from './lib/acting-policy'
 import { syncIdentity } from './lib/identity'
 import { queryClient } from './lib/query'
+import { useActingStore } from './stores/acting.store'
 
 // Once per app load, before any child route (incl. the onboarding gate below)
 // reads cached data: clear the cache if a different User is now signed in.
 let identitySynced: Promise<void> | undefined
 
 const rootRoute = createRootRoute({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     identitySynced ??= syncIdentity(queryClient)
     await identitySynced
+    // Runs on the root so it also covers the routes outside AppLayout (logger,
+    // onboarding, ai-log).
+    if (useActingStore.getState().athlete && isBlockedWhileActing(location.pathname)) {
+      throw redirect({ to: '/dashboard' })
+    }
   },
   component: () => <Outlet />,
 })
@@ -30,7 +37,7 @@ const layoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'layout',
   beforeLoad: async ({ location }) => {
-    if (location.pathname === '/onboarding') {
+    if (!shouldRunOnboardingGate({ acting: useActingStore.getState().athlete !== null, pathname: location.pathname })) {
       return
     }
     // Onboarding gate. fetchQuery + staleTime: Infinity → hits the server once

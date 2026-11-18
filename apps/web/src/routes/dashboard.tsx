@@ -15,6 +15,7 @@ import { ThisWeekCard } from '@/components/workout/ThisWeekCard'
 import { buildSupersetMeta } from '@/components/workout/superset-display'
 import { useSessionVolume } from '@/hooks/useSessionVolume'
 import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
+import { useActing } from '@/stores/acting.store'
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -133,6 +134,7 @@ function WorkoutSummaryCard({
 }
 
 function WorkoutHub({ sessionId }: { sessionId: string }) {
+  const { acting } = useActing()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
@@ -326,6 +328,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
                   'border-border/40 active:bg-muted/50 flex w-full items-center justify-between border-b px-4 py-3.5 text-left transition-colors last:border-b-0',
                   isCurrent && !isComplete && 'bg-primary/5',
                 )}
+                disabled={acting}
                 style={groupColor ? { borderLeftColor: groupColor, borderLeftWidth: 4 } : undefined}
                 type="button"
                 onClick={() =>
@@ -375,20 +378,23 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
         />
       )}
 
-      {/* Finish button */}
-      <button
-        className="border-destructive/30 text-destructive active:bg-destructive/5 h-12 w-full rounded-xl border text-sm font-semibold transition-colors disabled:opacity-40"
-        disabled={finishWorkout.isPending}
-        type="button"
-        onClick={() => finishWorkout.mutate()}
-      >
-        {finishWorkout.isPending ? 'Finishing…' : 'Finish Workout'}
-      </button>
+      {/* Finish button — a Trainer cannot finish the athlete's Session */}
+      {!acting && (
+        <button
+          className="border-destructive/30 text-destructive active:bg-destructive/5 h-12 w-full rounded-xl border text-sm font-semibold transition-colors disabled:opacity-40"
+          disabled={finishWorkout.isPending}
+          type="button"
+          onClick={() => finishWorkout.mutate()}
+        >
+          {finishWorkout.isPending ? 'Finishing…' : 'Finish Workout'}
+        </button>
+      )}
     </div>
   )
 }
 
 export function DashboardPage() {
+  const { acting } = useActing()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [promptDismissed, setPromptDismissed] = useState(false)
@@ -426,7 +432,7 @@ export function DashboardPage() {
   const isSkipped =
     todaySchedule && localStorage.getItem(`${SKIP_KEY}:${todaySchedule.schedule.templateId!}:${todayStr}`) === '1'
 
-  const showPrompt = !!todaySchedule && !promptDismissed && !isSkipped && !active
+  const showPrompt = !!todaySchedule && !promptDismissed && !isSkipped && !active && !acting
 
   if (active) {
     return <WorkoutHub sessionId={active.id} />
@@ -472,15 +478,17 @@ export function DashboardPage() {
         </h1>
       </div>
 
-      <Button
-        className="font-display font-700 shadow-primary/20 h-14 w-full rounded-xl text-xl tracking-widest shadow-lg transition-transform active:scale-[0.98]"
-        asChild
-      >
-        <Link to="/workout/start">
-          <Zap className="mr-1" size={20} />
-          START WORKOUT
-        </Link>
-      </Button>
+      {!acting && (
+        <Button
+          className="font-display font-700 shadow-primary/20 h-14 w-full rounded-xl text-xl tracking-widest shadow-lg transition-transform active:scale-[0.98]"
+          asChild
+        >
+          <Link to="/workout/start">
+            <Zap className="mr-1" size={20} />
+            START WORKOUT
+          </Link>
+        </Button>
+      )}
 
       <ThisWeekCard />
 
@@ -530,7 +538,7 @@ export function DashboardPage() {
       {finished.length === 0 && !active && (
         <div className="border-border space-y-2 rounded-xl border border-dashed p-8 text-center">
           <Dumbbell className="text-muted-foreground mx-auto" size={32} />
-          <p className="text-muted-foreground text-sm">No workouts yet. Start your first one!</p>
+          <p className="text-muted-foreground text-sm">No workouts yet.{!acting && ' Start your first one!'}</p>
         </div>
       )}
     </div>

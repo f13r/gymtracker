@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useActing } from '@/stores/acting.store'
 
 const EXPERIENCE = ['beginner', 'intermediate', 'advanced'] as const
 const GOAL = ['hypertrophy', 'strength', 'powerlifting', 'general'] as const
@@ -21,6 +22,7 @@ const DURATIONS = [30, 45, 60, 75, 90]
 const numOrNull = (v: string) => (v === '' ? null : Number(v))
 
 export function BodyPage() {
+  const { acting } = useActing()
   const queryClient = useQueryClient()
   const [newWeight, setNewWeight] = useState('')
 
@@ -43,7 +45,7 @@ export function BodyPage() {
         <h1 className="font-display font-700 text-3xl tracking-wide">BODY</h1>
       </div>
 
-      <ProfileCard />
+      {!acting && <ProfileCard />}
 
       {latest && (
         <div className="bg-card border-border flex items-center gap-4 rounded-xl border p-5">
@@ -66,45 +68,49 @@ export function BodyPage() {
         </div>
       )}
 
-      <form
-        className="flex gap-2"
-        onSubmit={e => {
-          e.preventDefault()
-          if (newWeight && !addWeight.isPending) {
-            addWeight.mutate()
-          }
-        }}
-      >
-        <input
-          aria-label="Weight in kg"
-          className="bg-card border-border focus:border-primary h-12 flex-1 rounded-xl border px-4 text-base transition-colors outline-none"
-          inputMode="decimal"
-          placeholder="Weight in kg"
-          type="number"
-          value={newWeight}
-          onChange={e => setNewWeight(e.target.value)}
-        />
-        <button
-          className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-xl transition-transform active:scale-95 disabled:opacity-40"
-          disabled={!newWeight || addWeight.isPending}
-          type="submit"
+      {!acting && (
+        <form
+          className="flex gap-2"
+          onSubmit={e => {
+            e.preventDefault()
+            if (newWeight && !addWeight.isPending) {
+              addWeight.mutate()
+            }
+          }}
         >
-          <Plus size={22} strokeWidth={2.5} />
-        </button>
-      </form>
+          <input
+            aria-label="Weight in kg"
+            className="bg-card border-border focus:border-primary h-12 flex-1 rounded-xl border px-4 text-base transition-colors outline-none"
+            inputMode="decimal"
+            placeholder="Weight in kg"
+            type="number"
+            value={newWeight}
+            onChange={e => setNewWeight(e.target.value)}
+          />
+          <button
+            className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-xl transition-transform active:scale-95 disabled:opacity-40"
+            disabled={!newWeight || addWeight.isPending}
+            type="submit"
+          >
+            <Plus size={22} strokeWidth={2.5} />
+          </button>
+        </form>
+      )}
 
-      <Link
-        className="bg-card border-border active:bg-muted flex items-center justify-between rounded-xl border p-4 transition-colors"
-        to="/photos"
-      >
-        <div className="flex items-center gap-3">
-          <div className="bg-muted flex size-9 items-center justify-center rounded-lg">
-            <Camera className="text-muted-foreground" size={18} />
+      {!acting && (
+        <Link
+          className="bg-card border-border active:bg-muted flex items-center justify-between rounded-xl border p-4 transition-colors"
+          to="/photos"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-muted flex size-9 items-center justify-center rounded-lg">
+              <Camera className="text-muted-foreground" size={18} />
+            </div>
+            <span className="font-medium">Progress Photos</span>
           </div>
-          <span className="font-medium">Progress Photos</span>
-        </div>
-        <span className="text-muted-foreground text-sm">→</span>
-      </Link>
+          <span className="text-muted-foreground text-sm">→</span>
+        </Link>
+      )}
 
       {weights.length > 0 && (
         <div className="space-y-1">

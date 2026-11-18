@@ -19,11 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useActing } from '@/stores/acting.store'
 
 export function HistoryDetailPage() {
   const { sessionId } = useParams({ strict: false }) as { sessionId: string }
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { acting } = useActing()
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const { data: session } = useQuery({
@@ -116,14 +118,18 @@ export function HistoryDetailPage() {
             <ChevronLeft size={18} />
             <span className="text-sm">History</span>
           </button>
-          <button
-            aria-label="Delete workout"
-            className="text-destructive/50 active:text-destructive -mr-1 flex size-11 items-center justify-center transition-colors"
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-          >
-            <Trash2 size={22} strokeWidth={1.5} />
-          </button>
+          {acting ? (
+            <span />
+          ) : (
+            <button
+              aria-label="Delete workout"
+              className="text-destructive/50 active:text-destructive -mr-1 flex size-11 items-center justify-center transition-colors"
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 size={22} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
         <h1 className="font-display font-700 text-2xl leading-tight tracking-wide">{session.name}</h1>
         <p className="text-muted-foreground mt-1 text-xs">

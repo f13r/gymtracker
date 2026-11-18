@@ -14,6 +14,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import i18n from '@/lib/i18n'
 import { dayLabelByTemplate, isSameDay, toYMD, workoutsForDate } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
+import { useActing } from '@/stores/acting.store'
 
 interface DayScheduleSheetProps {
   /** The day whose schedule is shown. `null` keeps the sheet closed. */
@@ -24,6 +25,7 @@ interface DayScheduleSheetProps {
 export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
   const open = date != null
   const { t } = useTranslation('workout')
+  const { acting } = useActing()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [adding, setAdding] = useState(false)
@@ -110,7 +112,7 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
                   </p>
                 </div>
 
-                {isToday && (
+                {isToday && !acting && (
                   <button
                     aria-label={t('aria.startNamed', { name })}
                     className="bg-primary text-primary-foreground flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-transform active:scale-95 disabled:opacity-60"

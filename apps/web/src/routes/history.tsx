@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { formatSessionDuration } from '@/lib/utils'
+import { useActing } from '@/stores/acting.store'
 
 function formatDate(ts: number) {
   return new Date(ts * 1000).toLocaleDateString('en', {
@@ -43,6 +44,7 @@ export function HistoryPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: sessions = [] } = useQuery({ queryKey: queryKeys.sessions(), queryFn: workoutsApi.getSessions })
+  const { acting } = useActing()
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const { mutate: deleteSession, isPending } = useMutation({
@@ -105,14 +107,16 @@ export function HistoryPage() {
                       <span className="text-xs font-medium">{formatSessionDuration(s.startedAt, s.finishedAt!)}</span>
                     </div>
                   </Link>
-                  <button
-                    aria-label="Delete workout"
-                    className="text-destructive/50 active:text-destructive flex size-16 flex-shrink-0 items-center justify-center transition-colors"
-                    type="button"
-                    onClick={() => setPendingDeleteId(s.id)}
-                  >
-                    <Trash2 size={22} strokeWidth={1.5} />
-                  </button>
+                  {!acting && (
+                    <button
+                      aria-label="Delete workout"
+                      className="text-destructive/50 active:text-destructive flex size-16 flex-shrink-0 items-center justify-center transition-colors"
+                      type="button"
+                      onClick={() => setPendingDeleteId(s.id)}
+                    >
+                      <Trash2 size={22} strokeWidth={1.5} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

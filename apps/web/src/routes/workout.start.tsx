@@ -18,8 +18,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScheduleDrawer } from '@/components/workout/ScheduleDrawer'
+import { useActing } from '@/stores/acting.store'
 
 export function WorkoutStartPage() {
+  const { acting } = useActing()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
@@ -97,15 +99,17 @@ export function WorkoutStartPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-0.5">
-                    <button
-                      aria-label="Start workout"
-                      className="text-muted-foreground/60 active:text-primary flex size-11 items-center justify-center transition-colors disabled:opacity-60"
-                      disabled={start.isPending}
-                      type="button"
-                      onClick={() => start.mutate({ templateId: t.id, name: t.name })}
-                    >
-                      <Play fill="currentColor" size={18} strokeWidth={0} />
-                    </button>
+                    {!acting && (
+                      <button
+                        aria-label="Start workout"
+                        className="text-muted-foreground/60 active:text-primary flex size-11 items-center justify-center transition-colors disabled:opacity-60"
+                        disabled={start.isPending}
+                        type="button"
+                        onClick={() => start.mutate({ templateId: t.id, name: t.name })}
+                      >
+                        <Play fill="currentColor" size={18} strokeWidth={0} />
+                      </button>
+                    )}
                     <button
                       aria-label="Schedule template"
                       className="text-muted-foreground/60 active:text-primary flex size-11 items-center justify-center transition-colors"
@@ -141,17 +145,19 @@ export function WorkoutStartPage() {
       </div>
 
       {/* Quick Start — always available at the bottom */}
-      <div className="border-border border-t p-4">
-        <button
-          className="border-border text-muted-foreground active:bg-card font-display font-600 flex w-full items-center justify-center gap-2 rounded-xl border py-3.5 text-sm tracking-wide uppercase transition-colors disabled:opacity-60"
-          disabled={start.isPending}
-          type="button"
-          onClick={() => start.mutate({ name: 'Quick Workout' })}
-        >
-          <Zap size={16} />
-          Quick Start
-        </button>
-      </div>
+      {!acting && (
+        <div className="border-border border-t p-4">
+          <button
+            className="border-border text-muted-foreground active:bg-card font-display font-600 flex w-full items-center justify-center gap-2 rounded-xl border py-3.5 text-sm tracking-wide uppercase transition-colors disabled:opacity-60"
+            disabled={start.isPending}
+            type="button"
+            onClick={() => start.mutate({ name: 'Quick Workout' })}
+          >
+            <Zap size={16} />
+            Quick Start
+          </button>
+        </div>
+      )}
 
       <Dialog open={pendingDeleteId !== null} onOpenChange={open => !open && setPendingDeleteId(null)}>
         <DialogContent className="max-w-sm rounded-2xl">

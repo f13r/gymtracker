@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useActing } from '@/stores/acting.store'
 
 const PHASE_TYPE_LABELS: Record<string, string> = {
   accumulation: 'Accumulation',
@@ -48,6 +49,7 @@ function PhaseProgressBar({ phase }: { phase: ProgramPhase }) {
 }
 
 function ProgramView({ program }: { program: Program }) {
+  const { acting } = useActing()
   const queryClient = useQueryClient()
   const [confirmRemove, setConfirmRemove] = useState(false)
 
@@ -136,45 +138,51 @@ function ProgramView({ program }: { program: Program }) {
                 ))}
               </ul>
             )}
-            <div className="flex gap-2 pt-1">
-              <button
-                className="bg-primary text-primary-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
-                disabled={acknowledge.isPending}
-                type="button"
-                onClick={() => acknowledge.mutate({ action: 'accept' })}
-              >
-                Accept
-              </button>
-              <button
-                className="bg-muted text-muted-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
-                disabled={acknowledge.isPending}
-                type="button"
-                onClick={() => acknowledge.mutate({ action: 'dismiss' })}
-              >
-                Not yet
-              </button>
-            </div>
+            {!acting && (
+              <div className="flex gap-2 pt-1">
+                <button
+                  className="bg-primary text-primary-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
+                  disabled={acknowledge.isPending}
+                  type="button"
+                  onClick={() => acknowledge.mutate({ action: 'accept' })}
+                >
+                  Accept
+                </button>
+                <button
+                  className="bg-muted text-muted-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
+                  disabled={acknowledge.isPending}
+                  type="button"
+                  onClick={() => acknowledge.mutate({ action: 'dismiss' })}
+                >
+                  Not yet
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      <button
-        className="border-border text-muted-foreground hover:text-foreground w-full rounded-xl border py-3 text-sm transition-colors disabled:opacity-50"
-        disabled={evaluate.isPending}
-        type="button"
-        onClick={() => evaluate.mutate()}
-      >
-        {evaluate.isPending ? 'Evaluating…' : 'Re-evaluate my program'}
-      </button>
+      {!acting && (
+        <>
+          <button
+            className="border-border text-muted-foreground hover:text-foreground w-full rounded-xl border py-3 text-sm transition-colors disabled:opacity-50"
+            disabled={evaluate.isPending}
+            type="button"
+            onClick={() => evaluate.mutate()}
+          >
+            {evaluate.isPending ? 'Evaluating…' : 'Re-evaluate my program'}
+          </button>
 
-      <button
-        className="text-destructive/70 hover:text-destructive flex w-full items-center justify-center gap-2 py-2 text-sm transition-colors"
-        type="button"
-        onClick={() => setConfirmRemove(true)}
-      >
-        <Trash2 size={16} strokeWidth={1.5} />
-        Remove program
-      </button>
+          <button
+            className="text-destructive/70 hover:text-destructive flex w-full items-center justify-center gap-2 py-2 text-sm transition-colors"
+            type="button"
+            onClick={() => setConfirmRemove(true)}
+          >
+            <Trash2 size={16} strokeWidth={1.5} />
+            Remove program
+          </button>
+        </>
+      )}
 
       <Dialog open={confirmRemove} onOpenChange={open => !open && setConfirmRemove(false)}>
         <DialogContent className="max-w-sm rounded-2xl">
@@ -207,6 +215,7 @@ function ProgramView({ program }: { program: Program }) {
 }
 
 export function ProgramPage() {
+  const { acting } = useActing()
   const queryClient = useQueryClient()
   const [showPreview, setShowPreview] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -250,23 +259,25 @@ export function ProgramPage() {
                   Let the AI create a personalised multi-phase program based on your profile and available exercises.
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-8 py-3 tracking-wide transition-all active:scale-95 disabled:opacity-50"
-                  disabled={generate.isPending}
-                  type="button"
-                  onClick={() => generate.mutate()}
-                >
-                  {generate.isPending ? 'Generating…' : 'Generate my Program'}
-                </button>
-                <button
-                  className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
-                  type="button"
-                  onClick={() => setShowPreview(true)}
-                >
-                  Preview the AI prompt first
-                </button>
-              </div>
+              {!acting && (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-8 py-3 tracking-wide transition-all active:scale-95 disabled:opacity-50"
+                    disabled={generate.isPending}
+                    type="button"
+                    onClick={() => generate.mutate()}
+                  >
+                    {generate.isPending ? 'Generating…' : 'Generate my Program'}
+                  </button>
+                  <button
+                    className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
+                    type="button"
+                    onClick={() => setShowPreview(true)}
+                  >
+                    Preview the AI prompt first
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -274,7 +285,7 @@ export function ProgramPage() {
         </div>
       </div>
 
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+      <Dialog open={showPreview && !acting} onOpenChange={setShowPreview}>
         <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col rounded-2xl">
           <DialogHeader>
             <DialogTitle>Prompt sent to the AI</DialogTitle>
