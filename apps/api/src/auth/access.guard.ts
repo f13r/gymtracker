@@ -17,8 +17,10 @@ import type { AuthUser } from '@gymtracker/shared'
 
 import { ACCESS_KEYS, type AccessKeys } from './access-keys'
 import { IS_AGENT_ONLY } from './agent-only.decorator'
-import { AUTH_CONFIG, agentTokenId, type AuthConfig } from './auth.config'
+import { AUTH_CONFIG, agentTokenId, athletesOf, type AuthConfig } from './auth.config'
 import { IS_PUBLIC } from './public.decorator'
+import type { AuthenticatedRequest } from './request.types'
+import { TRAINER_ACCESS, type TrainerAccessLevel } from './trainer-access.decorator'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import type { FastifyRequest } from 'fastify'
@@ -65,7 +67,7 @@ export class AuthGuard implements CanActivate {
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [ctx.getHandler(), ctx.getClass()])) {
       return true
     }
-    const req = ctx.switchToHttp().getRequest<FastifyRequest & { user?: AuthUser }>()
+    const req = ctx.switchToHttp().getRequest<FastifyRequest & Partial<AuthenticatedRequest>>()
     const principal = await this.principalOf(req)
     const agentRoute = this.reflector.getAllAndOverride<boolean>(IS_AGENT_ONLY, [ctx.getHandler(), ctx.getClass()])
     if (principal.kind === 'agent' || agentRoute) {
@@ -76,7 +78,42 @@ export class AuthGuard implements CanActivate {
       return true
     }
     req.user = await this.resolve(principal)
+    await this.actAsAthlete(ctx, req as AuthenticatedRequest)
     return true
+  }
+
+  /**
+   * `X-Act-As: <athleteId>` (CONTEXT.md, "Acting as"): a Trainer with a link to that athlete, on a
+   * route marked `@TrainerAccess`, runs as the athlete. `req.user` becomes the athlete and
+   * `req.actor` keeps the Trainer. Absent, empty or the caller's own id means no acting.
+   */
+  private async actAsAthlete(ctx: ExecutionContext, req: AuthenticatedRequest): Promise<void> {
+    const header = req.headers['x-act-as']
+    const athleteId = typeof header === 'string' ? header.trim() : ''
+    const trainer = req.user
+    if (!athleteId || athleteId === trainer.id) {
+      return
+    }
+    if (!athletesOf(this.config, trainer.id).includes(athleteId)) {
+      this.logger.warn(`Refused ${trainer.id} acting as a non-athlete`)
+      throw new ForbiddenException({ statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' })
+    }
+    const level = this.reflector.getAllAndOverride<TrainerAccessLevel | undefined>(TRAINER_ACCESS, [
+      ctx.getHandler(),
+      ctx.getClass(),
+    ])
+    if (!level) {
+      this.logger.warn(`Refused ${trainer.id} acting as ${athleteId} on ${req.method} ${req.routeOptions.url}`)
+      throw new ForbiddenException({ statusCode: 403, message: 'Not authorised', reason: 'trainer-access' })
+    }
+    const athlete = await this.findUser(eq(schema.users.id, athleteId))
+    if (!athlete) {
+      // A link to someone who is no User: treated as no link.
+      throw new ForbiddenException({ statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' })
+    }
+    this.logger.debug(`Acting: ${trainer.id} as ${athlete.id} ${req.method} ${req.routeOptions.url}`)
+    req.actor = trainer
+    req.user = athlete
   }
 
   private async principalOf(req: FastifyRequest): Promise<Principal> {
