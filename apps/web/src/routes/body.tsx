@@ -45,7 +45,7 @@ export function BodyPage() {
         <h1 className="font-display font-700 text-3xl tracking-wide">BODY</h1>
       </div>
 
-      {!acting && <ProfileCard />}
+      <ProfileCard />
 
       {latest && (
         <div className="bg-card border-border flex items-center gap-4 rounded-xl border p-5">
