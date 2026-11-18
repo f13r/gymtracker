@@ -5,6 +5,7 @@ import { CreateBodyWeightSchema, CreateMeasurementSchema } from '@gymtracker/sha
 
 import { BodyService } from './body.service'
 import { AuthenticatedRequest } from '../auth/request.types'
+import { TrainerAccess } from '../auth/trainer-access.decorator'
 
 class CreateBodyWeightDto extends createZodDto(CreateBodyWeightSchema) {}
 class CreateMeasurementDto extends createZodDto(CreateMeasurementSchema) {}
@@ -13,6 +14,7 @@ class CreateMeasurementDto extends createZodDto(CreateMeasurementSchema) {}
 export class BodyController {
   constructor(private readonly svc: BodyService) {}
 
+  @TrainerAccess('read')
   @Get('weight') getWeights(@Req() req: AuthenticatedRequest) {
     return this.svc.getWeights(req.user.id)
   }

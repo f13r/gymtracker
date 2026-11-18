@@ -5,6 +5,7 @@ import { createZodDto } from 'nestjs-zod'
 import { z } from 'zod'
 
 import { AuthenticatedRequest } from '../auth/request.types'
+import { TrainerAccess } from '../auth/trainer-access.decorator'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 
@@ -28,6 +29,7 @@ class UpdateProfileDto extends createZodDto(UpdateProfileSchema) {}
 export class ProfileController {
   constructor(@Inject(DATABASE) private db: NodePgDatabase<typeof schema>) {}
 
+  @TrainerAccess('read')
   @Get()
   async getProfile(@Req() req: AuthenticatedRequest) {
     const [profile] = await this.db
@@ -44,6 +46,7 @@ export class ProfileController {
     }
   }
 
+  @TrainerAccess('write')
   @Patch()
   async updateProfile(@Body() dto: UpdateProfileDto, @Req() req: AuthenticatedRequest) {
     const userId = req.user.id

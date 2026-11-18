@@ -2,11 +2,13 @@ import { Controller, Get, Req, Query } from '@nestjs/common'
 
 import { StatsService } from './stats.service'
 import { AuthenticatedRequest } from '../auth/request.types'
+import { TrainerAccess } from '../auth/trainer-access.decorator'
 
 @Controller('stats')
 export class StatsController {
   constructor(private readonly svc: StatsService) {}
 
+  @TrainerAccess('read')
   @Get('prs') getPRs(
     @Req() req: AuthenticatedRequest,
     @Query('exerciseId') exerciseId?: string,
@@ -15,6 +17,7 @@ export class StatsController {
     return this.svc.getPRs(req.user.id, exerciseId, limit ? parseInt(limit) : 10)
   }
 
+  @TrainerAccess('read')
   @Get('volume') getVolume(
     @Req() req: AuthenticatedRequest,
     @Query('exerciseId') exerciseId?: string,
@@ -24,10 +27,12 @@ export class StatsController {
     return this.svc.getVolume(req.user.id, exerciseId, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined)
   }
 
+  @TrainerAccess('read')
   @Get('streak') getStreak(@Req() req: AuthenticatedRequest) {
     return this.svc.getStreak(req.user.id)
   }
 
+  @TrainerAccess('read')
   @Get('bodyweight') getBodyWeight(
     @Req() req: AuthenticatedRequest,
     @Query('from') from?: string,
@@ -44,6 +49,7 @@ export class StatsController {
     return this.svc.getMeasurements(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined)
   }
 
+  @TrainerAccess('read')
   @Get('frequency') getFrequency(
     @Req() req: AuthenticatedRequest,
     @Query('from') from?: string,

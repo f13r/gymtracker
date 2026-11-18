@@ -106,9 +106,15 @@ export class AuthGuard implements CanActivate {
       this.logger.warn(`Refused ${trainer.id} acting as ${athleteId} on ${req.method} ${req.routeOptions.url}`)
       throw new ForbiddenException({ statusCode: 403, message: 'Not authorised', reason: 'trainer-access' })
     }
+    if (level === 'read' && req.method !== 'GET') {
+      // A `'read'` mark on a non-GET route is a classification mistake: refuse rather than write.
+      this.logger.warn(`Refused ${trainer.id} acting as ${athleteId} on read-only ${req.method} ${req.routeOptions.url}`)
+      throw new ForbiddenException({ statusCode: 403, message: 'Not authorised', reason: 'trainer-access' })
+    }
     const athlete = await this.findUser(eq(schema.users.id, athleteId))
     if (!athlete) {
       // A link to someone who is no User: treated as no link.
+      this.logger.warn(`Refused ${trainer.id} acting as ${athleteId}, who is no User`)
       throw new ForbiddenException({ statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' })
     }
     this.logger.debug(`Acting: ${trainer.id} as ${athlete.id} ${req.method} ${req.routeOptions.url}`)

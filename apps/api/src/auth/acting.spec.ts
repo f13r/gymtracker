@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Req } from '@nestjs/common'
+import { Controller, Get, Inject, Post, Req } from '@nestjs/common'
 import { type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -36,6 +36,12 @@ class ProbeController {
     return { id: req.user.id, actor: req.actor?.id ?? null }
   }
 
+  @TrainerAccess('read')
+  @Post('misclassified')
+  misclassified() {
+    return { ok: true }
+  }
+
   @AgentOnly()
   @Get('agent')
   agent() {
@@ -59,7 +65,10 @@ function seed() {
   return db
 }
 
-const links = [{ trainerId: 'u1', athleteId: 'u2' }]
+const links = [
+  { trainerId: 'u1', athleteId: 'u2' },
+  { trainerId: 'u1', athleteId: 'ghost' }, // linked, but there is no User row
+]
 
 describe('acting as an athlete (Cloudflare)', () => {
   let app: NestFastifyApplication
@@ -112,10 +121,35 @@ describe('acting as an athlete (Cloudflare)', () => {
     expect(res.json()).toEqual({ statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' })
   })
 
-  it('refuses acting as someone who is no User at all, without leaking whether they exist', async () => {
+  it('refuses acting as someone you are not linked to, whether or not they exist', async () => {
     const res = await get('/api/templates', 'u1', 'nobody')
     expect(res.statusCode).toBe(403)
-    expect(res.json()).toMatchObject({ reason: 'not-your-athlete' })
+    expect(res.json()).toEqual({ statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' })
+  })
+
+  it('refuses a linked athlete who has no User row, the same way as no link', async () => {
+    const res = await get('/api/templates', 'u1', 'ghost')
+    expect(res.statusCode).toBe(403)
+    expect(res.json()).toEqual({ statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' })
+  })
+
+  it("refuses a 'read' route called with a non-GET method while acting", async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/misclassified',
+      headers: { 'cf-access-jwt-assertion': tokens.u1, 'x-act-as': 'u2' },
+    })
+    expect(res.statusCode).toBe(403)
+    expect(res.json()).toEqual({ statusCode: 403, message: 'Not authorised', reason: 'trainer-access' })
+  })
+
+  it("serves a 'read' route with a non-GET method when not acting", async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/misclassified',
+      headers: { 'cf-access-jwt-assertion': tokens.u1 },
+    })
+    expect(res.statusCode).toBe(201)
   })
 
   it('refuses an unmarked route while acting', async () => {

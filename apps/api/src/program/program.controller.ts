@@ -5,6 +5,7 @@ import { AcknowledgeProgramUpdateSchema } from '@gymtracker/shared'
 
 import { ProgramService } from './program.service'
 import { AuthenticatedRequest } from '../auth/request.types'
+import { TrainerAccess } from '../auth/trainer-access.decorator'
 
 class AcknowledgeDto extends createZodDto(AcknowledgeProgramUpdateSchema) {}
 
@@ -12,6 +13,7 @@ class AcknowledgeDto extends createZodDto(AcknowledgeProgramUpdateSchema) {}
 export class ProgramController {
   constructor(private readonly svc: ProgramService) {}
 
+  @TrainerAccess('read')
   @Get()
   getActiveProgram(@Req() req: AuthenticatedRequest) {
     return this.svc.getActiveProgram(req.user.id)

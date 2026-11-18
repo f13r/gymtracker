@@ -5,6 +5,7 @@ import { CreateSetSchema, UpdateSetSchema } from '@gymtracker/shared'
 
 import { SetsService } from './sets.service'
 import { AuthenticatedRequest } from '../auth/request.types'
+import { TrainerAccess } from '../auth/trainer-access.decorator'
 
 class CreateSetDto extends createZodDto(CreateSetSchema) {}
 class UpdateSetDto extends createZodDto(UpdateSetSchema) {}
@@ -13,6 +14,7 @@ class UpdateSetDto extends createZodDto(UpdateSetSchema) {}
 export class SetsController {
   constructor(private readonly svc: SetsService) {}
 
+  @TrainerAccess('read')
   @Get() getSets(@Param('sessionId') sessionId: string, @Req() req: AuthenticatedRequest) {
     return this.svc.getSessionSets(sessionId, req.user.id)
   }

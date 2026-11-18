@@ -156,7 +156,7 @@ A person admitted to the app — one of a small, fixed list of known people, ide
 _Avoid_: account, member
 
 **Trainer**:
-A User linked to one or more other Users — their athletes — whose plans they may change and whose logs they may read, by **acting as** them. Links are many-to-many and set only in the server config; a User never becomes a Trainer of someone by joining or asking in-app. While acting, a Trainer may write Templates, the weekly Schedule, the User Profile and Exercise notes; read Sessions, Sets, the Program, stats and Body Weight; and nothing else (no Progress Photos, never start, log or finish a Session, never decide a Program Update). A Trainer's changes are not recorded; the athlete sees who their Trainers are, not what they changed. A Trainer is a person, unlike the Coach (the in-app AI) and the Agent.
+A User linked to one or more other Users — their athletes — whose plans they may change and whose logs they may read, by **acting as** them. Links are many-to-many and set only in the server config; a User never becomes a Trainer of someone by joining or asking in-app. While acting, a Trainer may write Templates, Schedules (weekly and one-off), the User Profile and Exercise notes; read Sessions, Sets, the Program, stats and Body Weight; and nothing else (no Progress Photos, never start, log or finish a Session, never decide a Program Update). A Trainer's changes are not recorded; the athlete sees who their Trainers are, not what they changed. A Trainer is a person, unlike the Coach (the in-app AI) and the Agent.
 _Avoid_: coach (the AI), admin, owner
 
 **Acting as**:

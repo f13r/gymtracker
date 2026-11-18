@@ -2,6 +2,7 @@ import { Controller, Get, Post, Delete, Inject, Param, Req, Res, PayloadTooLarge
 
 import { EquipmentService } from './equipment.service'
 import { AuthenticatedRequest } from '../auth/request.types'
+import { TrainerAccess } from '../auth/trainer-access.decorator'
 import type { FastifyReply } from 'fastify'
 import { createReadStream } from 'fs'
 
@@ -12,6 +13,7 @@ export class EquipmentController {
   // Explicit token: the class works without emitted decorator metadata (e.g. under vitest).
   constructor(@Inject(EquipmentService) private readonly svc: EquipmentService) {}
 
+  @TrainerAccess('read')
   @Get()
   findAll(@Req() req: AuthenticatedRequest) {
     return this.svc.findAll(req.user.id)
@@ -81,10 +83,12 @@ export class EquipmentController {
     return this.svc.delete(id)
   }
 
+  @TrainerAccess('read')
   @Get(':id/photo') photo(@Param('id') id: string, @Res() res: FastifyReply) {
     return this.serve(id, res, 'photo')
   }
 
+  @TrainerAccess('read')
   @Get(':id/thumb') thumb(@Param('id') id: string, @Res() res: FastifyReply) {
     return this.serve(id, res, 'thumb')
   }
