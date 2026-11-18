@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AuthUser } from '@gymtracker/shared'
@@ -9,17 +9,31 @@ import { useActingStore } from '@/stores/acting.store'
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
-  useNavigate: () => vi.fn(),
+  useNavigate: () => navigate,
 }))
+const getActiveSession = vi.hoisted(() => vi.fn())
+const navigate = vi.hoisted(() => vi.fn())
 vi.mock('@/api/workouts', () => ({
   workoutsApi: {
-    getActiveSession: () => Promise.resolve(null),
+    getActiveSession,
+    getSession: () =>
+      Promise.resolve({
+        id: 's1',
+        name: 'Push Day',
+        startedAt: Math.floor(Date.now() / 1000),
+        templateId: null,
+        exercises: [],
+        sets: [{ id: 'set1', exerciseId: 'e1', done: false, removedAt: null }],
+      }),
     getSessions: () => Promise.resolve([]),
     startSession: vi.fn(),
   },
 }))
 const getToday = vi.hoisted(() => vi.fn())
 vi.mock('@/api/schedules', () => ({ schedulesApi: { getToday } }))
+vi.mock('@/api/exercises', () => ({
+  exercisesApi: { getAllWithArchived: () => Promise.resolve([{ id: 'e1', name: 'Bench' }]) },
+}))
 vi.mock('@/components/workout/ThisWeekCard', () => ({ ThisWeekCard: () => null }))
 
 const athlete = { id: 'inna', name: 'Inna' } as unknown as AuthUser
@@ -34,6 +48,8 @@ function renderDashboard() {
 
 describe('DashboardPage', () => {
   beforeEach(() => {
+    navigate.mockClear()
+    getActiveSession.mockImplementation(() => Promise.resolve(null))
     getToday.mockImplementation(() =>
       Promise.resolve({ schedule: { templateId: 't1' }, templateName: 'Push Day', exerciseCount: 3 }),
     )
@@ -72,5 +88,16 @@ describe('DashboardPage', () => {
       await getToday.mock.results[0]?.value
     })
     expect(screen.queryByText(/let's go/i)).toBeNull()
+  })
+
+  it('hides Finish Workout and disables the hub rows while acting on an active Session', async () => {
+    getActiveSession.mockImplementation(() => Promise.resolve({ id: 's1' }))
+    useActingStore.setState({ athlete })
+    renderDashboard()
+    const row = (await screen.findByText(/bench/i)).closest('button') as HTMLButtonElement
+    expect(row.disabled).toBe(true)
+    fireEvent.click(row)
+    expect(navigate).not.toHaveBeenCalled()
+    expect(screen.queryByText(/finish workout/i)).toBeNull()
   })
 })
