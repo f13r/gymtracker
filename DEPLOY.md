@@ -183,7 +183,7 @@ EOF
 > **`TRAINER_LINKS`** (optional) lets a User act as another User: `trainerId:athleteId` pairs,
 > comma-separated (`default-user:inna` means default-user trains inna). Both ids must be Users and
 > no User may link to themselves, or the API refuses to boot. Links are many-to-many. Unset or empty
-> = no Trainers. Changes apply on restart; removing a line revokes that Trainer's access. See
+> = no Trainers. Changes apply on restart; removing a pair revokes that Trainer's access. See
 > `docs/adr/0013-trainer-access-by-acting-as.md`.
 > **`CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` are mandatory** (the values above are placeholders).
 > Every `/api` request except `GET /api/health` must carry a Cloudflare Access JWT in the

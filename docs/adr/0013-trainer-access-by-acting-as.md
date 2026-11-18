@@ -14,10 +14,10 @@ Until now every User's plans and logs were private: no User saw another's. Vikto
 
 ## Decision
 
-- A **Trainer** is a User linked to one or more other Users, their athletes. Links are many-to-many and come only from the server env `TRAINER_LINKS` (`trainerId:athleteId,...`), parsed into the auth config at boot. There is no table and no in-app way to create a link. Boot fails on an unknown id or a self-link. Removing a line and restarting revokes access.
+- A **Trainer** is a User linked to one or more other Users, their athletes. Links are many-to-many and come only from the server env `TRAINER_LINKS` (`trainerId:athleteId,...`), parsed into the auth config at boot. There is no table and no in-app way to create a link. Boot fails on an unknown id or a self-link. Removing a pair and restarting revokes access.
 - A Trainer works on an athlete's data by **acting as** them: the web app sends `X-Act-As: <athleteId>` on every request, the auth guard checks the link, and the request carries both the actor (the Trainer) and the subject (the athlete). Services scope their queries by the subject, as they already scope by the signed-in User.
 - Access while acting is **deny by default**. A route works while acting only when it is marked `@TrainerAccess('read')` or `@TrainerAccess('write')`; any other route answers 403.
-  - Write: Templates, Schedules (weekly and one-off), the User Profile, per-User Exercise notes.
+  - Write: Templates, Schedules (weekly and one-off), the User Profile, the shared Exercise library and the athlete's per-User Exercise notes.
   - Read: Sessions and Sets, the Program and Program Updates, stats, Body Weight.
   - Nothing: Progress Photos, starting or finishing a Session, logging Sets, accepting or dismissing Program Updates.
 - In the web app, acting is a tab-scoped state (sessionStorage) shown by a permanent banner. Switching clears the query cache. The app reuses its ordinary pages, hiding what the access list forbids. The "Act as…" entry appears only for a User with athletes, and an athlete sees their Trainers in Settings.
