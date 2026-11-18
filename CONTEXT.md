@@ -152,8 +152,16 @@ The count of consecutive calendar days on which at least one Session was finishe
 _Avoid_: consistency, run
 
 **User**:
-A person admitted to the app — one of a small, fixed list of known people, identified by their Google email. Owns their Templates, Schedules, Program, Sessions, body data and User Profile, all private to them: no User sees another's plans or logs. Shares the Exercise library and the Gym with every other User. An unknown email is never turned into a User automatically.
-_Avoid_: account, member, athlete
+A person admitted to the app — one of a small, fixed list of known people, identified by their Google email. Owns their Templates, Schedules, Program, Sessions, body data and User Profile, private to them: no User sees another's plans or logs, except a **Trainer** the User is linked to (see ADR 0013). Shares the Exercise library and the Gym with every other User. An unknown email is never turned into a User automatically. A User linked to a Trainer is that Trainer's **athlete** — a relation, not a kind of User.
+_Avoid_: account, member
+
+**Trainer**:
+A User linked to one or more other Users — their athletes — whose plans they may change and whose logs they may read, by **acting as** them. Links are many-to-many and set only in the server config; a User never becomes a Trainer of someone by joining or asking in-app. While acting, a Trainer may write Templates, the weekly Schedule, the User Profile and Exercise notes; read Sessions, Sets, the Program, stats and Body Weight; and nothing else (no Progress Photos, never start, log or finish a Session, never decide a Program Update). A Trainer's changes are not recorded; the athlete sees who their Trainers are, not what they changed. A Trainer is a person, unlike the Coach (the in-app AI) and the Agent.
+_Avoid_: coach (the AI), admin, owner
+
+**Acting as**:
+The state in which a Trainer uses the app in one athlete's context: every page shows and edits that athlete's data, within the Trainer's access, behind a permanent banner naming the athlete. Tab-scoped: it ends on exit or when the tab closes. The person acting is the **actor**; the athlete whose data it is, the **subject**.
+_Avoid_: impersonation, switching user, login as
 
 **Agent**:
 An AI assistant trusted to maintain data on the household's behalf: it edits the shared Exercise library and writes Templates and the weekly Schedule (not Programs) for a User it names explicitly. Not a User itself — it owns no data, logs no Sessions, and acts only through its own dedicated entry point (`/api/agent/*`): it reads an export, sends a document of changes as a dry-run, and applies it only after a person approves the diff. Every applied document is kept as an audit record.
@@ -226,6 +234,7 @@ _Avoid_: progress, last workout, session diff
 - A **User Profile** belongs to one **User** and provides physical context (age, height, experience level) for Progression Suggestions
 - A **Progress Photo** optionally records **Body Weight** at the time of the photo
 - A **Gym** owns zero or more **Equipment** records; the household has exactly one Gym, shared by every User (multi-Gym deferred)
+- A **Trainer** is linked to one or more athletes, and an athlete to zero or more Trainers (many-to-many, server config only); while **acting as** an athlete, a Trainer reads and writes that athlete's data within the access set in ADR 0013
 - **Equipment** and **Exercise** are linked many-to-many; one Equipment can support many Exercises, one Exercise can be performed on many Equipment instances
 
 ## Example dialogue
