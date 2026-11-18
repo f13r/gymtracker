@@ -143,7 +143,7 @@ describe('AUTH_MODE=dev', () => {
   let app: NestFastifyApplication
 
   beforeAll(async () => {
-    app = await createAuthedApp({ config: { mode: 'dev', defaultUserId: 'u1' }, db: seedUsers() })
+    app = await createAuthedApp({ config: { mode: 'dev', defaultUserId: 'u1', trainerLinks: [] }, db: seedUsers() })
   })
 
   afterAll(async () => {
@@ -248,7 +248,7 @@ describe('the Agent: only on @AgentOnly routes, and only the Agent there', () =>
 
     beforeAll(async () => {
       app = await createAuthedApp({
-        config: { mode: 'dev', defaultUserId: 'u1' },
+        config: { mode: 'dev', defaultUserId: 'u1', trainerLinks: [] },
         db: seedUsers(),
         metadata: { controllers: [AgentProbeController] },
       })

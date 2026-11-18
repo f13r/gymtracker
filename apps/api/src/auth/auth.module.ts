@@ -14,10 +14,12 @@ const ENV_KEYS = [
   'CF_ACCESS_AUD',
   'DEV_USER_ID',
   'AGENT_SERVICE_TOKEN_IDS',
+  'TRAINER_LINKS',
 ]
 
 @Module({
   controllers: [MeController],
+  exports: [AUTH_CONFIG],
   providers: [
     {
       // Throws on missing/malformed config, so the API refuses to boot.

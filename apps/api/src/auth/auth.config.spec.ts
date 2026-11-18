@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { loadAuthConfig } from './auth.config'
+import { athletesOf, loadAuthConfig, trainersOf } from './auth.config'
 
 const TEAM = 'https://example-team.cloudflareaccess.com'
 const AUD = 'a'.repeat(64)
@@ -12,6 +12,7 @@ describe('loadAuthConfig', () => {
       teamDomain: TEAM,
       audience: AUD,
       agentTokenIds: [],
+      trainerLinks: [],
     })
   })
 
@@ -60,11 +61,55 @@ describe('loadAuthConfig', () => {
   })
 
   it('dev mode acts as default-user unless DEV_USER_ID says otherwise', () => {
-    expect(loadAuthConfig({ AUTH_MODE: 'dev' })).toEqual({ mode: 'dev', defaultUserId: 'default-user' })
-    expect(loadAuthConfig({ AUTH_MODE: 'dev', DEV_USER_ID: 'inna' })).toEqual({ mode: 'dev', defaultUserId: 'inna' })
+    expect(loadAuthConfig({ AUTH_MODE: 'dev' })).toEqual({
+      mode: 'dev',
+      defaultUserId: 'default-user',
+      trainerLinks: [],
+    })
+    expect(loadAuthConfig({ AUTH_MODE: 'dev', DEV_USER_ID: 'inna' })).toEqual({
+      mode: 'dev',
+      defaultUserId: 'inna',
+      trainerLinks: [],
+    })
   })
 
   it('refuses dev mode under NODE_ENV=production', () => {
     expect(() => loadAuthConfig({ AUTH_MODE: 'dev', NODE_ENV: 'production' })).toThrow(/production/)
+  })
+})
+
+describe('TRAINER_LINKS', () => {
+  const cf = { CF_ACCESS_TEAM_DOMAIN: TEAM, CF_ACCESS_AUD: AUD }
+  const load = (TRAINER_LINKS?: string, mode: 'cloudflare' | 'dev' = 'cloudflare') =>
+    loadAuthConfig(mode === 'dev' ? { AUTH_MODE: 'dev', TRAINER_LINKS } : { ...cf, TRAINER_LINKS })
+
+  it('parses TRAINER_LINKS in both modes', () => {
+    const expected = [
+      { trainerId: 'default-user', athleteId: 'inna' },
+      { trainerId: 'a', athleteId: 'b' },
+    ]
+    expect(load(' default-user : inna ,a:b').trainerLinks).toEqual(expected)
+    expect(load(' default-user : inna ,a:b', 'dev').trainerLinks).toEqual(expected)
+    expect(load().trainerLinks).toEqual([])
+    expect(load(undefined, 'dev').trainerLinks).toEqual([])
+  })
+
+  it('drops duplicate links', () => {
+    expect(load('a:b,a:b').trainerLinks).toEqual([{ trainerId: 'a', athleteId: 'b' }])
+  })
+
+  it.each(['a', 'a:', ':b'])('refuses a malformed entry %j', entry => {
+    expect(() => load(entry)).toThrow(/TRAINER_LINKS/)
+  })
+
+  it('refuses a self-link', () => {
+    expect(() => load('a:a')).toThrow(/TRAINER_LINKS/)
+  })
+
+  it('athletesOf / trainersOf', () => {
+    const cfg = load('a:b,a:c,d:b')
+    expect(athletesOf(cfg, 'a')).toEqual(['b', 'c'])
+    expect(trainersOf(cfg, 'b')).toEqual(['a', 'd'])
+    expect(athletesOf(cfg, 'b')).toEqual([])
   })
 })

@@ -17,6 +17,7 @@ export const cloudflareTestConfig: Extract<AuthConfig, { mode: 'cloudflare' }> =
   teamDomain: TEST_TEAM_DOMAIN,
   audience: TEST_AUD,
   agentTokenIds: [],
+  trainerLinks: [],
 }
 
 export async function createTestAccess() {

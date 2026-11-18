@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import { SeedService } from './seed.service'
+import type { TrainerLink } from '../auth/auth.config'
 import * as schema from '../drizzle/schema'
 import { createFakeDb, type FakeDb } from '../testing/fake-db'
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'fs'
@@ -12,13 +13,16 @@ describe('SeedService on boot', () => {
   let db: FakeDb
   let photosDir: string
   let env: Record<string, string | undefined>
+  let trainerLinks: TrainerLink[]
 
   const config = { getOrThrow: () => photosDir, get: (key: string) => env[key] }
-  const boot = () => new SeedService(db as any, config as any).onModuleInit()
+  const boot = () =>
+    new SeedService(db as any, config as any, { mode: 'dev', defaultUserId: 'u1', trainerLinks }).onModuleInit()
 
   beforeEach(() => {
     db = createFakeDb()
     env = {}
+    trainerLinks = []
     photosDir = mkdtempSync(join(tmpdir(), 'seed-'))
   })
 
@@ -135,5 +139,12 @@ describe('SeedService on boot', () => {
       expect(logged).not.toMatch(/example\.com/)
       spies.forEach(s => s.mockRestore())
     })
+  })
+
+  it('refuses to boot when TRAINER_LINKS names an unknown User', async () => {
+    db.seed(schema.users, { id: 'a', displayName: 'A', email: null, createdAt: 0 })
+    trainerLinks = [{ trainerId: 'a', athleteId: 'ghost' }]
+
+    await expect(boot()).rejects.toThrow(/unknown User "ghost"/)
   })
 })

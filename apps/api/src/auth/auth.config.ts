@@ -10,8 +10,14 @@
  *   `X-Dev-User` header. Refused when `NODE_ENV=production`.
  */
 export type AuthConfig =
-  | { mode: 'cloudflare'; teamDomain: string; audience: string; agentTokenIds: string[] }
-  | { mode: 'dev'; defaultUserId: string }
+  | { mode: 'cloudflare'; teamDomain: string; audience: string; agentTokenIds: string[]; trainerLinks: TrainerLink[] }
+  | { mode: 'dev'; defaultUserId: string; trainerLinks: TrainerLink[] }
+
+/**
+ * A Trainer (a User) may act as an athlete (another User). Read from `TRAINER_LINKS`
+ * (`trainerId:athleteId,trainerId:athleteId`) in both modes; unset means no Trainers.
+ */
+export type TrainerLink = { trainerId: string; athleteId: string }
 
 export const AUTH_CONFIG = 'AUTH_CONFIG' as const
 
@@ -29,15 +35,46 @@ export function agentTokenId(value: string): string {
   return value.trim().replace(/\.access$/, '')
 }
 
+function parseTrainerLinks(raw: string): TrainerLink[] {
+  const links: TrainerLink[] = []
+  for (const entry of raw
+    .split(',')
+    .map(e => e.trim())
+    .filter(Boolean)) {
+    const [trainerId = '', athleteId = '', ...extra] = entry.split(':').map(id => id.trim())
+    if (!trainerId || !athleteId || extra.length) {
+      throw new Error('TRAINER_LINKS must be comma-separated trainerId:athleteId pairs')
+    }
+    if (trainerId === athleteId) {
+      throw new Error('TRAINER_LINKS must not link a User to themselves')
+    }
+    if (!links.some(l => l.trainerId === trainerId && l.athleteId === athleteId)) {
+      links.push({ trainerId, athleteId })
+    }
+  }
+  return links
+}
+
+/** The ids of the athletes `userId` is a Trainer of, in `TRAINER_LINKS` order. */
+export function athletesOf(config: AuthConfig, userId: string): string[] {
+  return config.trainerLinks.filter(l => l.trainerId === userId).map(l => l.athleteId)
+}
+
+/** The ids of the Trainers of `userId`, in `TRAINER_LINKS` order. */
+export function trainersOf(config: AuthConfig, userId: string): string[] {
+  return config.trainerLinks.filter(l => l.athleteId === userId).map(l => l.trainerId)
+}
+
 export function loadAuthConfig(env: Record<string, string | undefined>): AuthConfig {
   const read = (key: string) => env[key]?.trim() ?? ''
   const mode = read('AUTH_MODE') || 'cloudflare'
+  const trainerLinks = parseTrainerLinks(read('TRAINER_LINKS'))
 
   if (mode === 'dev') {
     if (read('NODE_ENV') === 'production') {
       throw new Error('AUTH_MODE=dev is not allowed when NODE_ENV=production')
     }
-    return { mode: 'dev', defaultUserId: read('DEV_USER_ID') || 'default-user' }
+    return { mode: 'dev', defaultUserId: read('DEV_USER_ID') || 'default-user', trainerLinks }
   }
   if (mode !== 'cloudflare') {
     throw new Error(`AUTH_MODE must be "cloudflare" or "dev"`)
@@ -55,5 +92,5 @@ export function loadAuthConfig(env: Record<string, string | undefined>): AuthCon
   if (agentTokenIds.some(id => !TOKEN_ID.test(id))) {
     throw new Error('AGENT_SERVICE_TOKEN_IDS must be comma-separated service-token client ids')
   }
-  return { mode: 'cloudflare', teamDomain, audience, agentTokenIds }
+  return { mode: 'cloudflare', teamDomain, audience, agentTokenIds, trainerLinks }
 }

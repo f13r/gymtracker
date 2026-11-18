@@ -138,7 +138,7 @@ async function setup(opts: { images?: ImageClient } = {}) {
     fetch: () => Promise.reject(new Error('no network in tests')),
   }
   app = await createAuthedApp({
-    config: { mode: 'dev', defaultUserId: 'u1' },
+    config: { mode: 'dev', defaultUserId: 'u1', trainerLinks: [] },
     db,
     metadata: {
       controllers: [AgentController],

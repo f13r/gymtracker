@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { applyHouseholdEmails } from './household-emails'
+import { assertTrainerLinks } from './trainer-links'
+import { AUTH_CONFIG, type AuthConfig } from '../auth/auth.config'
 import { DATABASE } from '../drizzle/drizzle.constants'
 import * as schema from '../drizzle/schema'
 import { relocateExerciseImages } from '../exercises/exercise-images'
@@ -53,6 +55,7 @@ export class SeedService implements OnModuleInit {
   constructor(
     @Inject(DATABASE) private db: NodePgDatabase<typeof schema>,
     private config: ConfigService,
+    @Inject(AUTH_CONFIG) private auth: AuthConfig,
   ) {}
 
   // Runs after the DATABASE provider has applied pending migrations. Users are not seeded: the
@@ -70,6 +73,8 @@ export class SeedService implements OnModuleInit {
       // No stack or message: either could quote an email.
       this.logger.error(`Household emails failed (${err instanceof Error ? err.name : 'error'})`)
     }
+    // Not caught: a TRAINER_LINKS id that is not a User must stop the boot.
+    await assertTrainerLinks(this.db, this.auth.trainerLinks)
     try {
       // Exercise Images are shared: move any left in old per-User folders (idempotent).
       await relocateExerciseImages(this.db, this.config.getOrThrow<string>('PHOTOS_DIR'), this.logger)
