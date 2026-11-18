@@ -39,7 +39,16 @@ import { type Language, usePreferencesStore } from '@/stores/preferences.store'
 
 export const SUPPORTED_LANGUAGES = ['uk', 'en'] as const
 export const FALLBACK_LANGUAGE: Language = 'uk'
-export const I18N_NAMESPACES = ['common', 'nav', 'settings', 'workout', 'equipment', 'auth', 'exercises', 'trainer'] as const
+export const I18N_NAMESPACES = [
+  'common',
+  'nav',
+  'settings',
+  'workout',
+  'equipment',
+  'auth',
+  'exercises',
+  'trainer',
+] as const
 export const DEFAULT_NS = 'common'
 
 export const resources = {

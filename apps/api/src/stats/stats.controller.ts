@@ -9,16 +9,14 @@ export class StatsController {
   constructor(private readonly svc: StatsService) {}
 
   @TrainerAccess('read')
-  @Get('prs') getPRs(
-    @Req() req: AuthenticatedRequest,
-    @Query('exerciseId') exerciseId?: string,
-    @Query('limit') limit?: string,
-  ) {
+  @Get('prs')
+  getPRs(@Req() req: AuthenticatedRequest, @Query('exerciseId') exerciseId?: string, @Query('limit') limit?: string) {
     return this.svc.getPRs(req.user.id, exerciseId, limit ? parseInt(limit) : 10)
   }
 
   @TrainerAccess('read')
-  @Get('volume') getVolume(
+  @Get('volume')
+  getVolume(
     @Req() req: AuthenticatedRequest,
     @Query('exerciseId') exerciseId?: string,
     @Query('from') from?: string,
@@ -28,16 +26,14 @@ export class StatsController {
   }
 
   @TrainerAccess('read')
-  @Get('streak') getStreak(@Req() req: AuthenticatedRequest) {
+  @Get('streak')
+  getStreak(@Req() req: AuthenticatedRequest) {
     return this.svc.getStreak(req.user.id)
   }
 
   @TrainerAccess('read')
-  @Get('bodyweight') getBodyWeight(
-    @Req() req: AuthenticatedRequest,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
+  @Get('bodyweight')
+  getBodyWeight(@Req() req: AuthenticatedRequest, @Query('from') from?: string, @Query('to') to?: string) {
     return this.svc.getBodyWeight(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined)
   }
 
@@ -50,11 +46,8 @@ export class StatsController {
   }
 
   @TrainerAccess('read')
-  @Get('frequency') getFrequency(
-    @Req() req: AuthenticatedRequest,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
+  @Get('frequency')
+  getFrequency(@Req() req: AuthenticatedRequest, @Query('from') from?: string, @Query('to') to?: string) {
     return this.svc.getFrequency(req.user.id, from ? parseInt(from) : undefined, to ? parseInt(to) : undefined)
   }
 }

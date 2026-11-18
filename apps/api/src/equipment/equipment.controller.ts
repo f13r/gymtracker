@@ -84,12 +84,14 @@ export class EquipmentController {
   }
 
   @TrainerAccess('read')
-  @Get(':id/photo') photo(@Param('id') id: string, @Res() res: FastifyReply) {
+  @Get(':id/photo')
+  photo(@Param('id') id: string, @Res() res: FastifyReply) {
     return this.serve(id, res, 'photo')
   }
 
   @TrainerAccess('read')
-  @Get(':id/thumb') thumb(@Param('id') id: string, @Res() res: FastifyReply) {
+  @Get(':id/thumb')
+  thumb(@Param('id') id: string, @Res() res: FastifyReply) {
     return this.serve(id, res, 'thumb')
   }
 

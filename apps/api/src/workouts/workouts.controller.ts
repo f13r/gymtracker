@@ -17,52 +17,54 @@ export class WorkoutsController {
   constructor(@Inject(WorkoutsService) private readonly svc: WorkoutsService) {}
 
   @TrainerAccess('read')
-  @Get('templates') getTemplates(@Req() req: AuthenticatedRequest) {
+  @Get('templates')
+  getTemplates(@Req() req: AuthenticatedRequest) {
     return this.svc.getTemplates(req.user.id)
   }
   @TrainerAccess('read')
-  @Get('templates/:id') getTemplate(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Get('templates/:id')
+  getTemplate(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.getTemplate(id, req.user.id)
   }
   @TrainerAccess('write')
-  @Post('templates') createTemplate(@Body() dto: CreateTemplateDto, @Req() req: AuthenticatedRequest) {
+  @Post('templates')
+  createTemplate(@Body() dto: CreateTemplateDto, @Req() req: AuthenticatedRequest) {
     return this.svc.createTemplate(req.user.id, dto)
   }
   @TrainerAccess('write')
-  @Patch('templates/:id') updateTemplate(
-    @Param('id') id: string,
-    @Body() dto: UpdateTemplateDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  @Patch('templates/:id')
+  updateTemplate(@Param('id') id: string, @Body() dto: UpdateTemplateDto, @Req() req: AuthenticatedRequest) {
     return this.svc.updateTemplate(id, req.user.id, dto)
   }
   @TrainerAccess('write')
-  @Delete('templates/:id') deleteTemplate(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Delete('templates/:id')
+  deleteTemplate(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.deleteTemplate(id, req.user.id)
   }
   @TrainerAccess('write')
-  @Post('templates/:id/exercises') addTemplateExercise(
-    @Param('id') id: string,
-    @Body() body: { exerciseId: string },
-    @Req() req: AuthenticatedRequest,
-  ) {
+  @Post('templates/:id/exercises')
+  addTemplateExercise(@Param('id') id: string, @Body() body: { exerciseId: string }, @Req() req: AuthenticatedRequest) {
     return this.svc.addTemplateExercise(id, req.user.id, body.exerciseId)
   }
 
   @TrainerAccess('read')
-  @Get('sessions') getSessions(@Req() req: AuthenticatedRequest) {
+  @Get('sessions')
+  getSessions(@Req() req: AuthenticatedRequest) {
     return this.svc.getSessions(req.user.id)
   }
   @TrainerAccess('read')
-  @Get('sessions/active') getActive(@Req() req: AuthenticatedRequest) {
+  @Get('sessions/active')
+  getActive(@Req() req: AuthenticatedRequest) {
     return this.svc.getActiveSession(req.user.id)
   }
   @TrainerAccess('read')
-  @Get('sessions/:id') getSession(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Get('sessions/:id')
+  getSession(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.getSession(id, req.user.id)
   }
   @TrainerAccess('read')
-  @Get('sessions/:id/comparison') getSessionComparison(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Get('sessions/:id/comparison')
+  getSessionComparison(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.getSessionComparison(id, req.user.id)
   }
   @Post('sessions') startSession(@Body() dto: StartSessionDto, @Req() req: AuthenticatedRequest) {

@@ -14,22 +14,26 @@ export class SchedulesController {
   constructor(private readonly svc: SchedulesService) {}
 
   @TrainerAccess('read')
-  @Get() getSchedules(@Req() req: AuthenticatedRequest) {
+  @Get()
+  getSchedules(@Req() req: AuthenticatedRequest) {
     return this.svc.getSchedules(req.user.id)
   }
 
   @TrainerAccess('read')
-  @Get('today') getToday(@Req() req: AuthenticatedRequest) {
+  @Get('today')
+  getToday(@Req() req: AuthenticatedRequest) {
     return this.svc.getTodaySchedule(req.user.id)
   }
 
   @TrainerAccess('write')
-  @Post() createSchedule(@Body() dto: CreateScheduleDto, @Req() req: AuthenticatedRequest) {
+  @Post()
+  createSchedule(@Body() dto: CreateScheduleDto, @Req() req: AuthenticatedRequest) {
     return this.svc.createSchedule(req.user.id, dto)
   }
 
   @TrainerAccess('write')
-  @Delete(':id') deleteSchedule(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Delete(':id')
+  deleteSchedule(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.deleteSchedule(id, req.user.id)
   }
 }

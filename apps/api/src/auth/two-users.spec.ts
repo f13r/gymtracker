@@ -46,8 +46,18 @@ describe('two Users through Cloudflare Access', () => {
     app.inject({ method: 'GET', url, headers: { 'cf-access-jwt-assertion': tokens[user] } })
 
   it('/api/me names the token’s User', async () => {
-    expect((await get('/api/me', 'u1')).json()).toEqual({ id: 'u1', displayName: 'User One', athletes: [], trainers: [] })
-    expect((await get('/api/me', 'u2')).json()).toEqual({ id: 'u2', displayName: 'User Two', athletes: [], trainers: [] })
+    expect((await get('/api/me', 'u1')).json()).toEqual({
+      id: 'u1',
+      displayName: 'User One',
+      athletes: [],
+      trainers: [],
+    })
+    expect((await get('/api/me', 'u2')).json()).toEqual({
+      id: 'u2',
+      displayName: 'User Two',
+      athletes: [],
+      trainers: [],
+    })
   })
 
   it('/api/templates lists only the token’s User’s templates', async () => {

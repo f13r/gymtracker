@@ -1,4 +1,3 @@
-
 import { RequestMethod, type Type } from '@nestjs/common'
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants'
 import { describe, expect, it } from 'vitest'
@@ -139,7 +138,12 @@ function controllerFilesOnDisk(dir = SRC): string[] {
 }
 
 /** "/a/" + "/b/:id" -> "a/b/:id": no global prefix, no empty segments. */
-const joinPath = (...parts: string[]) => '/' + parts.flatMap(p => p.split('/')).filter(Boolean).join('/')
+const joinPath = (...parts: string[]) =>
+  '/' +
+  parts
+    .flatMap(p => p.split('/'))
+    .filter(Boolean)
+    .join('/')
 
 function classify(): Record<string, Level> {
   const routes: Record<string, Level> = {}

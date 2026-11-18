@@ -1,7 +1,6 @@
 import { Controller, Get, Inject, Req } from '@nestjs/common'
 import { eq, or } from 'drizzle-orm'
 
-
 import type { AuthUser, Me } from '@gymtracker/shared'
 
 import { AUTH_CONFIG, type AuthConfig, athletesOf, trainersOf } from './auth.config'

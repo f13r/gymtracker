@@ -108,7 +108,9 @@ export class AuthGuard implements CanActivate {
     }
     if (level === 'read' && req.method !== 'GET') {
       // A `'read'` mark on a non-GET route is a classification mistake: refuse rather than write.
-      this.logger.warn(`Refused ${trainer.id} acting as ${athleteId} on read-only ${req.method} ${req.routeOptions.url}`)
+      this.logger.warn(
+        `Refused ${trainer.id} acting as ${athleteId} on read-only ${req.method} ${req.routeOptions.url}`,
+      )
       throw new ForbiddenException({ statusCode: 403, message: 'Not authorised', reason: 'trainer-access' })
     }
     const athlete = await this.findUser(eq(schema.users.id, athleteId))

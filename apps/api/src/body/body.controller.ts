@@ -15,7 +15,8 @@ export class BodyController {
   constructor(private readonly svc: BodyService) {}
 
   @TrainerAccess('read')
-  @Get('weight') getWeights(@Req() req: AuthenticatedRequest) {
+  @Get('weight')
+  getWeights(@Req() req: AuthenticatedRequest) {
     return this.svc.getWeights(req.user.id)
   }
   @Post('weight') addWeight(@Body() dto: CreateBodyWeightDto, @Req() req: AuthenticatedRequest) {

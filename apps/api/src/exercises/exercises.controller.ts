@@ -39,35 +39,42 @@ export class ExercisesController {
 
   // `?archived=true` lists only Archived Exercises; otherwise the live library.
   @TrainerAccess('read')
-  @Get() findAll(@Req() req: AuthenticatedRequest, @Query('archived') archived?: string) {
+  @Get()
+  findAll(@Req() req: AuthenticatedRequest, @Query('archived') archived?: string) {
     return this.svc.findAll(req.user.id, { archived: archived === 'true' })
   }
   @TrainerAccess('read')
-  @Get(':id/last-sets') getLastSets(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Get(':id/last-sets')
+  getLastSets(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.getLastSets(id, req.user.id)
   }
   @TrainerAccess('read')
-  @Get(':id/image') image(@Param('id') id: string, @Res() res: FastifyReply) {
+  @Get(':id/image')
+  image(@Param('id') id: string, @Res() res: FastifyReply) {
     return this.serve(id, res, 'image')
   }
   @TrainerAccess('read')
-  @Get(':id/thumb') thumb(@Param('id') id: string, @Res() res: FastifyReply) {
+  @Get(':id/thumb')
+  thumb(@Param('id') id: string, @Res() res: FastifyReply) {
     return this.serve(id, res, 'thumb')
   }
   @TrainerAccess('read')
-  @Get(':id') findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Get(':id')
+  findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.findOne(id, req.user.id)
   }
 
   @TrainerAccess('write')
-  @Post() async create(@Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
+  @Post()
+  async create(@Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
     const { fields, image } = await readMultipart(req)
     const dto = CreateExerciseSchema.parse(fields)
     return res.send(await this.svc.create(req.user.id, dto, image))
   }
 
   @TrainerAccess('write')
-  @Patch(':id') async update(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
+  @Patch(':id')
+  async update(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: FastifyReply) {
     const { fields, image } = await readMultipart(req)
     const { removeImage, ...rest } = fields
     const dto = UpdateExerciseSchema.parse(rest)
@@ -75,13 +82,15 @@ export class ExercisesController {
   }
 
   @TrainerAccess('write')
-  @Post(':id/restore') restore(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Post(':id/restore')
+  restore(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.restore(id, req.user.id)
   }
 
   // Responds `{ archived: true }` when the Exercise is still used somewhere, `{ archived: false }` when deleted.
   @TrainerAccess('write')
-  @Delete(':id') remove(@Param('id') id: string) {
+  @Delete(':id')
+  remove(@Param('id') id: string) {
     return this.svc.remove(id)
   }
 
