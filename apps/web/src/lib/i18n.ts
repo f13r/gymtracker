@@ -7,6 +7,7 @@ import enEquipment from '@/locales/en/equipment.json'
 import enExercises from '@/locales/en/exercises.json'
 import enNav from '@/locales/en/nav.json'
 import enSettings from '@/locales/en/settings.json'
+import enTrainer from '@/locales/en/trainer.json'
 import enWorkout from '@/locales/en/workout.json'
 import ukAuth from '@/locales/uk/auth.json'
 import ukCommon from '@/locales/uk/common.json'
@@ -14,6 +15,7 @@ import ukEquipment from '@/locales/uk/equipment.json'
 import ukExercises from '@/locales/uk/exercises.json'
 import ukNav from '@/locales/uk/nav.json'
 import ukSettings from '@/locales/uk/settings.json'
+import ukTrainer from '@/locales/uk/trainer.json'
 import ukWorkout from '@/locales/uk/workout.json'
 import { type Language, usePreferencesStore } from '@/stores/preferences.store'
 
@@ -37,7 +39,7 @@ import { type Language, usePreferencesStore } from '@/stores/preferences.store'
 
 export const SUPPORTED_LANGUAGES = ['uk', 'en'] as const
 export const FALLBACK_LANGUAGE: Language = 'uk'
-export const I18N_NAMESPACES = ['common', 'nav', 'settings', 'workout', 'equipment', 'auth', 'exercises'] as const
+export const I18N_NAMESPACES = ['common', 'nav', 'settings', 'workout', 'equipment', 'auth', 'exercises', 'trainer'] as const
 export const DEFAULT_NS = 'common'
 
 export const resources = {
@@ -49,6 +51,7 @@ export const resources = {
     equipment: ukEquipment,
     auth: ukAuth,
     exercises: ukExercises,
+    trainer: ukTrainer,
   },
   en: {
     common: enCommon,
@@ -58,6 +61,7 @@ export const resources = {
     equipment: enEquipment,
     auth: enAuth,
     exercises: enExercises,
+    trainer: enTrainer,
   },
 } as const
 

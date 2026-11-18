@@ -1,4 +1,5 @@
 import { meApi } from '@/api/me'
+import { stopActing, useActingStore } from '@/stores/acting.store'
 import type { QueryClient } from '@tanstack/react-query'
 
 const LAST_USER_KEY = 'gymtracker-last-user-id'
@@ -25,6 +26,11 @@ export async function syncIdentity(queryClient: QueryClient): Promise<void> {
     // Fail open like the onboarding gate: a dropped request must not blank the
     // app. 401/403 are already handled by the API client.
     return
+  }
+  // A stored athlete the Trainer is no longer linked to (e.g. a stale tab).
+  const acting = useActingStore.getState().athlete
+  if (acting && !user.athletes.some(a => a.id === acting.id)) {
+    stopActing(queryClient)
   }
   if (readLastUser() === user.id) {
     return

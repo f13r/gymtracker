@@ -1,0 +1,4 @@
+{
+  "notWhileActing": "You cannot do this while acting as {{name}}.",
+  "linkGone": "You are no longer linked to {{name}}."
+}

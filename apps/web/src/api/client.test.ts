@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError, api } from './client'
 import { browser, useAuthStatus } from '@/lib/auth-status'
+import { queryClient } from '@/lib/query'
+import { useToast } from '@/lib/toast'
+import { useActingStore } from '@/stores/acting.store'
 
 function respond(status: number, body: unknown = {}) {
   return new Response(JSON.stringify(body), {
@@ -89,6 +92,58 @@ describe('api client', () => {
       fetchMock.mockImplementation(async () => new Response('nope', { status: 403 }))
       await expect(api.delete('/x')).rejects.toThrow()
       expect(useAuthStatus.getState().status).toEqual({ kind: 'forbidden', email: null })
+    })
+  })
+
+  describe('acting as an athlete', () => {
+    const inna = { id: 'inna', displayName: 'Inna' }
+
+    beforeEach(() => {
+      sessionStorage.clear()
+      useActingStore.setState({ athlete: null })
+      useAuthStatus.setState({ status: { kind: 'ok' } })
+      useToast.setState({ message: null })
+    })
+
+    afterEach(() => {
+      useActingStore.setState({ athlete: null })
+    })
+
+    it('adds X-Act-As while acting', async () => {
+      useActingStore.setState({ athlete: inna })
+      await api.get('/x')
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+      expect(new Headers(init.headers).get('X-Act-As')).toBe('inna')
+    })
+
+    it('no X-Act-As when not acting', async () => {
+      await api.get('/x')
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+      expect(new Headers(init.headers).has('X-Act-As')).toBe(false)
+    })
+
+    it('a trainer-access 403 toasts and leaves auth status ok', async () => {
+      useActingStore.setState({ athlete: inna })
+      fetchMock.mockImplementation(async () =>
+        respond(403, { statusCode: 403, message: 'Not authorised', reason: 'trainer-access' }),
+      )
+      await expect(api.post('/x', {})).rejects.toThrow()
+      expect(useToast.getState().message).toContain('Inna')
+      expect(useActingStore.getState().athlete).toEqual(inna)
+      expect(useAuthStatus.getState().status).toEqual({ kind: 'ok' })
+    })
+
+    it('a not-your-athlete 403 stops acting and clears the cache', async () => {
+      useActingStore.setState({ athlete: inna })
+      queryClient.setQueryData(['profile'], { trainingDays: ['monday'] })
+      fetchMock.mockImplementation(async () =>
+        respond(403, { statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' }),
+      )
+      await expect(api.get('/x')).rejects.toThrow()
+      expect(useActingStore.getState().athlete).toBeNull()
+      expect(queryClient.getQueryData(['profile'])).toBeUndefined()
+      expect(useToast.getState().message).toContain('Inna')
+      expect(useAuthStatus.getState().status).toEqual({ kind: 'ok' })
     })
   })
 

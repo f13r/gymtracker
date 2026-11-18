@@ -1,4 +1,8 @@
 import { handleForbidden, handleUnauthorized } from '@/lib/auth-status'
+import i18n from '@/lib/i18n'
+import { queryClient } from '@/lib/query'
+import { showToast } from '@/lib/toast'
+import { stopActing, useActingStore } from '@/stores/acting.store'
 
 const BASE = '/api'
 
@@ -22,6 +26,7 @@ async function send(path: string, options: RequestInit = {}): Promise<Response> 
   // For FormData bodies, let the browser set Content-Type (including the
   // multipart boundary). Forcing application/json here would corrupt uploads.
   const isFormData = options.body instanceof FormData
+  const acting = useActingStore.getState().athlete
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     credentials: 'same-origin',
@@ -29,6 +34,7 @@ async function send(path: string, options: RequestInit = {}): Promise<Response> 
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers,
       'X-Requested-With': 'XMLHttpRequest',
+      ...(acting ? { 'X-Act-As': acting.id } : {}),
     },
   })
   if (!res.ok) {
@@ -37,7 +43,14 @@ async function send(path: string, options: RequestInit = {}): Promise<Response> 
     if (res.status === 401) {
       handleUnauthorized()
     } else if (res.status === 403) {
-      handleForbidden(typeof error.email === 'string' ? error.email : null)
+      if (acting && error.reason === 'trainer-access') {
+        showToast(i18n.t('trainer:notWhileActing', { name: acting.displayName }))
+      } else if (acting && error.reason === 'not-your-athlete') {
+        stopActing(queryClient)
+        showToast(i18n.t('trainer:linkGone', { name: acting.displayName }))
+      } else {
+        handleForbidden(typeof error.email === 'string' ? error.email : null)
+      }
     }
     const message = typeof error.message === 'string' && error.message ? error.message : 'Request failed'
     throw new ApiError(res.status, error, message)

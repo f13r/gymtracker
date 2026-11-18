@@ -2,11 +2,12 @@ import { QueryClient } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { syncIdentity } from './identity'
+import { useActingStore } from '@/stores/acting.store'
 
 const LAST_USER_KEY = 'gymtracker-last-user-id'
 
 function meResponse(id: string) {
-  return new Response(JSON.stringify({ id, displayName: id }), {
+  return new Response(JSON.stringify({ id, displayName: id, athletes: [], trainers: [] }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   })
@@ -61,5 +62,16 @@ describe('syncIdentity', () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
     await expect(syncIdentity(queryClient)).resolves.toBeUndefined()
     expect(queryClient.getQueryData(['profile'])).toEqual({ trainingDays: ['monday'] })
+  })
+
+  it('stops acting when the stored athlete is no longer linked', async () => {
+    localStorage.setItem(LAST_USER_KEY, 'trainer')
+    useActingStore.setState({ athlete: { id: 'inna', displayName: 'Inna' } })
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ id: 'trainer', displayName: 'T', athletes: [], trainers: [] }), { status: 200 }),
+    )
+    await syncIdentity(queryClient)
+    expect(useActingStore.getState().athlete).toBeNull()
+    expect(queryClient.getQueryData(['profile'])).toBeUndefined()
   })
 })
