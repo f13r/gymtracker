@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError, api } from './client'
 import { browser, useAuthStatus } from '@/lib/auth-status'
+import { consumeLinkGoneNotice } from '@/lib/link-gone'
 import { queryClient } from '@/lib/query'
 import { useToast } from '@/lib/toast'
 import { useActingStore } from '@/stores/acting.store'
@@ -116,6 +117,13 @@ describe('api client', () => {
       expect(new Headers(init.headers).get('X-Act-As')).toBe('inna')
     })
 
+    it('omits X-Act-As when the request opts out', async () => {
+      useActingStore.setState({ athlete: inna })
+      await api.get('/x', { actAs: false })
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+      expect(new Headers(init.headers).has('X-Act-As')).toBe(false)
+    })
+
     it('no X-Act-As when not acting', async () => {
       await api.get('/x')
       const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
@@ -134,6 +142,7 @@ describe('api client', () => {
     })
 
     it('a not-your-athlete 403 stops acting and clears the cache', async () => {
+      vi.spyOn(browser, 'replace').mockImplementation(() => {})
       useActingStore.setState({ athlete: inna })
       queryClient.setQueryData(['profile'], { trainingDays: ['monday'] })
       fetchMock.mockImplementation(async () =>
@@ -142,11 +151,24 @@ describe('api client', () => {
       await expect(api.get('/x')).rejects.toThrow()
       expect(useActingStore.getState().athlete).toBeNull()
       expect(queryClient.getQueryData(['profile'])).toBeUndefined()
-      expect(useToast.getState().message).toContain('Inna')
       expect(useAuthStatus.getState().status).toEqual({ kind: 'ok' })
     })
 
+    it('a not-your-athlete 403 hard-navigates to /dashboard and leaves a notice for the next boot', async () => {
+      const replace = vi.spyOn(browser, 'replace').mockImplementation(() => {})
+      useActingStore.setState({ athlete: inna })
+      fetchMock.mockImplementation(async () =>
+        respond(403, { statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' }),
+      )
+      await expect(api.get('/x')).rejects.toThrow()
+      expect(replace).toHaveBeenCalledWith('/dashboard')
+      expect(consumeLinkGoneNotice()).toBe('Inna')
+      expect(consumeLinkGoneNotice()).toBeNull()
+      replace.mockRestore()
+    })
+
     it('a not-your-athlete 403 for a stale request leaves the current acting alone', async () => {
+      const replace = vi.spyOn(browser, 'replace').mockImplementation(() => {})
       useActingStore.setState({ athlete: inna })
       fetchMock.mockImplementation(async () => {
         // The Trainer switched to another athlete while this request was in flight.
@@ -156,6 +178,7 @@ describe('api client', () => {
       await expect(api.get('/x')).rejects.toThrow()
       expect(useActingStore.getState().athlete).toEqual({ id: 'other', displayName: 'Other' })
       expect(useToast.getState().message).toBeNull()
+      expect(replace).not.toHaveBeenCalled()
     })
 
     it('an unknown 403 reason while acting still reports forbidden', async () => {

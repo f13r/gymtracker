@@ -1,5 +1,6 @@
-import { handleForbidden, handleUnauthorized } from '@/lib/auth-status'
+import { browser, handleForbidden, handleUnauthorized } from '@/lib/auth-status'
 import i18n from '@/lib/i18n'
+import { rememberLinkGone } from '@/lib/link-gone'
 import { queryClient } from '@/lib/query'
 import { showToast } from '@/lib/toast'
 import { stopActing, useActingStore } from '@/stores/acting.store'
@@ -22,11 +23,11 @@ export class ApiError extends Error {
 // Every API call goes through here. X-Requested-With makes Cloudflare Access
 // answer an expired session with 401 instead of a cross-origin login redirect
 // (which fetch can only report as an opaque CORS error).
-async function send(path: string, options: RequestInit = {}): Promise<Response> {
+async function send(path: string, options: RequestInit = {}, actAs = true): Promise<Response> {
   // For FormData bodies, let the browser set Content-Type (including the
   // multipart boundary). Forcing application/json here would corrupt uploads.
   const isFormData = options.body instanceof FormData
-  const acting = useActingStore.getState().athlete
+  const acting = actAs ? useActingStore.getState().athlete : null
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     credentials: 'same-origin',
@@ -50,7 +51,11 @@ async function send(path: string, options: RequestInit = {}): Promise<Response> 
         // a late answer must not undo a newer switch.
         if (useActingStore.getState().athlete?.id === acting.id) {
           stopActing(queryClient)
-          showToast(i18n.t('trainer:linkGone', { name: acting.displayName }))
+          // Mounted pages that do not read the acting store would keep showing the
+          // athlete's data, so reload into the Trainer's own dashboard. The notice
+          // is shown on the next boot (see main.tsx).
+          rememberLinkGone(acting.displayName)
+          browser.replace('/dashboard')
         }
       } else {
         handleForbidden(typeof error.email === 'string' ? error.email : null)
@@ -62,15 +67,16 @@ async function send(path: string, options: RequestInit = {}): Promise<Response> 
   return res
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await send(path, options)
+async function request<T>(path: string, options?: RequestInit, actAs?: boolean): Promise<T> {
+  const res = await send(path, options, actAs)
   return res.json() as Promise<T>
 }
 
 const body = (value: unknown) => (value instanceof FormData ? value : JSON.stringify(value))
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
+  // `actAs: false` sends the request as the signed-in User even while acting (only /me needs it).
+  get: <T>(path: string, opts?: { actAs?: boolean }) => request<T>(path, undefined, opts?.actAs),
   post: <T>(path: string, value: unknown) => request<T>(path, { method: 'POST', body: body(value) }),
   patch: <T>(path: string, value: unknown) => request<T>(path, { method: 'PATCH', body: body(value) }),
   // Most DELETEs answer with an empty body; some (e.g. /exercises/:id) report what happened.

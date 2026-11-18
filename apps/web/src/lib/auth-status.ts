@@ -13,6 +13,7 @@ export const useAuthStatus = create<{ status: AuthStatus }>(() => ({ status: { k
 // Browser side effects, kept on an object so tests can stand in for them.
 export const browser = {
   reload: () => window.location.reload(),
+  replace: (url: string) => window.location.replace(url),
 }
 
 const RELOAD_KEY = 'gymtracker-auth-reload-at'

@@ -2,6 +2,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { syncIdentity } from './identity'
+import { useToast } from '@/lib/toast'
 import { useActingStore } from '@/stores/acting.store'
 
 const LAST_USER_KEY = 'gymtracker-last-user-id'
@@ -73,5 +74,19 @@ describe('syncIdentity', () => {
     await syncIdentity(queryClient)
     expect(useActingStore.getState().athlete).toBeNull()
     expect(queryClient.getQueryData(['profile'])).toBeUndefined()
+  })
+
+  it('asks /me without X-Act-As and silently stops a stale acting state', async () => {
+    localStorage.setItem(LAST_USER_KEY, 'trainer')
+    useActingStore.setState({ athlete: { id: 'inna', displayName: 'Inna' } })
+    useToast.setState({ message: null })
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ id: 'trainer', displayName: 'T', athletes: [], trainers: [] }), { status: 200 }),
+    )
+    await syncIdentity(queryClient)
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(new Headers(init.headers).has('X-Act-As')).toBe(false)
+    expect(useActingStore.getState().athlete).toBeNull()
+    expect(useToast.getState().message).toBeNull()
   })
 })
