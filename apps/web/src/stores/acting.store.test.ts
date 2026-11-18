@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { startActing, stopActing, useActingStore } from './acting.store'
 
@@ -25,6 +25,20 @@ describe('acting store', () => {
     stopActing(queryClient)
     expect(useActingStore.getState().athlete).toBeNull()
     expect(queryClient.getQueryData(['profile'])).toBeUndefined()
+  })
+
+  it('cancels in-flight queries before clearing the cache', () => {
+    const order: string[] = []
+    vi.spyOn(queryClient, 'cancelQueries').mockImplementation(() => {
+      order.push('cancel')
+      return Promise.resolve()
+    })
+    vi.spyOn(queryClient, 'clear').mockImplementation(() => {
+      order.push('clear')
+    })
+    startActing(queryClient, inna)
+    stopActing(queryClient)
+    expect(order).toEqual(['cancel', 'clear', 'cancel', 'clear'])
   })
 
   it('state is kept in sessionStorage, not localStorage', () => {

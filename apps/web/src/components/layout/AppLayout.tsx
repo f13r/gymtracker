@@ -2,6 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { Home, Dumbbell, Library, BarChart2, Activity, Settings } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { ActingBanner } from '@/components/trainer/ActingBanner'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -18,6 +19,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation('nav')
   return (
     <div className="bg-background flex h-svh flex-col">
+      <ActingBanner />
       <main className="flex-1 overflow-y-auto">{children}</main>
       <nav className="border-border bg-card pb-safe grid grid-cols-6 border-t">
         {NAV.map(({ to, labelKey, Icon }) => {

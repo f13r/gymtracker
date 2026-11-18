@@ -1,4 +1,8 @@
 {
   "notWhileActing": "You cannot do this while acting as {{name}}.",
-  "linkGone": "You are no longer linked to {{name}}."
+  "linkGone": "You are no longer linked to {{name}}.",
+  "banner": "Viewing {{name}}",
+  "exit": "Exit",
+  "athletes": "Act as…",
+  "yourTrainers": "Your Trainer"
 }

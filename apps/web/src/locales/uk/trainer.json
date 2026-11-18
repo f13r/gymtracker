@@ -1,4 +1,8 @@
 {
   "notWhileActing": "Це недоступно, поки ви дієте як {{name}}.",
-  "linkGone": "Ви більше не пов’язані з {{name}}."
+  "linkGone": "Ви більше не пов’язані з {{name}}.",
+  "banner": "Перегляд: {{name}}",
+  "exit": "Вийти",
+  "athletes": "Діяти як…",
+  "yourTrainers": "Ваш тренер"
 }

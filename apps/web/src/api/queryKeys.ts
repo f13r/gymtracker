@@ -9,6 +9,7 @@
 type Id = string | null | undefined
 
 export const queryKeys = {
+  me: () => ['me'] as const,
   profile: () => ['profile'] as const,
   exercises: () => ['exercises'] as const,
   // Under the exercises() prefix, so invalidating exercises() refreshes these too.

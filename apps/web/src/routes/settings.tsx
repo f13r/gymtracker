@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
+import { meApi } from '@/api/me'
 import { profileApi } from '@/api/profile'
 import { queryKeys } from '@/api/queryKeys'
+import { AthletePicker } from '@/components/trainer/AthletePicker'
 import i18n, { SUPPORTED_LANGUAGES } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+import { useActing } from '@/stores/acting.store'
 import { usePreferencesStore } from '@/stores/preferences.store'
 
 const REST_PRESETS = [60, 90, 120, 180]
@@ -23,7 +26,11 @@ const DURATION_OPTIONS = [30, 45, 60, 75, 90]
 export function SettingsPage() {
   const { unit, setUnit, restTimerSeconds, setRestTimer, language, setLanguage } = usePreferencesStore()
   const { t } = useTranslation(['settings', 'common'])
+  const { t: tt } = useTranslation('trainer')
+  const { acting } = useActing()
   const queryClient = useQueryClient()
+
+  const { data: me } = useQuery({ queryKey: queryKeys.me(), queryFn: meApi.get })
 
   const { data: profile } = useQuery({
     queryKey: queryKeys.profile(),
@@ -58,6 +65,23 @@ export function SettingsPage() {
         <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('eyebrow')}</p>
         <h1 className="font-display font-700 text-3xl tracking-wide">{t('title')}</h1>
       </div>
+
+      {me && me.athletes.length > 0 && !acting && <AthletePicker athletes={me.athletes} />}
+
+      {me && me.trainers.length > 0 && (
+        <div className="bg-card border-border overflow-hidden rounded-xl border">
+          <div className="border-border border-b px-4 py-3">
+            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+              {tt('yourTrainers')}
+            </p>
+          </div>
+          <ul className="space-y-1 px-4 py-3 text-sm">
+            {me.trainers.map(trainer => (
+              <li key={trainer.id}>{trainer.displayName}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="bg-card border-border overflow-hidden rounded-xl border">
         <div className="border-border border-b px-4 py-3">

@@ -145,6 +145,26 @@ describe('api client', () => {
       expect(useToast.getState().message).toContain('Inna')
       expect(useAuthStatus.getState().status).toEqual({ kind: 'ok' })
     })
+
+    it('a not-your-athlete 403 for a stale request leaves the current acting alone', async () => {
+      useActingStore.setState({ athlete: inna })
+      fetchMock.mockImplementation(async () => {
+        // The Trainer switched to another athlete while this request was in flight.
+        useActingStore.setState({ athlete: { id: 'other', displayName: 'Other' } })
+        return respond(403, { statusCode: 403, message: 'Not authorised', reason: 'not-your-athlete' })
+      })
+      await expect(api.get('/x')).rejects.toThrow()
+      expect(useActingStore.getState().athlete).toEqual({ id: 'other', displayName: 'Other' })
+      expect(useToast.getState().message).toBeNull()
+    })
+
+    it('an unknown 403 reason while acting still reports forbidden', async () => {
+      useActingStore.setState({ athlete: inna })
+      fetchMock.mockImplementation(async () => respond(403, { message: 'Forbidden', reason: 'something-else' }))
+      await expect(api.get('/x')).rejects.toThrow()
+      expect(useAuthStatus.getState().status).toEqual({ kind: 'forbidden', email: null })
+      expect(useActingStore.getState().athlete).toEqual(inna)
+    })
   })
 
   it('leaves auth status alone on other errors', async () => {

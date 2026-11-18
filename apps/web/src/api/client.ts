@@ -46,8 +46,12 @@ async function send(path: string, options: RequestInit = {}): Promise<Response> 
       if (acting && error.reason === 'trainer-access') {
         showToast(i18n.t('trainer:notWhileActing', { name: acting.displayName }))
       } else if (acting && error.reason === 'not-your-athlete') {
-        stopActing(queryClient)
-        showToast(i18n.t('trainer:linkGone', { name: acting.displayName }))
+        // Only end acting if it is still the athlete this request was sent for;
+        // a late answer must not undo a newer switch.
+        if (useActingStore.getState().athlete?.id === acting.id) {
+          stopActing(queryClient)
+          showToast(i18n.t('trainer:linkGone', { name: acting.displayName }))
+        }
       } else {
         handleForbidden(typeof error.email === 'string' ? error.email : null)
       }

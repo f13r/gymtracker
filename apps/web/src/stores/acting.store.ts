@@ -23,11 +23,13 @@ export const useActingStore = create<ActingStore>()(
 // navigates to /dashboard afterwards.
 export function startActing(queryClient: QueryClient, athlete: AuthUser): void {
   useActingStore.setState({ athlete })
+  void queryClient.cancelQueries()
   queryClient.clear()
 }
 
 export function stopActing(queryClient: QueryClient): void {
   useActingStore.setState({ athlete: null })
+  void queryClient.cancelQueries()
   queryClient.clear()
 }
 
