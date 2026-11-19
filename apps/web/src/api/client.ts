@@ -24,15 +24,16 @@ export class ApiError extends Error {
 // answer an expired session with 401 instead of a cross-origin login redirect
 // (which fetch can only report as an opaque CORS error).
 async function send(path: string, options: RequestInit = {}, actAs = true): Promise<Response> {
-  // For FormData bodies, let the browser set Content-Type (including the
-  // multipart boundary). Forcing application/json here would corrupt uploads.
-  const isFormData = options.body instanceof FormData
+  // Only a JSON string body is labelled JSON. FormData gets its multipart type
+  // (with boundary) from the browser, and a bodyless request (GET, DELETE) gets
+  // none: Fastify answers 400 to an empty body that claims to be JSON.
+  const isJson = typeof options.body === 'string'
   const acting = actAs ? useActingStore.getState().athlete : null
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     credentials: 'same-origin',
     headers: {
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(isJson ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
       'X-Requested-With': 'XMLHttpRequest',
       ...(acting ? { 'X-Act-As': acting.id } : {}),

@@ -39,6 +39,19 @@ describe('api client', () => {
     expect(init.credentials).toBe('same-origin')
   })
 
+  // Fastify answers 400 to an empty body that claims to be JSON, so a bodyless
+  // request must not send Content-Type: application/json.
+  it.each([
+    ['get', () => api.get('/x'), null],
+    ['delete', () => api.delete('/x'), null],
+    ['post', () => api.post('/x', { a: 1 }), 'application/json'],
+    ['patch', () => api.patch('/x', { a: 1 }), 'application/json'],
+  ])('%s sends Content-Type only with a body', async (_name, call, expected) => {
+    await call()
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(new Headers(init.headers).get('Content-Type')).toBe(expected)
+  })
+
   describe('401 (Cloudflare Access session missing or expired)', () => {
     let reload: ReturnType<typeof vi.spyOn>
 
