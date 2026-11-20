@@ -1,0 +1,57 @@
+{
+  "eyebrow": "Відстеження",
+  "title": "ТІЛО",
+  "latestWeight": "Остання вага",
+  "kg": "кг",
+  "weightInKg": "Вага в кг",
+  "addWeight": "Додати вагу",
+  "progressPhotos": "Фото прогресу",
+  "weightLog": "Журнал ваги",
+  "profile": {
+    "title": "Мій профіль",
+    "age": "Вік",
+    "height": "Зріст (см)",
+    "gender": "Стать",
+    "select": "Оберіть…",
+    "male": "Чоловіча",
+    "female": "Жіноча",
+    "experience": "Досвід",
+    "experienceLevels": {
+      "beginner": "Початківець",
+      "intermediate": "Середній рівень",
+      "advanced": "Досвідчений"
+    },
+    "goal": "Мета",
+    "goals": {
+      "hypertrophy": "Гіпертрофія",
+      "strength": "Сила",
+      "powerlifting": "Пауерліфтинг",
+      "general": "Загальна форма"
+    },
+    "trainingDays": "Дні тренувань",
+    "sessionDuration": "Тривалість тренування (хв)",
+    "minutes": "{{count}} хв",
+    "saveError": "Не вдалося зберегти: перевірте дані (вік і зріст мають бути цілими числами).",
+    "saving": "Збереження…",
+    "saved": "Збережено ✓",
+    "save": "Зберегти профіль"
+  },
+  "photos": {
+    "eyebrow": "Прогрес",
+    "title": "ФОТО",
+    "addPhoto": "Додати фото",
+    "emptyTitle": "Ще немає фото",
+    "emptyHint": "Завантажте своє перше фото прогресу",
+    "uploadPhoto": "Завантажити фото",
+    "photoAlt": "Прогрес",
+    "deletePhotoAria": "Видалити фото",
+    "weightKg": "{{weight}} кг",
+    "deleteTitle": "Видалити фото?",
+    "deleteDescriptionDated": "Фото від {{date}} буде остаточно видалено.",
+    "deleteDescription": "Це фото буде остаточно видалено.",
+    "cannotUndo": "Цю дію не можна скасувати.",
+    "cancel": "Скасувати",
+    "deleting": "Видалення…",
+    "delete": "Видалити"
+  }
+}

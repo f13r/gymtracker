@@ -1,0 +1,20 @@
+{
+  "eyebrow": "Обладнання",
+  "title": "ЗАЛ",
+  "addEquipment": "Додати обладнання",
+  "loading": "Завантаження…",
+  "emptyTitle": "Ще немає обладнання",
+  "emptyHint": "Сфотографуйте тренажер чи інше обладнання, щоб почати",
+  "exerciseCount_one": "{{count}} вправа",
+  "exerciseCount_few": "{{count}} вправи",
+  "exerciseCount_many": "{{count}} вправ",
+  "exerciseCount_other": "{{count}} вправи",
+  "moreCount": " ще +{{count}}",
+  "deleteEquipmentAria": "Видалити обладнання",
+  "deleteTitle": "Видалити обладнання?",
+  "deleteDescriptionNamed": "«{{name}}» і його фото буде остаточно видалено. Пов'язані вправи збережуться.",
+  "deleteDescription": "Це обладнання і його фото буде остаточно видалено. Пов'язані вправи збережуться.",
+  "cancel": "Скасувати",
+  "deleting": "Видалення…",
+  "delete": "Видалити"
+}

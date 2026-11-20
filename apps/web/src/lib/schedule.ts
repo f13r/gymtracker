@@ -1,42 +1,23 @@
 import type { Program, WorkoutSchedule } from '@gymtracker/shared'
 
+import { dateLocale } from '@/lib/date-locale'
+import i18n from '@/lib/i18n'
+
 /** Monday-first column order, expressed in JS getDay() indices (0 = Sunday). */
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const
 
-export const DAY_SHORT: Record<number, string> = {
-  0: 'Sun',
-  1: 'Mon',
-  2: 'Tue',
-  3: 'Wed',
-  4: 'Thu',
-  5: 'Fri',
-  6: 'Sat',
-}
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
-const DAY_FULL: Record<number, string> = {
-  0: 'Sunday',
-  1: 'Monday',
-  2: 'Tuesday',
-  3: 'Wednesday',
-  4: 'Thursday',
-  5: 'Friday',
-  6: 'Saturday',
-}
+/**
+ * Short weekday names keyed by JS getDay() index, in the current UI language.
+ * Each entry is a getter, so lookups follow language changes.
+ */
+export const DAY_SHORT: Record<number, string> = Object.defineProperties(
+  {},
+  Object.fromEntries(DAY_KEYS.map((key, i) => [i, { enumerable: true, get: () => i18n.t(`common:days.${key}`) }])),
+) as Record<number, string>
 
-const MONTH_FULL = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const
+const capitalize = (s: string) => s.charAt(0).toLocaleUpperCase(dateLocale()) + s.slice(1)
 
 /** A workout that lands on a given day, paired with the schedule that placed it there. */
 export type ScheduledWorkout = {
@@ -61,11 +42,13 @@ export function isSameDay(a: Date, b: Date): boolean {
 }
 
 export function monthLabel(year: number, month: number): string {
-  return `${MONTH_FULL[month]} ${year}`
+  // `month` alone gives the standalone (nominative) form, e.g. «листопад» rather than «листопада».
+  const name = new Date(year, month, 1).toLocaleDateString(dateLocale(), { month: 'long' })
+  return `${capitalize(name)} ${year}`
 }
 
 export function dayTitle(date: Date): string {
-  return `${DAY_FULL[date.getDay()]}, ${MONTH_FULL[date.getMonth()]} ${date.getDate()}`
+  return capitalize(date.toLocaleDateString(dateLocale(), { weekday: 'long', month: 'long', day: 'numeric' }))
 }
 
 /**

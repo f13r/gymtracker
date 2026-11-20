@@ -11,7 +11,7 @@ import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import i18n from '@/lib/i18n'
+import { dateLocale } from '@/lib/date-locale'
 import { dayLabelByTemplate, isSameDay, toYMD, workoutsForDate } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
 import { useActing } from '@/stores/acting.store'
@@ -80,7 +80,7 @@ export function DayScheduleSheet({ date, onClose }: DayScheduleSheetProps) {
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>
-            {date ? date.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
+            {date ? date.toLocaleDateString(dateLocale(), { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
           </DrawerTitle>
         </DrawerHeader>
 

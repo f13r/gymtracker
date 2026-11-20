@@ -1,0 +1,32 @@
+{
+  "greeting": {
+    "morning": "Доброго ранку",
+    "afternoon": "Добрий день",
+    "evening": "Добрий вечір"
+  },
+  "summary": {
+    "vsLastSession": "порівняно з минулим тренуванням",
+    "volume": "ОБ’ЄМ",
+    "kg": "кг",
+    "was": "було",
+    "done": "ВИКОНАНО",
+    "exercisesComplete": "вправ завершено",
+    "beatLastTime": "краще, ніж минулого разу ({{count}})"
+  },
+  "exerciseFallback": "Вправа",
+  "activeWorkout": "Активне тренування",
+  "noExercises": "Вправ поки немає",
+  "finishing": "Завершення…",
+  "finishWorkout": "Завершити тренування",
+  "exercisesPlanned_one": "Заплановано {{count}} вправу",
+  "exercisesPlanned_few": "Заплановано {{count}} вправи",
+  "exercisesPlanned_many": "Заплановано {{count}} вправ",
+  "exercisesPlanned_other": "Заплановано {{count}} вправи",
+  "letsGo": "ПОЇХАЛИ",
+  "skipToday": "Пропустити сьогодні",
+  "startWorkout": "ПОЧАТИ ТРЕНУВАННЯ",
+  "recent": "Нещодавні",
+  "viewAll": "Усі →",
+  "noWorkouts": "Тренувань поки немає.",
+  "startFirst": " Почніть перше!"
+}

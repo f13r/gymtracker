@@ -100,7 +100,7 @@ export function SettingsPage() {
               type="button"
               onClick={() => setUnit(u)}
             >
-              {u}
+              {t(`units.${u}`)}
             </button>
           ))}
         </div>
@@ -123,7 +123,7 @@ export function SettingsPage() {
               type="button"
               onClick={() => setRestTimer(s)}
             >
-              {s}s
+              {t('secondsShort', { value: s })}
             </button>
           ))}
         </div>
@@ -181,7 +181,7 @@ export function SettingsPage() {
               type="button"
               onClick={() => setDuration(min)}
             >
-              {min}m
+              {t('minutesShort', { value: min })}
             </button>
           ))}
         </div>

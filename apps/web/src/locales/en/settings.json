@@ -10,5 +10,11 @@
   "language": "Language",
   "about": "About",
   "app": "App",
-  "version": "Version"
+  "version": "Version",
+  "units": {
+    "kg": "kg",
+    "lb": "lb"
+  },
+  "secondsShort": "{{value}}s",
+  "minutesShort": "{{value}}m"
 }

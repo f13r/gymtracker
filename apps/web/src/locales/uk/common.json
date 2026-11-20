@@ -11,5 +11,11 @@
   "languages": {
     "uk": "Українська",
     "en": "English"
+  },
+  "close": "Закрити",
+  "decrease": "Зменшити",
+  "increase": "Збільшити",
+  "errors": {
+    "requestFailed": "Не вдалося виконати запит"
   }
 }

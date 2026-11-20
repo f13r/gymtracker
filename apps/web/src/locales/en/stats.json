@@ -1,0 +1,17 @@
+{
+  "eyebrow": "Overview",
+  "title": "STATISTICS",
+  "current": "Current",
+  "best": "Best",
+  "dayStreak_one": "day streak",
+  "dayStreak_other": "day streak",
+  "personalRecords": "Personal Records",
+  "kgTimesReps": "kg × {{reps}}",
+  "volumeOverTime": "Volume Over Time",
+  "volume": "Volume",
+  "bodyWeight": "Body Weight",
+  "weightKg": "Weight (kg)",
+  "weeklyFrequency": "Weekly Frequency",
+  "workouts": "Workouts",
+  "empty": "Complete workouts to see your stats"
+}

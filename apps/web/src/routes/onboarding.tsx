@@ -1,26 +1,28 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { profileApi } from '@/api/profile'
 import { queryKeys } from '@/api/queryKeys'
 import { cn } from '@/lib/utils'
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
-const DAY_LABELS: Record<string, string> = {
-  monday: 'Mon',
-  tuesday: 'Tue',
-  wednesday: 'Wed',
-  thursday: 'Thu',
-  friday: 'Fri',
-  saturday: 'Sat',
-  sunday: 'Sun',
+const DAY_LABEL_KEYS: Record<string, string> = {
+  monday: 'common:days.mon',
+  tuesday: 'common:days.tue',
+  wednesday: 'common:days.wed',
+  thursday: 'common:days.thu',
+  friday: 'common:days.fri',
+  saturday: 'common:days.sat',
+  sunday: 'common:days.sun',
 }
 const DURATION_OPTIONS = [30, 45, 60, 75, 90]
 
 type Step = 0 | 1 | 2 | 3
 
 export function OnboardingPage() {
+  const { t } = useTranslation(['onboarding', 'common'])
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [step, setStep] = useState<Step>(0)
@@ -81,14 +83,14 @@ export function OnboardingPage() {
                 />
               ))}
             </div>
-            <p className="text-muted-foreground text-xs">Step {step + 1} of 4</p>
+            <p className="text-muted-foreground text-xs">{t('stepOf', { current: step + 1, total: 4 })}</p>
           </div>
 
           {step === 0 && (
             <div className="space-y-4">
               <div>
-                <h1 className="font-display font-700 text-3xl tracking-wide">Experience Level</h1>
-                <p className="text-muted-foreground mt-1 text-sm">How long have you been training consistently?</p>
+                <h1 className="font-display font-700 text-3xl tracking-wide">{t('experience.title')}</h1>
+                <p className="text-muted-foreground mt-1 text-sm">{t('experience.subtitle')}</p>
               </div>
               <div className="space-y-3">
                 {(['beginner', 'intermediate', 'advanced'] as const).map(lvl => (
@@ -101,12 +103,8 @@ export function OnboardingPage() {
                     type="button"
                     onClick={() => setExperienceLevel(lvl)}
                   >
-                    <p className="font-display font-600 tracking-wide capitalize">{lvl}</p>
-                    <p className="text-muted-foreground text-sm">
-                      {lvl === 'beginner' && 'Less than 1 year of consistent training'}
-                      {lvl === 'intermediate' && '1–3 years of consistent training'}
-                      {lvl === 'advanced' && '3+ years of consistent training'}
-                    </p>
+                    <p className="font-display font-600 tracking-wide capitalize">{t(`levels.${lvl}.label`)}</p>
+                    <p className="text-muted-foreground text-sm">{t(`levels.${lvl}.description`)}</p>
                   </button>
                 ))}
               </div>
@@ -116,8 +114,8 @@ export function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h1 className="font-display font-700 text-3xl tracking-wide">Primary Goal</h1>
-                <p className="text-muted-foreground mt-1 text-sm">What do you want to achieve?</p>
+                <h1 className="font-display font-700 text-3xl tracking-wide">{t('goal.title')}</h1>
+                <p className="text-muted-foreground mt-1 text-sm">{t('goal.subtitle')}</p>
               </div>
               <div className="space-y-3">
                 {(['hypertrophy', 'strength', 'powerlifting', 'general'] as const).map(g => (
@@ -130,13 +128,8 @@ export function OnboardingPage() {
                     type="button"
                     onClick={() => setGoal(g)}
                   >
-                    <p className="font-display font-600 tracking-wide capitalize">{g}</p>
-                    <p className="text-muted-foreground text-sm">
-                      {g === 'hypertrophy' && 'Build muscle size and definition'}
-                      {g === 'strength' && 'Get stronger in compound movements'}
-                      {g === 'powerlifting' && 'Maximise squat, bench, and deadlift'}
-                      {g === 'general' && 'Stay fit and healthy overall'}
-                    </p>
+                    <p className="font-display font-600 tracking-wide capitalize">{t(`goals.${g}.label`)}</p>
+                    <p className="text-muted-foreground text-sm">{t(`goals.${g}.description`)}</p>
                   </button>
                 ))}
               </div>
@@ -146,8 +139,8 @@ export function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <h1 className="font-display font-700 text-3xl tracking-wide">Training Days</h1>
-                <p className="text-muted-foreground mt-1 text-sm">Which days do you train? Pick 2–6.</p>
+                <h1 className="font-display font-700 text-3xl tracking-wide">{t('days.title')}</h1>
+                <p className="text-muted-foreground mt-1 text-sm">{t('days.subtitle')}</p>
               </div>
               <div className="grid grid-cols-7 gap-1">
                 {DAYS.map(day => (
@@ -162,14 +155,12 @@ export function OnboardingPage() {
                     type="button"
                     onClick={() => toggleDay(day)}
                   >
-                    {DAY_LABELS[day]}
+                    {t(DAY_LABEL_KEYS[day])}
                   </button>
                 ))}
               </div>
               {trainingDays.length > 0 && (
-                <p className="text-muted-foreground text-sm">
-                  {trainingDays.length} {trainingDays.length === 1 ? 'day' : 'days'} selected
-                </p>
+                <p className="text-muted-foreground text-sm">{t('days.selected', { count: trainingDays.length })}</p>
               )}
             </div>
           )}
@@ -177,8 +168,8 @@ export function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <h1 className="font-display font-700 text-3xl tracking-wide">Session Length</h1>
-                <p className="text-muted-foreground mt-1 text-sm">How long are your typical workouts?</p>
+                <h1 className="font-display font-700 text-3xl tracking-wide">{t('duration.title')}</h1>
+                <p className="text-muted-foreground mt-1 text-sm">{t('duration.subtitle')}</p>
               </div>
               <div className="grid grid-cols-5 gap-2">
                 {DURATION_OPTIONS.map(min => (
@@ -191,7 +182,7 @@ export function OnboardingPage() {
                     type="button"
                     onClick={() => setSessionDuration(min)}
                   >
-                    {min}m
+                    {t('duration.minutes', { min })}
                   </button>
                 ))}
               </div>
@@ -208,7 +199,7 @@ export function OnboardingPage() {
             type="button"
             onClick={next}
           >
-            {save.isPending ? 'Saving…' : step < 3 ? 'Continue' : "Let's go"}
+            {save.isPending ? t('saving') : step < 3 ? t('continue') : t('letsGo')}
           </button>
           {step > 0 && (
             <button
@@ -216,7 +207,7 @@ export function OnboardingPage() {
               type="button"
               onClick={() => setStep((step - 1) as Step)}
             >
-              Back
+              {t('back')}
             </button>
           )}
         </div>

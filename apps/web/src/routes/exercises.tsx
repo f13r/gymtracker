@@ -21,17 +21,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: 'text-slate-400',
 }
 
-const EQUIPMENT_LABELS: Record<string, string> = {
-  barbell: 'Barbell',
-  dumbbell: 'Dumbbell',
-  machine: 'Machine',
-  bodyweight: 'Bodyweight',
-  cable: 'Cable',
-  other: 'Other',
-}
+const EQUIPMENT_TYPES = new Set(['barbell', 'dumbbell', 'machine', 'bodyweight', 'cable', 'other'])
+const CATEGORIES = new Set(['push', 'pull', 'legs', 'core', 'cardio', 'other'])
 
 export function ExercisesPage() {
-  const { t } = useTranslation('exercises')
+  const { t } = useTranslation(['exercises', 'workout'])
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [editing, setEditing] = useState<Exercise | null>(null)
@@ -58,11 +52,11 @@ export function ExercisesPage() {
       <div className="border-border space-y-3 border-b px-4 pt-4 pb-3">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Library</p>
-            <h1 className="font-display font-700 text-3xl tracking-wide">EXERCISES</h1>
+            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('eyebrow')}</p>
+            <h1 className="font-display font-700 text-3xl tracking-wide">{t('title')}</h1>
           </div>
           <button
-            aria-label="Add exercise"
+            aria-label={t('addExercise')}
             className="bg-card border-border active:bg-muted flex size-10 items-center justify-center rounded-xl border transition-colors"
             type="button"
             onClick={() => setCreating(true)}
@@ -73,9 +67,9 @@ export function ExercisesPage() {
         <div className="relative">
           <Search className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2" size={16} />
           <input
-            aria-label="Search exercises"
+            aria-label={t('searchAria')}
             className="bg-card border-border focus:border-primary w-full rounded-xl border py-2.5 pr-4 pl-9 text-sm transition-colors outline-none"
-            placeholder="Search exercises..."
+            placeholder={t('searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -89,7 +83,7 @@ export function ExercisesPage() {
               <span
                 className={`text-xs font-bold tracking-widest uppercase ${CATEGORY_COLORS[cat] ?? 'text-muted-foreground'}`}
               >
-                {cat}
+                {CATEGORIES.has(cat) ? t(`workout:categories.${cat}`) : cat}
               </span>
             </div>
             {grouped[cat].map(ex => (
@@ -102,7 +96,9 @@ export function ExercisesPage() {
                 <span className="text-sm font-medium">{ex.name}</span>
                 {ex.equipmentType && (
                   <span className="text-muted-foreground bg-muted rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
-                    {EQUIPMENT_LABELS[ex.equipmentType] ?? ex.equipmentType}
+                    {EQUIPMENT_TYPES.has(ex.equipmentType)
+                      ? t(`workout:equipmentTypes.${ex.equipmentType}`)
+                      : ex.equipmentType}
                   </span>
                 )}
               </button>
@@ -111,7 +107,7 @@ export function ExercisesPage() {
         ))}
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
-            <p className="text-muted-foreground">No exercises found</p>
+            <p className="text-muted-foreground">{t('noneFound')}</p>
           </div>
         )}
 
@@ -214,7 +210,7 @@ function CreateExerciseDialog({
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-h-[90dvh] max-w-sm overflow-y-auto rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Add exercise</DialogTitle>
+          <DialogTitle>{t('addExercise')}</DialogTitle>
         </DialogHeader>
         {/* Only mounted while open, so the fields reset between opens. */}
         {open && (

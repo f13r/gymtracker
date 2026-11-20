@@ -1,24 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { programApi } from '@/api/program'
 import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
 import { DayScheduleSheet } from '@/components/workout/DayScheduleSheet'
-import {
-  buildMonthGrid,
-  DAY_SHORT,
-  dayLabelByTemplate,
-  isSameDay,
-  monthLabel,
-  WEEK_ORDER,
-  workoutsForDate,
-} from '@/lib/schedule'
+import { dateLocale } from '@/lib/date-locale'
+import { buildMonthGrid, dayLabelByTemplate, isSameDay, WEEK_ORDER, workoutsForDate } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
 
+/** `common:days.*` key for a JS weekday number (0 = Sunday). */
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
+
 export function CalendarPage() {
+  const { t } = useTranslation('history')
   const today = useMemo(() => new Date(), [])
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() })
   const [selected, setSelected] = useState<Date | null>(null)
@@ -54,7 +52,10 @@ export function CalendarPage() {
         continue
       }
       seen.add(templateId)
-      legend.push({ label: labels.get(templateId) ?? '•', name: nameById.get(templateId) ?? 'Workout' })
+      legend.push({
+        label: labels.get(templateId) ?? '•',
+        name: nameById.get(templateId) ?? t('calendar.workoutFallback'),
+      })
     }
   }
 
@@ -62,15 +63,17 @@ export function CalendarPage() {
     <div className="flex min-h-full flex-col">
       <div className="border-border flex items-center justify-between border-b px-4 pt-4 pb-3">
         <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Plan</p>
-          <h1 className="font-display font-700 text-3xl tracking-wide">CALENDAR</h1>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+            {t('calendar.eyebrow')}
+          </p>
+          <h1 className="font-display font-700 text-3xl tracking-wide">{t('calendar.title')}</h1>
         </div>
         <button
           className="border-border text-muted-foreground rounded-lg border px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-colors active:scale-95"
           type="button"
           onClick={goToday}
         >
-          Today
+          {t('calendar.today')}
         </button>
       </div>
 
@@ -78,16 +81,18 @@ export function CalendarPage() {
         {/* Month navigation */}
         <div className="mb-3 flex items-center justify-between">
           <button
-            aria-label="Previous month"
+            aria-label={t('calendar.previousMonth')}
             className="text-muted-foreground active:text-foreground flex size-9 items-center justify-center transition-colors"
             type="button"
             onClick={() => step(-1)}
           >
             <ChevronLeft size={20} />
           </button>
-          <h2 className="font-display font-600 text-lg tracking-wide">{monthLabel(view.year, view.month)}</h2>
+          <h2 className="font-display font-600 text-lg tracking-wide">
+            {new Date(view.year, view.month, 1).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' })}
+          </h2>
           <button
-            aria-label="Next month"
+            aria-label={t('calendar.nextMonth')}
             className="text-muted-foreground active:text-foreground flex size-9 items-center justify-center transition-colors"
             type="button"
             onClick={() => step(1)}
@@ -103,7 +108,7 @@ export function CalendarPage() {
               key={day}
               className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase"
             >
-              {DAY_SHORT[day]}
+              {t(`common:days.${DAY_KEYS[day]}`)}
             </span>
           ))}
         </div>
@@ -117,11 +122,14 @@ export function CalendarPage() {
             const first = dayWorkouts[0]
             const label = first ? (labels.get(first.templateId) ?? '•') : null
             const more = dayWorkouts.length - 1
-            const ariaLabel = `${date.getDate()}: ${
+            const content =
               dayWorkouts.length === 0
-                ? 'nothing scheduled'
-                : dayWorkouts.map(w => nameById.get(w.templateId) ?? 'Workout').join(', ')
-            }${isToday ? ' (today)' : ''}`
+                ? t('calendar.nothingScheduled')
+                : dayWorkouts.map(w => nameById.get(w.templateId) ?? t('calendar.workoutFallback')).join(', ')
+            const ariaLabel = t(isToday ? 'calendar.dayAriaToday' : 'calendar.dayAria', {
+              day: date.getDate(),
+              content,
+            })
 
             return (
               <button

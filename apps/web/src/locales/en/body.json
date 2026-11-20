@@ -1,0 +1,57 @@
+{
+  "eyebrow": "Tracking",
+  "title": "BODY",
+  "latestWeight": "Latest weight",
+  "kg": "kg",
+  "weightInKg": "Weight in kg",
+  "addWeight": "Add weight",
+  "progressPhotos": "Progress Photos",
+  "weightLog": "Weight Log",
+  "profile": {
+    "title": "My Profile",
+    "age": "Age",
+    "height": "Height (cm)",
+    "gender": "Gender",
+    "select": "Select…",
+    "male": "Male",
+    "female": "Female",
+    "experience": "Experience",
+    "experienceLevels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "goal": "Goal",
+    "goals": {
+      "hypertrophy": "Hypertrophy",
+      "strength": "Strength",
+      "powerlifting": "Powerlifting",
+      "general": "General fitness"
+    },
+    "trainingDays": "Training days",
+    "sessionDuration": "Session duration (min)",
+    "minutes": "{{count}} min",
+    "saveError": "Couldn’t save: check your entries (age/height must be whole numbers).",
+    "saving": "Saving…",
+    "saved": "Saved ✓",
+    "save": "Save profile"
+  },
+  "photos": {
+    "eyebrow": "Progress",
+    "title": "PHOTOS",
+    "addPhoto": "Add Photo",
+    "emptyTitle": "No photos yet",
+    "emptyHint": "Upload your first progress photo",
+    "uploadPhoto": "Upload Photo",
+    "photoAlt": "Progress",
+    "deletePhotoAria": "Delete photo",
+    "weightKg": "{{weight}} kg",
+    "deleteTitle": "Delete photo?",
+    "deleteDescriptionDated": "Photo from {{date}} will be permanently removed.",
+    "deleteDescription": "This photo will be permanently removed.",
+    "cannotUndo": "This cannot be undone.",
+    "cancel": "Cancel",
+    "deleting": "Deleting…",
+    "delete": "Delete"
+  }
+}

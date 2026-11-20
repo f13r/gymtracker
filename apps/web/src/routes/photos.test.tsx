@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { ProgressPhoto } from '@gymtracker/shared'
 
+import i18n from '@/lib/i18n'
 import { PhotosPage } from '@/routes/photos'
 
 const photo: ProgressPhoto = {
@@ -23,6 +24,10 @@ vi.mock('@/api/body', () => ({
 }))
 
 describe('PhotosPage', () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage('en')
+  })
+
   it('loads each thumbnail by photo id from the owner-checked route', async () => {
     render(
       <QueryClientProvider client={new QueryClient()}>

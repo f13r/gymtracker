@@ -1,0 +1,19 @@
+{
+  "eyebrow": "Огляд",
+  "title": "СТАТИСТИКА",
+  "current": "Поточна",
+  "best": "Найкраща",
+  "dayStreak_one": "день поспіль",
+  "dayStreak_few": "дні поспіль",
+  "dayStreak_many": "днів поспіль",
+  "dayStreak_other": "дня поспіль",
+  "personalRecords": "Особисті рекорди",
+  "kgTimesReps": "кг × {{reps}}",
+  "volumeOverTime": "Об'єм у динаміці",
+  "volume": "Об'єм",
+  "bodyWeight": "Вага тіла",
+  "weightKg": "Вага (кг)",
+  "weeklyFrequency": "Тренувань на тиждень",
+  "workouts": "Тренування",
+  "empty": "Завершуйте тренування, щоб побачити статистику"
+}

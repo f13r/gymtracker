@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2, Zap } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { Program, ProgramPhase } from '@gymtracker/shared'
 
@@ -17,26 +18,13 @@ import {
 } from '@/components/ui/dialog'
 import { useActing } from '@/stores/acting.store'
 
-const PHASE_TYPE_LABELS: Record<string, string> = {
-  accumulation: 'Accumulation',
-  strength: 'Strength',
-  peaking: 'Peaking',
-  maintenance: 'Maintenance',
-}
-
-const UPDATE_TYPE_LABELS: Record<string, string> = {
-  phase_transition: 'Phase Transition',
-  exercise_swap: 'Exercise Swap',
-  deload: 'Deload Week',
-  phase_extension: 'Phase Extension',
-}
-
 function PhaseProgressBar({ phase }: { phase: ProgramPhase }) {
+  const { t } = useTranslation('program')
   const pct = Math.min(100, Math.round((phase.completedSessionCount / phase.targetSessionCount) * 100))
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">Sessions</span>
+        <span className="text-muted-foreground">{t('view.sessions')}</span>
         <span className="font-mono tabular-nums">
           {phase.completedSessionCount} / {phase.targetSessionCount}
         </span>
@@ -49,6 +37,7 @@ function PhaseProgressBar({ phase }: { phase: ProgramPhase }) {
 }
 
 function ProgramView({ program }: { program: Program }) {
+  const { t } = useTranslation('program')
   const { acting } = useActing()
   const queryClient = useQueryClient()
   const [confirmRemove, setConfirmRemove] = useState(false)
@@ -79,14 +68,14 @@ function ProgramView({ program }: { program: Program }) {
     <div className="space-y-4">
       <div className="bg-card border-border overflow-hidden rounded-xl border">
         <div className="border-border border-b px-4 py-3">
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Program</p>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('view.program')}</p>
           <p className="font-display font-600 text-lg tracking-wide">{program.name}</p>
         </div>
         {activePhase && (
           <div className="space-y-3 p-4">
             <div className="flex items-center gap-2">
               <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-semibold">
-                {PHASE_TYPE_LABELS[activePhase.type] ?? activePhase.type}
+                {t(`phaseTypes.${activePhase.type}`, { defaultValue: activePhase.type })}
               </span>
               <span className="font-display font-600 text-sm">{activePhase.name}</span>
             </div>
@@ -99,7 +88,9 @@ function ProgramView({ program }: { program: Program }) {
       {pendingPhases.length > 0 && (
         <div className="bg-card border-border overflow-hidden rounded-xl border">
           <div className="border-border border-b px-4 py-3">
-            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Upcoming Phases</p>
+            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+              {t('view.upcomingPhases')}
+            </p>
           </div>
           <div className="divide-border divide-y">
             {pendingPhases.map((phase, i) => (
@@ -107,7 +98,9 @@ function ProgramView({ program }: { program: Program }) {
                 <span className="text-muted-foreground font-mono text-sm">{i + 2}</span>
                 <div>
                   <p className="text-sm font-medium">{phase.name}</p>
-                  <p className="text-muted-foreground text-xs">{PHASE_TYPE_LABELS[phase.type] ?? phase.type}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {t(`phaseTypes.${phase.type}`, { defaultValue: phase.type })}
+                  </p>
                 </div>
               </div>
             ))}
@@ -121,7 +114,7 @@ function ProgramView({ program }: { program: Program }) {
             <div className="flex items-center gap-2">
               <Zap className="text-primary" size={16} />
               <span className="text-primary text-xs font-semibold tracking-widest uppercase">
-                {UPDATE_TYPE_LABELS[program.pendingUpdate.type] ?? program.pendingUpdate.type}
+                {t(`updateTypes.${program.pendingUpdate.type}`, { defaultValue: program.pendingUpdate.type })}
               </span>
             </div>
           </div>
@@ -146,7 +139,7 @@ function ProgramView({ program }: { program: Program }) {
                   type="button"
                   onClick={() => acknowledge.mutate({ action: 'accept' })}
                 >
-                  Accept
+                  {t('view.accept')}
                 </button>
                 <button
                   className="bg-muted text-muted-foreground font-display font-600 flex-1 rounded-xl py-2.5 text-sm tracking-wide transition-all active:scale-95 disabled:opacity-50"
@@ -154,7 +147,7 @@ function ProgramView({ program }: { program: Program }) {
                   type="button"
                   onClick={() => acknowledge.mutate({ action: 'dismiss' })}
                 >
-                  Not yet
+                  {t('view.notYet')}
                 </button>
               </div>
             )}
@@ -170,7 +163,7 @@ function ProgramView({ program }: { program: Program }) {
             type="button"
             onClick={() => evaluate.mutate()}
           >
-            {evaluate.isPending ? 'Evaluating…' : 'Re-evaluate my program'}
+            {evaluate.isPending ? t('view.evaluating') : t('view.reevaluate')}
           </button>
 
           <button
@@ -179,7 +172,7 @@ function ProgramView({ program }: { program: Program }) {
             onClick={() => setConfirmRemove(true)}
           >
             <Trash2 size={16} strokeWidth={1.5} />
-            Remove program
+            {t('view.removeProgram')}
           </button>
         </>
       )}
@@ -187,16 +180,13 @@ function ProgramView({ program }: { program: Program }) {
       <Dialog open={confirmRemove} onOpenChange={open => !open && setConfirmRemove(false)}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Remove program?</DialogTitle>
-            <DialogDescription>
-              {program.name} and its weekly schedule will be removed so you can start again. Your past workout history
-              is kept.
-            </DialogDescription>
+            <DialogTitle>{t('removeDialog.title')}</DialogTitle>
+            <DialogDescription>{t('removeDialog.description', { name: program.name })}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
             <DialogClose asChild>
               <Button className="flex-1" variant="outline">
-                Cancel
+                {t('removeDialog.cancel')}
               </Button>
             </DialogClose>
             <Button
@@ -205,7 +195,7 @@ function ProgramView({ program }: { program: Program }) {
               variant="destructive"
               onClick={() => remove.mutate()}
             >
-              {remove.isPending ? 'Removing…' : 'Remove'}
+              {remove.isPending ? t('removeDialog.removing') : t('removeDialog.remove')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -215,6 +205,7 @@ function ProgramView({ program }: { program: Program }) {
 }
 
 export function ProgramPage() {
+  const { t } = useTranslation('program')
   const { acting } = useActing()
   const queryClient = useQueryClient()
   const [showPreview, setShowPreview] = useState(false)
@@ -243,21 +234,19 @@ export function ProgramPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-border border-b px-4 pt-4 pb-3">
-        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">AI Coach</p>
-        <h1 className="font-display font-700 text-3xl tracking-wide">PROGRAM</h1>
+        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('eyebrow')}</p>
+        <h1 className="font-display font-700 text-3xl tracking-wide">{t('title')}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-lg space-y-4 p-4">
-          {isLoading && <div className="text-muted-foreground p-8 text-center text-sm">Loading…</div>}
+          {isLoading && <div className="text-muted-foreground p-8 text-center text-sm">{t('loading')}</div>}
 
           {!isLoading && !program && (
             <div className="flex flex-col items-center gap-6 py-16 text-center">
               <div className="space-y-2">
-                <h2 className="font-display font-600 text-xl tracking-wide">No Program Yet</h2>
-                <p className="text-muted-foreground text-sm">
-                  Let the AI create a personalised multi-phase program based on your profile and available exercises.
-                </p>
+                <h2 className="font-display font-600 text-xl tracking-wide">{t('empty.title')}</h2>
+                <p className="text-muted-foreground text-sm">{t('empty.body')}</p>
               </div>
               {!acting && (
                 <div className="flex flex-col items-center gap-3">
@@ -267,14 +256,14 @@ export function ProgramPage() {
                     type="button"
                     onClick={() => generate.mutate()}
                   >
-                    {generate.isPending ? 'Generating…' : 'Generate my Program'}
+                    {generate.isPending ? t('generating') : t('generate')}
                   </button>
                   <button
                     className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
                     type="button"
                     onClick={() => setShowPreview(true)}
                   >
-                    Preview the AI prompt first
+                    {t('empty.previewPrompt')}
                   </button>
                 </div>
               )}
@@ -288,18 +277,16 @@ export function ProgramPage() {
       <Dialog open={showPreview && !acting} onOpenChange={setShowPreview}>
         <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Prompt sent to the AI</DialogTitle>
-            <DialogDescription>
-              This exact text (your profile, exercise library, and recent training) is what generates your program.
-            </DialogDescription>
+            <DialogTitle>{t('preview.title')}</DialogTitle>
+            <DialogDescription>{t('preview.description')}</DialogDescription>
           </DialogHeader>
           <div className="bg-muted/50 min-h-0 flex-1 overflow-y-auto rounded-lg p-3">
-            {previewLoading && <p className="text-muted-foreground text-sm">Building prompt…</p>}
+            {previewLoading && <p className="text-muted-foreground text-sm">{t('preview.building')}</p>}
             {preview && <pre className="text-xs leading-relaxed whitespace-pre-wrap">{preview.prompt}</pre>}
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
             <DialogClose asChild>
-              <Button variant="outline">Close</Button>
+              <Button variant="outline">{t('preview.close')}</Button>
             </DialogClose>
             <Button
               disabled={!preview}
@@ -313,10 +300,10 @@ export function ProgramPage() {
                 }
               }}
             >
-              {copied ? 'Copied ✓' : 'Copy'}
+              {copied ? t('preview.copied') : t('preview.copy')}
             </Button>
             <Button disabled={generate.isPending} onClick={() => generate.mutate()}>
-              {generate.isPending ? 'Generating…' : 'Generate my Program'}
+              {generate.isPending ? t('generating') : t('generate')}
             </Button>
           </DialogFooter>
         </DialogContent>

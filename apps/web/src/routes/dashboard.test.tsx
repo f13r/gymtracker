@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AuthUser } from '@gymtracker/shared'
 
+import i18n from '@/lib/i18n'
 import { DashboardPage } from '@/routes/dashboard'
 import { useActingStore } from '@/stores/acting.store'
 
@@ -47,7 +48,8 @@ function renderDashboard() {
 }
 
 describe('DashboardPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('en')
     navigate.mockClear()
     getActiveSession.mockImplementation(() => Promise.resolve(null))
     getToday.mockImplementation(() =>

@@ -1,0 +1,44 @@
+{
+  "calendar": {
+    "eyebrow": "План",
+    "title": "КАЛЕНДАР",
+    "today": "Сьогодні",
+    "previousMonth": "Попередній місяць",
+    "nextMonth": "Наступний місяць",
+    "workoutFallback": "Тренування",
+    "nothingScheduled": "нічого не заплановано",
+    "dayAria": "{{day}}: {{content}}",
+    "dayAriaToday": "{{day}}: {{content}} (сьогодні)"
+  },
+  "list": {
+    "back": "Головна",
+    "eyebrow": "Журнал",
+    "title": "ІСТОРІЯ",
+    "empty": "Завершених тренувань ще немає"
+  },
+  "detail": {
+    "back": "Історія",
+    "durationMinutes": "{{minutes}} хв",
+    "totalSets": "усього підходів",
+    "volumeKg": "об’єм (кг)",
+    "exerciseFallback": "Вправа",
+    "setLabel": "П{{number}}",
+    "weightByReps": "{{weight}} кг × {{reps}}",
+    "reps": "{{reps}} повт.",
+    "missed": "пропущено",
+    "firstTime": "Уперше",
+    "vsDate": "проти {{date}}",
+    "top": "макс. ",
+    "sets": "підходи ",
+    "vol": "об’єм ",
+    "kgValue": "{{value}} кг"
+  },
+  "deleteAria": "Видалити тренування",
+  "deleteDialog": {
+    "title": "Видалити тренування?",
+    "description": "«{{name}}» буде видалено назавжди. Цю дію неможливо скасувати.",
+    "cancel": "Скасувати",
+    "deleting": "Видаляємо…",
+    "delete": "Видалити"
+  }
+}

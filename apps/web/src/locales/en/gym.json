@@ -1,0 +1,18 @@
+{
+  "eyebrow": "Equipment",
+  "title": "GYM",
+  "addEquipment": "Add Equipment",
+  "loading": "Loading…",
+  "emptyTitle": "No equipment yet",
+  "emptyHint": "Photograph a piece of gym equipment to get started",
+  "exerciseCount_one": "{{count}} exercise",
+  "exerciseCount_other": "{{count}} exercises",
+  "moreCount": " +{{count}} more",
+  "deleteEquipmentAria": "Delete equipment",
+  "deleteTitle": "Delete equipment?",
+  "deleteDescriptionNamed": "\"{{name}}\" and its photo will be permanently removed. Linked exercises are kept.",
+  "deleteDescription": "This equipment and its photo will be permanently removed. Linked exercises are kept.",
+  "cancel": "Cancel",
+  "deleting": "Deleting…",
+  "delete": "Delete"
+}

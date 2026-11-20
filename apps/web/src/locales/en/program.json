@@ -1,0 +1,70 @@
+{
+  "eyebrow": "AI Coach",
+  "title": "PROGRAM",
+  "loading": "Loading…",
+  "empty": {
+    "title": "No Program Yet",
+    "body": "Let the AI create a personalised multi-phase program based on your profile and available exercises.",
+    "previewPrompt": "Preview the AI prompt first"
+  },
+  "generate": "Generate my Program",
+  "generating": "Generating…",
+  "preview": {
+    "title": "Prompt sent to the AI",
+    "description": "This exact text (your profile, exercise library, and recent training) is what generates your program.",
+    "building": "Building prompt…",
+    "close": "Close",
+    "copy": "Copy",
+    "copied": "Copied ✓"
+  },
+  "view": {
+    "program": "Program",
+    "upcomingPhases": "Upcoming Phases",
+    "sessions": "Sessions",
+    "accept": "Accept",
+    "notYet": "Not yet",
+    "evaluating": "Evaluating…",
+    "reevaluate": "Re-evaluate my program",
+    "removeProgram": "Remove program"
+  },
+  "removeDialog": {
+    "title": "Remove program?",
+    "description": "{{name}} and its weekly schedule will be removed so you can start again. Your past workout history is kept.",
+    "cancel": "Cancel",
+    "removing": "Removing…",
+    "remove": "Remove"
+  },
+  "phaseTypes": {
+    "accumulation": "Accumulation",
+    "strength": "Strength",
+    "peaking": "Peaking",
+    "maintenance": "Maintenance"
+  },
+  "updateTypes": {
+    "phase_transition": "Phase Transition",
+    "exercise_swap": "Exercise Swap",
+    "deload": "Deload Week",
+    "phase_extension": "Phase Extension"
+  },
+  "start": {
+    "eyebrow": "Training",
+    "title": "WORKOUTS",
+    "createTemplateAria": "Create workout template",
+    "emptyTitle": "No workout templates yet",
+    "emptyBody": "Create a workout template to plan your workouts",
+    "createTemplate": "Create Workout Template",
+    "exerciseCount_one": "{{count}} exercise",
+    "exerciseCount_other": "{{count}} exercises",
+    "startAria": "Start workout",
+    "scheduleAria": "Schedule template",
+    "deleteAria": "Delete template",
+    "editWorkout": "Edit Workout",
+    "quickStart": "Quick Start",
+    "quickWorkoutName": "Quick Workout",
+    "deleteTitle": "Delete workout template?",
+    "deleteDescription": "\"{{name}}\" will be permanently removed. This cannot be undone.",
+    "cancel": "Cancel",
+    "deleting": "Deleting…",
+    "delete": "Delete"
+  }
+}

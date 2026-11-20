@@ -10,5 +10,11 @@
   "language": "Мова",
   "about": "Про застосунок",
   "app": "Застосунок",
-  "version": "Версія"
+  "version": "Версія",
+  "units": {
+    "kg": "кг",
+    "lb": "фунти"
+  },
+  "secondsShort": "{{value}} с",
+  "minutesShort": "{{value}} хв"
 }

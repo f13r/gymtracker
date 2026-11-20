@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { AuthUser } from '@gymtracker/shared'
 
+import i18n from '@/lib/i18n'
 import { BodyPage } from '@/routes/body'
 import { useActingStore } from '@/stores/acting.store'
 
@@ -24,6 +25,10 @@ function renderBody() {
 }
 
 describe('BodyPage', () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage('en')
+  })
+
   afterEach(() => useActingStore.setState({ athlete: null }))
 
   it('shows everything when acting as yourself', async () => {

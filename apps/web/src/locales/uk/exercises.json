@@ -7,5 +7,11 @@
   "restoreNamed": "Відновити {{name}}",
   "restoredToast": "«{{name}}» відновлено",
   "restoreError": "Не вдалося відновити «{{name}}».",
-  "openExisting": "Відкрити «{{name}}»"
+  "openExisting": "Відкрити «{{name}}»",
+  "eyebrow": "Бібліотека",
+  "title": "ВПРАВИ",
+  "addExercise": "Додати вправу",
+  "searchAria": "Пошук вправ",
+  "searchPlaceholder": "Пошук вправ...",
+  "noneFound": "Вправ не знайдено"
 }

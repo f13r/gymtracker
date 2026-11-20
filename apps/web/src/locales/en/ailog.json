@@ -1,0 +1,13 @@
+{
+  "eyebrow": "Debug",
+  "title": "AI LOG",
+  "refreshing": "refreshing…",
+  "refresh": "Refresh",
+  "durationMs": "{{ms}}ms",
+  "prompt": "Prompt",
+  "response": "Response",
+  "summary_one": "{{count}} entry · auto-refreshes every 5s · in-memory only",
+  "summary_other": "{{count}} entries · auto-refreshes every 5s · in-memory only",
+  "emptyTitle": "No AI calls logged yet.",
+  "emptyHint": "Trigger an equipment analysis or finish a workout to see logs here."
+}

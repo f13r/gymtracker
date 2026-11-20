@@ -1,0 +1,39 @@
+{
+  "stepOf": "Крок {{current}} з {{total}}",
+  "experience": {
+    "title": "Рівень підготовки",
+    "subtitle": "Як довго ви регулярно тренуєтеся?"
+  },
+  "levels": {
+    "beginner": { "label": "Початківець", "description": "Менше 1 року регулярних тренувань" },
+    "intermediate": { "label": "Середній", "description": "1–3 роки регулярних тренувань" },
+    "advanced": { "label": "Досвідчений", "description": "Понад 3 роки регулярних тренувань" }
+  },
+  "goal": {
+    "title": "Основна ціль",
+    "subtitle": "Чого ви хочете досягти?"
+  },
+  "goals": {
+    "hypertrophy": { "label": "Гіпертрофія", "description": "Збільшити м’язову масу та рельєф" },
+    "strength": { "label": "Сила", "description": "Стати сильнішим у базових вправах" },
+    "powerlifting": { "label": "Пауерліфтинг", "description": "Максимум у присіді, жимі лежачи та становій тязі" },
+    "general": { "label": "Загальна форма", "description": "Підтримувати форму та здоров’я" }
+  },
+  "days": {
+    "title": "Дні тренувань",
+    "subtitle": "У які дні ви тренуєтеся? Оберіть від 2 до 6.",
+    "selected_one": "Обрано {{count}} день",
+    "selected_few": "Обрано {{count}} дні",
+    "selected_many": "Обрано {{count}} днів",
+    "selected_other": "Обрано {{count}} дня"
+  },
+  "duration": {
+    "title": "Тривалість тренування",
+    "subtitle": "Скільки зазвичай триває ваше тренування?",
+    "minutes": "{{min}} хв"
+  },
+  "saving": "Збереження…",
+  "continue": "Продовжити",
+  "letsGo": "Поїхали",
+  "back": "Назад"
+}

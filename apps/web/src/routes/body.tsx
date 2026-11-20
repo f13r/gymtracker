@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Scale, Camera, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { BodyWeight } from '@gymtracker/shared'
 
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { dateLocale } from '@/lib/date-locale'
 import { useActing } from '@/stores/acting.store'
 
 const EXPERIENCE = ['beginner', 'intermediate', 'advanced'] as const
@@ -22,6 +24,7 @@ const DURATIONS = [30, 45, 60, 75, 90]
 const numOrNull = (v: string) => (v === '' ? null : Number(v))
 
 export function BodyPage() {
+  const { t } = useTranslation('body')
   const { acting } = useActing()
   const queryClient = useQueryClient()
   const [newWeight, setNewWeight] = useState('')
@@ -41,8 +44,8 @@ export function BodyPage() {
   return (
     <div className="mx-auto max-w-lg space-y-5 p-4">
       <div className="pt-2">
-        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Tracking</p>
-        <h1 className="font-display font-700 text-3xl tracking-wide">BODY</h1>
+        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('eyebrow')}</p>
+        <h1 className="font-display font-700 text-3xl tracking-wide">{t('title')}</h1>
       </div>
 
       <ProfileCard />
@@ -53,12 +56,12 @@ export function BodyPage() {
             <Scale className="text-accent" size={22} />
           </div>
           <div>
-            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Latest weight</p>
+            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('latestWeight')}</p>
             <p className="font-display font-700 text-accent text-4xl leading-tight">
-              {latest.weightKg} <span className="text-muted-foreground text-lg font-normal">kg</span>
+              {latest.weightKg} <span className="text-muted-foreground text-lg font-normal">{t('kg')}</span>
             </p>
             <p className="text-muted-foreground text-xs">
-              {new Date(latest.recordedAt * 1000).toLocaleDateString('en', {
+              {new Date(latest.recordedAt * 1000).toLocaleDateString(dateLocale(), {
                 weekday: 'long',
                 month: 'short',
                 day: 'numeric',
@@ -79,15 +82,16 @@ export function BodyPage() {
           }}
         >
           <input
-            aria-label="Weight in kg"
+            aria-label={t('weightInKg')}
             className="bg-card border-border focus:border-primary h-12 flex-1 rounded-xl border px-4 text-base transition-colors outline-none"
             inputMode="decimal"
-            placeholder="Weight in kg"
+            placeholder={t('weightInKg')}
             type="number"
             value={newWeight}
             onChange={e => setNewWeight(e.target.value)}
           />
           <button
+            aria-label={t('addWeight')}
             className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-xl transition-transform active:scale-95 disabled:opacity-40"
             disabled={!newWeight || addWeight.isPending}
             type="submit"
@@ -106,7 +110,7 @@ export function BodyPage() {
             <div className="bg-muted flex size-9 items-center justify-center rounded-lg">
               <Camera className="text-muted-foreground" size={18} />
             </div>
-            <span className="font-medium">Progress Photos</span>
+            <span className="font-medium">{t('progressPhotos')}</span>
           </div>
           <span className="text-muted-foreground text-sm">→</span>
         </Link>
@@ -114,15 +118,15 @@ export function BodyPage() {
 
       {weights.length > 0 && (
         <div className="space-y-1">
-          <p className="text-muted-foreground pb-1 text-xs font-semibold tracking-widest uppercase">Weight Log</p>
+          <p className="text-muted-foreground pb-1 text-xs font-semibold tracking-widest uppercase">{t('weightLog')}</p>
           <div className="bg-card border-border divide-border/50 divide-y overflow-hidden rounded-xl border">
             {weights.slice(0, 10).map(w => (
               <div key={w.id} className="flex items-center justify-between px-4 py-3">
                 <span className="font-display font-600 text-lg">
-                  {w.weightKg} <span className="text-muted-foreground text-sm font-normal">kg</span>
+                  {w.weightKg} <span className="text-muted-foreground text-sm font-normal">{t('kg')}</span>
                 </span>
                 <span className="text-muted-foreground text-xs">
-                  {new Date(w.recordedAt * 1000).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                  {new Date(w.recordedAt * 1000).toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric' })}
                 </span>
               </div>
             ))}
@@ -145,6 +149,7 @@ function ProfileCard() {
 }
 
 function ProfileForm({ profile }: { profile: UserProfile | null }) {
+  const { t } = useTranslation(['body', 'common'])
   const queryClient = useQueryClient()
 
   const [form, setForm] = useState<UpdateProfilePayload>({
@@ -183,11 +188,11 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
 
   return (
     <div className="bg-card border-border space-y-4 rounded-xl border p-5">
-      <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">My Profile</p>
+      <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('profile.title')}</p>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="age">Age</Label>
+          <Label htmlFor="age">{t('profile.age')}</Label>
           <Input
             id="age"
             inputMode="numeric"
@@ -197,7 +202,7 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="height">Height (cm)</Label>
+          <Label htmlFor="height">{t('profile.height')}</Label>
           <Input
             id="height"
             inputMode="numeric"
@@ -209,34 +214,34 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label>Gender</Label>
+        <Label>{t('profile.gender')}</Label>
         <Select
           value={form.gender ?? undefined}
           onValueChange={v => update(f => ({ ...f, gender: v as UpdateProfilePayload['gender'] }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select…" />
+            <SelectValue placeholder={t('profile.select')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="male">Male</SelectItem>
-            <SelectItem value="female">Female</SelectItem>
+            <SelectItem value="male">{t('profile.male')}</SelectItem>
+            <SelectItem value="female">{t('profile.female')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-1.5">
-        <Label>Experience</Label>
+        <Label>{t('profile.experience')}</Label>
         <Select
           value={form.experienceLevel ?? undefined}
           onValueChange={v => update(f => ({ ...f, experienceLevel: v as UpdateProfilePayload['experienceLevel'] }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select…" />
+            <SelectValue placeholder={t('profile.select')} />
           </SelectTrigger>
           <SelectContent>
             {EXPERIENCE.map(x => (
-              <SelectItem key={x} className="capitalize" value={x}>
-                {x}
+              <SelectItem key={x} value={x}>
+                {t(`profile.experienceLevels.${x}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -244,18 +249,18 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label>Goal</Label>
+        <Label>{t('profile.goal')}</Label>
         <Select
           value={form.goal ?? undefined}
           onValueChange={v => update(f => ({ ...f, goal: v as UpdateProfilePayload['goal'] }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select…" />
+            <SelectValue placeholder={t('profile.select')} />
           </SelectTrigger>
           <SelectContent>
             {GOAL.map(x => (
-              <SelectItem key={x} className="capitalize" value={x}>
-                {x}
+              <SelectItem key={x} value={x}>
+                {t(`profile.goals.${x}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -263,12 +268,12 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label>Training days</Label>
+        <Label>{t('profile.trainingDays')}</Label>
         <div className="flex flex-wrap gap-1.5">
           {DAYS.map(day => (
             <button
               key={day}
-              className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium capitalize transition-colors ${
+              className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                 days.includes(day)
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'border-border text-muted-foreground'
@@ -276,39 +281,35 @@ function ProfileForm({ profile }: { profile: UserProfile | null }) {
               type="button"
               onClick={() => toggleDay(day)}
             >
-              {day.slice(0, 3)}
+              {t(`common:days.${day.slice(0, 3)}`)}
             </button>
           ))}
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label>Session duration (min)</Label>
+        <Label>{t('profile.sessionDuration')}</Label>
         <Select
           value={form.sessionDurationMinutes ? String(form.sessionDurationMinutes) : undefined}
           onValueChange={v => update(f => ({ ...f, sessionDurationMinutes: Number(v) }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select…" />
+            <SelectValue placeholder={t('profile.select')} />
           </SelectTrigger>
           <SelectContent>
             {DURATIONS.map(d => (
               <SelectItem key={d} value={String(d)}>
-                {d} min
+                {t('profile.minutes', { count: d })}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {save.isError && (
-        <p className="text-destructive text-xs">
-          Couldn’t save: check your entries (age/height must be whole numbers).
-        </p>
-      )}
+      {save.isError && <p className="text-destructive text-xs">{t('profile.saveError')}</p>}
 
       <Button className="w-full" disabled={save.isPending} onClick={() => save.mutate()}>
-        {save.isPending ? 'Saving…' : save.isSuccess ? 'Saved ✓' : 'Save profile'}
+        {save.isPending ? t('profile.saving') : save.isSuccess ? t('profile.saved') : t('profile.save')}
       </Button>
     </div>
   )

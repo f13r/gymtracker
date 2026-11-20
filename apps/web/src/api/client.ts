@@ -62,7 +62,8 @@ async function send(path: string, options: RequestInit = {}, actAs = true): Prom
         handleForbidden(typeof error.email === 'string' ? error.email : null)
       }
     }
-    const message = typeof error.message === 'string' && error.message ? error.message : 'Request failed'
+    const message =
+      typeof error.message === 'string' && error.message ? error.message : i18n.t('common:errors.requestFailed')
     throw new ApiError(res.status, error, message)
   }
   return res

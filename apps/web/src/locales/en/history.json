@@ -1,0 +1,44 @@
+{
+  "calendar": {
+    "eyebrow": "Plan",
+    "title": "CALENDAR",
+    "today": "Today",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "workoutFallback": "Workout",
+    "nothingScheduled": "nothing scheduled",
+    "dayAria": "{{day}}: {{content}}",
+    "dayAriaToday": "{{day}}: {{content}} (today)"
+  },
+  "list": {
+    "back": "Dashboard",
+    "eyebrow": "Log",
+    "title": "HISTORY",
+    "empty": "No completed workouts yet"
+  },
+  "detail": {
+    "back": "History",
+    "durationMinutes": "{{minutes}}m",
+    "totalSets": "total sets",
+    "volumeKg": "volume (kg)",
+    "exerciseFallback": "Exercise",
+    "setLabel": "S{{number}}",
+    "weightByReps": "{{weight}} kg × {{reps}}",
+    "reps": "{{reps}} reps",
+    "missed": "missed",
+    "firstTime": "First time",
+    "vsDate": "vs {{date}}",
+    "top": "top ",
+    "sets": "sets ",
+    "vol": "vol ",
+    "kgValue": "{{value}}kg"
+  },
+  "deleteAria": "Delete workout",
+  "deleteDialog": {
+    "title": "Delete workout?",
+    "description": "{{name}} will be permanently removed. This cannot be undone.",
+    "cancel": "Cancel",
+    "deleting": "Deleting…",
+    "delete": "Delete"
+  }
+}

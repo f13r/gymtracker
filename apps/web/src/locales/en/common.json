@@ -11,5 +11,11 @@
   "languages": {
     "uk": "Українська",
     "en": "English"
+  },
+  "close": "Close",
+  "decrease": "Decrease",
+  "increase": "Increase",
+  "errors": {
+    "requestFailed": "Request failed"
   }
 }

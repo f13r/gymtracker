@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Plus, Dumbbell, Play, Zap, Trash2, CalendarDays, Pencil } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { WorkoutTemplateWithExercises } from '@gymtracker/shared'
 
@@ -21,6 +22,7 @@ import { ScheduleDrawer } from '@/components/workout/ScheduleDrawer'
 import { useActing } from '@/stores/acting.store'
 
 export function WorkoutStartPage() {
+  const { t } = useTranslation('program')
   const { acting } = useActing()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -49,18 +51,18 @@ export function WorkoutStartPage() {
     },
   })
 
-  const pendingTemplate = templates.find((t: WorkoutTemplateWithExercises) => t.id === pendingDeleteId)
-  const scheduleTemplate = templates.find((t: WorkoutTemplateWithExercises) => t.id === scheduleTemplateId)
+  const pendingTemplate = templates.find((x: WorkoutTemplateWithExercises) => x.id === pendingDeleteId)
+  const scheduleTemplate = templates.find((x: WorkoutTemplateWithExercises) => x.id === scheduleTemplateId)
 
   return (
     <div className="flex min-h-full flex-col">
       <div className="border-border flex items-start justify-between border-b px-4 pt-4 pb-3">
         <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Training</p>
-          <h1 className="font-display font-700 text-3xl tracking-wide">WORKOUTS</h1>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('start.eyebrow')}</p>
+          <h1 className="font-display font-700 text-3xl tracking-wide">{t('start.title')}</h1>
         </div>
         <button
-          aria-label="Create workout template"
+          aria-label={t('start.createTemplateAria')}
           className="bg-primary text-primary-foreground mt-1 flex size-10 items-center justify-center rounded-xl transition-transform active:scale-95"
           type="button"
           onClick={() => navigate({ to: '/workout/template/new' })}
@@ -76,53 +78,53 @@ export function WorkoutStartPage() {
               <Dumbbell className="text-muted-foreground" size={28} />
             </div>
             <div className="text-center">
-              <p className="font-semibold">No workout templates yet</p>
-              <p className="text-muted-foreground mt-1 text-sm">Create a workout template to plan your workouts</p>
+              <p className="font-semibold">{t('start.emptyTitle')}</p>
+              <p className="text-muted-foreground mt-1 text-sm">{t('start.emptyBody')}</p>
             </div>
             <button
               className="bg-primary text-primary-foreground font-display font-600 rounded-xl px-5 py-2.5 text-sm tracking-wide uppercase transition-transform active:scale-95"
               type="button"
               onClick={() => navigate({ to: '/workout/template/new' })}
             >
-              Create Workout Template
+              {t('start.createTemplate')}
             </button>
           </div>
         ) : (
           <div className="space-y-3">
-            {templates.map((t: WorkoutTemplateWithExercises) => (
-              <div key={t.id} className="bg-card border-border overflow-hidden rounded-2xl border">
+            {templates.map((tpl: WorkoutTemplateWithExercises) => (
+              <div key={tpl.id} className="bg-card border-border overflow-hidden rounded-2xl border">
                 <div className="flex items-start justify-between px-4 pt-4 pb-3">
                   <div className="flex-1">
-                    <p className="font-display font-700 text-lg tracking-wide">{t.name}</p>
+                    <p className="font-display font-700 text-lg tracking-wide">{tpl.name}</p>
                     <p className="text-muted-foreground mt-0.5 text-xs">
-                      {(t.exercises ?? []).length} exercise{(t.exercises ?? []).length !== 1 ? 's' : ''}
+                      {t('start.exerciseCount', { count: (tpl.exercises ?? []).length })}
                     </p>
                   </div>
                   <div className="flex items-center gap-0.5">
                     {!acting && (
                       <button
-                        aria-label="Start workout"
+                        aria-label={t('start.startAria')}
                         className="text-muted-foreground/60 active:text-primary flex size-11 items-center justify-center transition-colors disabled:opacity-60"
                         disabled={start.isPending}
                         type="button"
-                        onClick={() => start.mutate({ templateId: t.id, name: t.name })}
+                        onClick={() => start.mutate({ templateId: tpl.id, name: tpl.name })}
                       >
                         <Play fill="currentColor" size={18} strokeWidth={0} />
                       </button>
                     )}
                     <button
-                      aria-label="Schedule template"
+                      aria-label={t('start.scheduleAria')}
                       className="text-muted-foreground/60 active:text-primary flex size-11 items-center justify-center transition-colors"
                       type="button"
-                      onClick={() => setScheduleTemplateId(t.id)}
+                      onClick={() => setScheduleTemplateId(tpl.id)}
                     >
                       <CalendarDays size={18} strokeWidth={1.5} />
                     </button>
                     <button
-                      aria-label="Delete template"
+                      aria-label={t('start.deleteAria')}
                       className="text-destructive/50 active:text-destructive -mr-1 flex size-11 items-center justify-center transition-colors"
                       type="button"
-                      onClick={() => setPendingDeleteId(t.id)}
+                      onClick={() => setPendingDeleteId(tpl.id)}
                     >
                       <Trash2 size={18} strokeWidth={1.5} />
                     </button>
@@ -132,10 +134,10 @@ export function WorkoutStartPage() {
                   <button
                     className="bg-primary text-primary-foreground font-display font-600 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base tracking-wide transition-transform active:scale-[0.98]"
                     type="button"
-                    onClick={() => navigate({ to: '/workout/template/$templateId', params: { templateId: t.id } })}
+                    onClick={() => navigate({ to: '/workout/template/$templateId', params: { templateId: tpl.id } })}
                   >
                     <Pencil size={18} strokeWidth={2} />
-                    Edit Workout
+                    {t('start.editWorkout')}
                   </button>
                 </div>
               </div>
@@ -151,10 +153,10 @@ export function WorkoutStartPage() {
             className="border-border text-muted-foreground active:bg-card font-display font-600 flex w-full items-center justify-center gap-2 rounded-xl border py-3.5 text-sm tracking-wide uppercase transition-colors disabled:opacity-60"
             disabled={start.isPending}
             type="button"
-            onClick={() => start.mutate({ name: 'Quick Workout' })}
+            onClick={() => start.mutate({ name: t('start.quickWorkoutName') })}
           >
             <Zap size={16} />
-            Quick Start
+            {t('start.quickStart')}
           </button>
         </div>
       )}
@@ -162,15 +164,13 @@ export function WorkoutStartPage() {
       <Dialog open={pendingDeleteId !== null} onOpenChange={open => !open && setPendingDeleteId(null)}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Delete workout template?</DialogTitle>
-            <DialogDescription>
-              "{pendingTemplate?.name}" will be permanently removed. This cannot be undone.
-            </DialogDescription>
+            <DialogTitle>{t('start.deleteTitle')}</DialogTitle>
+            <DialogDescription>{t('start.deleteDescription', { name: pendingTemplate?.name })}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
             <DialogClose asChild>
               <Button className="flex-1" variant="outline">
-                Cancel
+                {t('start.cancel')}
               </Button>
             </DialogClose>
             <Button
@@ -179,7 +179,7 @@ export function WorkoutStartPage() {
               variant="destructive"
               onClick={() => pendingDeleteId && deleteTemplate.mutate(pendingDeleteId)}
             >
-              {deleteTemplate.isPending ? 'Deleting…' : 'Delete'}
+              {deleteTemplate.isPending ? t('start.deleting') : t('start.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

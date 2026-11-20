@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { Dumbbell, Clock, Zap, CheckCircle2, Circle, Loader2 } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { WorkoutSession, WorkoutSet } from '@gymtracker/shared'
 import { computeExceededExercises } from '@gymtracker/shared'
@@ -14,18 +15,19 @@ import { Button } from '@/components/ui/button'
 import { ThisWeekCard } from '@/components/workout/ThisWeekCard'
 import { buildSupersetMeta } from '@/components/workout/superset-display'
 import { useSessionVolume } from '@/hooks/useSessionVolume'
+import { dateLocale } from '@/lib/date-locale'
 import { cn, formatElapsed, formatSessionDuration } from '@/lib/utils'
 import { useActing } from '@/stores/acting.store'
 
-function getGreeting() {
+function getGreetingKey() {
   const h = new Date().getHours()
   if (h < 12) {
-    return 'Good morning'
+    return 'greeting.morning'
   }
   if (h < 17) {
-    return 'Good afternoon'
+    return 'greeting.afternoon'
   }
-  return 'Good evening'
+  return 'greeting.evening'
 }
 
 const SKIP_KEY = 'skipped_today_schedule'
@@ -51,6 +53,7 @@ function WorkoutSummaryCard({
   exceededExercises: { id: string; name: string; delta: number }[]
   hasTemplate: boolean
 }) {
+  const { t } = useTranslation('dashboard')
   const deltaVol = prevVolume !== null ? currentVolume - prevVolume : null
   const hasPrev = prevVolume !== null
 
@@ -58,17 +61,21 @@ function WorkoutSummaryCard({
     <div className="border-border/30 rounded-2xl border px-4 pt-3 pb-4">
       {hasPrev && (
         <p className="text-muted-foreground/50 mb-2.5 text-[9px] font-semibold tracking-widest uppercase">
-          vs last session
+          {t('summary.vsLastSession')}
         </p>
       )}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-          <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">VOLUME</p>
+          <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">
+            {t('summary.volume')}
+          </p>
           <p className="font-display font-700 text-[26px] leading-none tabular-nums">
             {currentVolume > 0 ? (
               <>
                 {fmtVol(currentVolume)}
-                <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">kg</span>
+                <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">
+                  {t('summary.kg')}
+                </span>
               </>
             ) : (
               '—'
@@ -76,11 +83,11 @@ function WorkoutSummaryCard({
           </p>
           <div className="mt-1.5 flex items-center gap-1.5">
             <span className="text-muted-foreground text-[11px] tabular-nums">
-              was{' '}
+              {t('summary.was')}{' '}
               {hasPrev ? (
                 <>
                   {fmtVol(prevVolume!)}
-                  <span className="ml-0.5 font-sans font-normal">kg</span>
+                  <span className="ml-0.5 font-sans font-normal">{t('summary.kg')}</span>
                 </>
               ) : (
                 '—'
@@ -99,13 +106,15 @@ function WorkoutSummaryCard({
 
         {hasTemplate && (
           <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-            <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">DONE</p>
+            <p className="text-muted-foreground mb-1 text-[9px] font-semibold tracking-widest uppercase">
+              {t('summary.done')}
+            </p>
             <p className="font-display font-700 text-[26px] leading-none tabular-nums">
               {completedCount}
               <span className="text-muted-foreground ml-0.5 font-sans text-[11px] font-normal">/{totalExercises}</span>
             </p>
             <div className="mt-1.5">
-              <span className="text-muted-foreground text-[11px]">exercises complete</span>
+              <span className="text-muted-foreground text-[11px]">{t('summary.exercisesComplete')}</span>
             </div>
           </div>
         )}
@@ -114,7 +123,7 @@ function WorkoutSummaryCard({
       {exceededExercises.length > 0 && (
         <div className="border-border/20 mt-3 border-t pt-3">
           <p className="text-muted-foreground/50 mb-2 text-[9px] font-semibold tracking-widest uppercase">
-            beat last time ({exceededExercises.length})
+            {t('summary.beatLastTime', { count: exceededExercises.length })}
           </p>
           <div className="space-y-1">
             {exceededExercises.map(ex => (
@@ -122,7 +131,7 @@ function WorkoutSummaryCard({
                 <span className="text-muted-foreground text-xs font-medium">{ex.name}</span>
                 <span className="text-accent text-[10px] font-bold tabular-nums">
                   +{fmtVol(ex.delta)}
-                  <span className="ml-0.5 font-normal">kg</span>
+                  <span className="ml-0.5 font-normal">{t('summary.kg')}</span>
                 </span>
               </div>
             ))}
@@ -134,6 +143,7 @@ function WorkoutSummaryCard({
 }
 
 function WorkoutHub({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation('dashboard')
   const { acting } = useActing()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -205,7 +215,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map(te => ({
           id: te.exerciseId!,
-          name: exerciseNameMap[te.exerciseId!] ?? 'Exercise',
+          name: exerciseNameMap[te.exerciseId!] ?? t('exerciseFallback'),
           supersetGroup: supersetByExerciseId.get(te.exerciseId!) ?? null,
           loggedSets: (session.sets ?? []).filter(
             (s: WorkoutSet) => s.exerciseId === te.exerciseId && s.removedAt == null,
@@ -219,11 +229,11 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
     ]
     return ids.map(id => ({
       id,
-      name: exerciseNameMap[id] ?? 'Exercise',
+      name: exerciseNameMap[id] ?? t('exerciseFallback'),
       supersetGroup: supersetByExerciseId.get(id) ?? null,
       loggedSets: (session.sets ?? []).filter((s: WorkoutSet) => s.exerciseId === id && s.removedAt == null),
     }))
-  }, [template, session, exerciseNameMap])
+  }, [template, session, exerciseNameMap, t])
 
   const supersetMeta = useMemo(() => buildSupersetMeta(exercises.map(e => e.supersetGroup)), [exercises])
 
@@ -290,7 +300,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
       {/* Session header */}
       <div className="flex items-start justify-between pt-2">
         <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Active workout</p>
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('activeWorkout')}</p>
           <h1 className="font-display font-700 mt-0.5 text-3xl leading-tight tracking-wide">
             {session.name.toUpperCase()}
           </h1>
@@ -303,7 +313,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
         {exercises.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
             <Dumbbell className="text-muted-foreground" size={28} />
-            <p className="text-muted-foreground text-sm">No exercises yet</p>
+            <p className="text-muted-foreground text-sm">{t('noExercises')}</p>
           </div>
         ) : (
           exercises.map((ex, i) => {
@@ -386,7 +396,7 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
           type="button"
           onClick={() => finishWorkout.mutate()}
         >
-          {finishWorkout.isPending ? 'Finishing…' : 'Finish Workout'}
+          {finishWorkout.isPending ? t('finishing') : t('finishWorkout')}
         </button>
       )}
     </div>
@@ -394,13 +404,14 @@ function WorkoutHub({ sessionId }: { sessionId: string }) {
 }
 
 export function DashboardPage() {
+  const { t } = useTranslation('dashboard')
   const { acting } = useActing()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [promptDismissed, setPromptDismissed] = useState(false)
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
-  const greeting = useMemo(() => getGreeting(), [])
-  const dayName = useMemo(() => new Date().toLocaleDateString('en', { weekday: 'long' }), [])
+  const greeting = t(getGreetingKey())
+  const dayName = new Date().toLocaleDateString(dateLocale(), { weekday: 'long' })
 
   const { data: active } = useQuery({ queryKey: queryKeys.activeSession(), queryFn: workoutsApi.getActiveSession })
   const { data: sessions = [] } = useQuery({ queryKey: queryKeys.sessions(), queryFn: workoutsApi.getSessions })
@@ -452,7 +463,7 @@ export function DashboardPage() {
           {todaySchedule!.templateName.toUpperCase()}
         </h1>
         <p className="text-muted-foreground mb-10 text-sm">
-          {todaySchedule!.exerciseCount} exercise{todaySchedule!.exerciseCount !== 1 ? 's' : ''} planned
+          {t('exercisesPlanned', { count: todaySchedule!.exerciseCount })}
         </p>
         <button
           className="bg-primary text-primary-foreground font-display font-700 shadow-primary/30 mb-3 h-16 w-full max-w-sm rounded-2xl text-2xl tracking-widest shadow-lg transition-all active:scale-[0.97] disabled:opacity-60"
@@ -460,10 +471,10 @@ export function DashboardPage() {
           type="button"
           onClick={() => startFromSchedule.mutate()}
         >
-          {startFromSchedule.isPending ? '…' : "LET'S GO"}
+          {startFromSchedule.isPending ? '…' : t('letsGo')}
         </button>
         <button className="text-muted-foreground text-sm font-medium" type="button" onClick={dismissPrompt}>
-          Skip today
+          {t('skipToday')}
         </button>
       </div>
     )
@@ -485,7 +496,7 @@ export function DashboardPage() {
         >
           <Link to="/workout/start">
             <Zap className="mr-1" size={20} />
-            START WORKOUT
+            {t('startWorkout')}
           </Link>
         </Button>
       )}
@@ -495,9 +506,11 @@ export function DashboardPage() {
       {recent.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="font-display font-600 text-muted-foreground text-lg tracking-wide uppercase">Recent</h2>
+            <h2 className="font-display font-600 text-muted-foreground text-lg tracking-wide uppercase">
+              {t('recent')}
+            </h2>
             <Link className="text-primary text-xs font-medium" to="/history">
-              View all →
+              {t('viewAll')}
             </Link>
           </div>
           <div className="space-y-2">
@@ -516,7 +529,7 @@ export function DashboardPage() {
                     <div>
                       <p className="text-sm leading-tight font-semibold">{s.name}</p>
                       <p className="text-muted-foreground mt-0.5 text-xs">
-                        {new Date(s.startedAt * 1000).toLocaleDateString('en', {
+                        {new Date(s.startedAt * 1000).toLocaleDateString(dateLocale(), {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
@@ -538,7 +551,10 @@ export function DashboardPage() {
       {finished.length === 0 && !active && (
         <div className="border-border space-y-2 rounded-xl border border-dashed p-8 text-center">
           <Dumbbell className="text-muted-foreground mx-auto" size={32} />
-          <p className="text-muted-foreground text-sm">No workouts yet.{!acting && ' Start your first one!'}</p>
+          <p className="text-muted-foreground text-sm">
+            {t('noWorkouts')}
+            {!acting && t('startFirst')}
+          </p>
         </div>
       )}
     </div>

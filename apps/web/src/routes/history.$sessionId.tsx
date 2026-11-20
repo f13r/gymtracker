@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { ChevronLeft, CheckCircle2, Circle, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { calculateVolume, getDoneSets } from '@gymtracker/shared'
 import type { Exercise, ExerciseComparison, WorkoutSet } from '@gymtracker/shared'
@@ -19,9 +20,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { dateLocale } from '@/lib/date-locale'
 import { useActing } from '@/stores/acting.store'
 
 export function HistoryDetailPage() {
+  const { t } = useTranslation('history')
   const { sessionId } = useParams({ strict: false }) as { sessionId: string }
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -116,13 +119,13 @@ export function HistoryDetailPage() {
             onClick={() => navigate({ to: '/history' })}
           >
             <ChevronLeft size={18} />
-            <span className="text-sm">History</span>
+            <span className="text-sm">{t('detail.back')}</span>
           </button>
           {acting ? (
             <span />
           ) : (
             <button
-              aria-label="Delete workout"
+              aria-label={t('deleteAria')}
               className="text-destructive/50 active:text-destructive -mr-1 flex size-11 items-center justify-center transition-colors"
               type="button"
               onClick={() => setConfirmDelete(true)}
@@ -133,12 +136,12 @@ export function HistoryDetailPage() {
         </div>
         <h1 className="font-display font-700 text-2xl leading-tight tracking-wide">{session.name}</h1>
         <p className="text-muted-foreground mt-1 text-xs">
-          {new Date(session.startedAt * 1000).toLocaleDateString('en', {
+          {new Date(session.startedAt * 1000).toLocaleDateString(dateLocale(), {
             weekday: 'long',
             month: 'long',
             day: 'numeric',
           })}
-          {duration && ` · ${duration}m`}
+          {duration && ` · ${t('detail.durationMinutes', { minutes: duration })}`}
         </p>
       </div>
 
@@ -146,11 +149,11 @@ export function HistoryDetailPage() {
         <div className="grid shrink-0 grid-cols-2 gap-3 p-4">
           <div className="bg-card border-border rounded-xl border p-4 text-center">
             <p className="font-display font-700 text-primary text-3xl">{totalSets}</p>
-            <p className="text-muted-foreground mt-0.5 text-xs">total sets</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">{t('detail.totalSets')}</p>
           </div>
           <div className="bg-card border-border rounded-xl border p-4 text-center">
-            <p className="font-display font-700 text-3xl">{Math.round(totalVolume).toLocaleString()}</p>
-            <p className="text-muted-foreground mt-0.5 text-xs">volume (kg)</p>
+            <p className="font-display font-700 text-3xl">{Math.round(totalVolume).toLocaleString(dateLocale())}</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">{t('detail.volumeKg')}</p>
           </div>
         </div>
       )}
@@ -171,7 +174,7 @@ export function HistoryDetailPage() {
             <div key={exerciseId} className="bg-card border-border overflow-hidden rounded-xl border">
               <div className="border-border/50 border-b px-4 py-3">
                 <p className="font-display font-600 text-base tracking-wide uppercase">
-                  {nameMap[exerciseId] ?? 'Exercise'}
+                  {nameMap[exerciseId] ?? t('detail.exerciseFallback')}
                 </p>
                 <ExerciseDeltas current={current} prev={comparisonMap[exerciseId]} />
               </div>
@@ -180,13 +183,17 @@ export function HistoryDetailPage() {
                   <div key={s.id} className="px-4 py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="text-muted-foreground w-8 text-xs font-semibold">S{i + 1}</span>
+                        <span className="text-muted-foreground w-8 text-xs font-semibold">
+                          {t('detail.setLabel', { number: i + 1 })}
+                        </span>
                         <span className={`text-sm font-medium ${s.done ? '' : 'text-muted-foreground/60'}`}>
-                          {s.weightKg ? `${s.weightKg} kg × ${s.reps}` : `${s.reps} reps`}
+                          {s.weightKg
+                            ? t('detail.weightByReps', { weight: s.weightKg, reps: s.reps })
+                            : t('detail.reps', { reps: s.reps })}
                         </span>
                         {!s.done && (
                           <span className="bg-muted text-muted-foreground/70 rounded px-1.5 py-0.5 text-[10px] tracking-wide uppercase">
-                            missed
+                            {t('detail.missed')}
                           </span>
                         )}
                       </div>
@@ -208,17 +215,17 @@ export function HistoryDetailPage() {
       <Dialog open={confirmDelete} onOpenChange={open => !open && setConfirmDelete(false)}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Delete workout?</DialogTitle>
-            <DialogDescription>{session.name} will be permanently removed. This cannot be undone.</DialogDescription>
+            <DialogTitle>{t('deleteDialog.title')}</DialogTitle>
+            <DialogDescription>{t('deleteDialog.description', { name: session.name })}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
             <DialogClose asChild>
               <Button className="flex-1" variant="outline">
-                Cancel
+                {t('deleteDialog.cancel')}
               </Button>
             </DialogClose>
             <Button className="flex-1" disabled={isPending} variant="destructive" onClick={() => deleteSession()}>
-              {isPending ? 'Deleting…' : 'Delete'}
+              {isPending ? t('deleteDialog.deleting') : t('deleteDialog.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -243,10 +250,14 @@ function ExerciseDeltas({
   current: { topSetKg: number | null; doneSets: number; volume: number | null }
   prev: ExerciseComparison | undefined
 }) {
+  const { t } = useTranslation('history')
   if (!prev) {
-    return <span className="text-muted-foreground mt-1 block text-[11px]">First time</span>
+    return <span className="text-muted-foreground mt-1 block text-[11px]">{t('detail.firstTime')}</span>
   }
-  const date = new Date(prev.comparedToStartedAt * 1000).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+  const date = new Date(prev.comparedToStartedAt * 1000).toLocaleDateString(dateLocale(), {
+    month: 'short',
+    day: 'numeric',
+  })
 
   const setsDelta = current.doneSets - prev.doneSets
   const showWeight = current.topSetKg != null && prev.topSetKg != null
@@ -256,21 +267,21 @@ function ExerciseDeltas({
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span className="text-muted-foreground text-[10px] tracking-wide uppercase">vs {date}</span>
+      <span className="text-muted-foreground text-[10px] tracking-wide uppercase">{t('detail.vsDate', { date })}</span>
       {showWeight && (
         <span className="text-[11px] tabular-nums">
-          <span className="text-muted-foreground">top </span>
-          {current.topSetKg}kg{' '}
+          <span className="text-muted-foreground">{t('detail.top')}</span>
+          {t('detail.kgValue', { value: current.topSetKg })}{' '}
           <span className={`font-semibold ${deltaTone(weightDelta)}`}>{deltaSign(weightDelta)}</span>
         </span>
       )}
       <span className="text-[11px] tabular-nums">
-        <span className="text-muted-foreground">sets </span>
+        <span className="text-muted-foreground">{t('detail.sets')}</span>
         {current.doneSets} <span className={`font-semibold ${deltaTone(setsDelta)}`}>{deltaSign(setsDelta)}</span>
       </span>
       {showVol && (
         <span className="text-[11px] tabular-nums">
-          <span className="text-muted-foreground">vol </span>
+          <span className="text-muted-foreground">{t('detail.vol')}</span>
           <span className={`font-semibold ${deltaTone(volPct)}`}>{volPct > 0 ? `+${volPct}%` : `${volPct}%`}</span>
         </span>
       )}

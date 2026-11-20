@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import {
   alignPreviousSets,
@@ -34,6 +35,7 @@ interface PendingSelection {
 export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation('workout')
 
   // Navigate the logger to a given Exercise by writing it to the URL. `replace`
   // for in-logger moves (prev/next, auto-resolve) so Back exits the logger
@@ -127,7 +129,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
 
     const fromTemplateDefaults = (exId: string, supersetGroup: string | null = null) => ({
       id: exId,
-      name: exerciseNameMap[exId] ?? 'Exercise',
+      name: exerciseNameMap[exId] ?? t('exerciseFallback'),
       equipmentType: equipmentMap[exId] ?? null,
       defaultSets: templateDefaults[exId]?.defaultSets ?? 0,
       defaultReps: templateDefaults[exId]?.defaultReps ?? 8,
@@ -160,7 +162,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
       ...new Set(session.sets.filter((s: WorkoutSet) => s.removedAt == null).map((s: WorkoutSet) => s.exerciseId)),
     ]
     return ids.map(id => fromTemplateDefaults(id))
-  }, [session, template, templateDefaults, exerciseNameMap])
+  }, [session, template, templateDefaults, exerciseNameMap, t])
 
   // The Active Exercise is whatever the URL points at — honored literally, never
   // auto-picked (ADR-0009). currentExercise is the Exercise whose id matches
@@ -281,7 +283,7 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
     mutationFn: async () => {
       const exId = currentExercise?.id ?? pendingSelection?.id
       if (!exId) {
-        throw new Error('No exercise selected')
+        throw new Error(t('empty.noExerciseSelected'))
       }
       const last = currentExercise?.loggedSets.at(-1)
       await setsApi.logSet(sessionId, {

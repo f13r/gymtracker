@@ -1,5 +1,6 @@
 import { Minus, Plus } from 'lucide-react'
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { useLongPress } from './useLongPress'
 
@@ -30,6 +31,7 @@ export function NumericInput({
   highlighted = false,
   readOnly = false,
 }: NumericInputProps) {
+  const { t } = useTranslation('common')
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -55,6 +57,7 @@ export function NumericInput({
       >
         {!readOnly && (
           <button
+            aria-label={t('decrease')}
             className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-12' : 'w-9'}`}
             type="button"
             {...decPress}
@@ -95,6 +98,7 @@ export function NumericInput({
 
         {!readOnly && (
           <button
+            aria-label={t('increase')}
             className={`text-muted-foreground active:bg-muted flex h-full flex-shrink-0 items-center justify-center transition-colors ${lg ? 'w-12' : 'w-9'}`}
             type="button"
             {...incPress}

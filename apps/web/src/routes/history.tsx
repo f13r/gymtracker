@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { ChevronLeft, Clock, Dumbbell, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { WorkoutSession } from '@gymtracker/shared'
 
@@ -17,11 +18,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { dateLocale } from '@/lib/date-locale'
 import { formatSessionDuration } from '@/lib/utils'
 import { useActing } from '@/stores/acting.store'
 
 function formatDate(ts: number) {
-  return new Date(ts * 1000).toLocaleDateString('en', {
+  return new Date(ts * 1000).toLocaleDateString(dateLocale(), {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -31,7 +33,7 @@ function formatDate(ts: number) {
 function groupByMonth(sessions: WorkoutSession[]) {
   const groups: Record<string, WorkoutSession[]> = {}
   sessions.forEach(s => {
-    const label = new Date(s.startedAt * 1000).toLocaleDateString('en', { month: 'long', year: 'numeric' })
+    const label = new Date(s.startedAt * 1000).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' })
     if (!groups[label]) {
       groups[label] = []
     }
@@ -41,6 +43,7 @@ function groupByMonth(sessions: WorkoutSession[]) {
 }
 
 export function HistoryPage() {
+  const { t } = useTranslation('history')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: sessions = [] } = useQuery({ queryKey: queryKeys.sessions(), queryFn: workoutsApi.getSessions })
@@ -68,16 +71,16 @@ export function HistoryPage() {
           onClick={() => navigate({ to: '/dashboard' })}
         >
           <ChevronLeft size={18} />
-          <span className="text-sm">Dashboard</span>
+          <span className="text-sm">{t('list.back')}</span>
         </button>
-        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Log</p>
-        <h1 className="font-display font-700 text-3xl tracking-wide">HISTORY</h1>
+        <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">{t('list.eyebrow')}</p>
+        <h1 className="font-display font-700 text-3xl tracking-wide">{t('list.title')}</h1>
       </div>
 
       {finished.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-16">
           <Dumbbell className="text-muted-foreground" size={36} />
-          <p className="text-muted-foreground">No completed workouts yet</p>
+          <p className="text-muted-foreground">{t('list.empty')}</p>
         </div>
       ) : (
         <div className="divide-border/30 divide-y">
@@ -109,7 +112,7 @@ export function HistoryPage() {
                   </Link>
                   {!acting && (
                     <button
-                      aria-label="Delete workout"
+                      aria-label={t('deleteAria')}
                       className="text-destructive/50 active:text-destructive flex size-16 flex-shrink-0 items-center justify-center transition-colors"
                       type="button"
                       onClick={() => setPendingDeleteId(s.id)}
@@ -127,15 +130,13 @@ export function HistoryPage() {
       <Dialog open={pendingDeleteId !== null} onOpenChange={open => !open && setPendingDeleteId(null)}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Delete workout?</DialogTitle>
-            <DialogDescription>
-              {pendingSession?.name} will be permanently removed. This cannot be undone.
-            </DialogDescription>
+            <DialogTitle>{t('deleteDialog.title')}</DialogTitle>
+            <DialogDescription>{t('deleteDialog.description', { name: pendingSession?.name })}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
             <DialogClose asChild>
               <Button className="flex-1" variant="outline">
-                Cancel
+                {t('deleteDialog.cancel')}
               </Button>
             </DialogClose>
             <Button
@@ -144,7 +145,7 @@ export function HistoryPage() {
               variant="destructive"
               onClick={() => pendingDeleteId && deleteSession(pendingDeleteId)}
             >
-              {isPending ? 'Deleting…' : 'Delete'}
+              {isPending ? t('deleteDialog.deleting') : t('deleteDialog.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
