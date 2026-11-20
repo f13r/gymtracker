@@ -35,6 +35,8 @@ vi.mock('@/api/schedules', () => ({ schedulesApi: { getToday } }))
 vi.mock('@/api/exercises', () => ({
   exercisesApi: { getAllWithArchived: () => Promise.resolve([{ id: 'e1', name: 'Bench' }]) },
 }))
+const getMe = vi.hoisted(() => vi.fn())
+vi.mock('@/api/me', () => ({ meApi: { get: getMe } }))
 vi.mock('@/components/workout/ThisWeekCard', () => ({ ThisWeekCard: () => null }))
 
 const athlete = { id: 'inna', name: 'Inna' } as unknown as AuthUser
@@ -51,6 +53,7 @@ describe('DashboardPage', () => {
   beforeEach(async () => {
     await i18n.changeLanguage('en')
     navigate.mockClear()
+    getMe.mockImplementation(() => Promise.resolve({ id: 'inna', displayName: 'Інна', athletes: [], trainers: [] }))
     getActiveSession.mockImplementation(() => Promise.resolve(null))
     getToday.mockImplementation(() =>
       Promise.resolve({ schedule: { templateId: 't1' }, templateName: 'Push Day', exerciseCount: 3 }),
@@ -101,5 +104,16 @@ describe('DashboardPage', () => {
     fireEvent.click(row)
     expect(navigate).not.toHaveBeenCalled()
     expect(screen.queryByText(/finish workout/i)).toBeNull()
+  })
+
+  it('greets the signed-in User by name', async () => {
+    renderDashboard()
+    expect(await screen.findByText(/^Good (morning|afternoon|evening), Інна$/)).toBeInTheDocument()
+  })
+
+  it('greets without a name until the User is known', () => {
+    getMe.mockImplementation(() => new Promise(() => {}))
+    renderDashboard()
+    expect(screen.getByText(/^Good (morning|afternoon|evening)$/)).toBeInTheDocument()
   })
 })

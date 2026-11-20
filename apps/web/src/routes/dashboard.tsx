@@ -8,6 +8,7 @@ import type { WorkoutSession, WorkoutSet } from '@gymtracker/shared'
 import { computeExceededExercises } from '@gymtracker/shared'
 
 import { exercisesApi } from '@/api/exercises'
+import { meApi } from '@/api/me'
 import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
@@ -410,7 +411,10 @@ export function DashboardPage() {
   const queryClient = useQueryClient()
   const [promptDismissed, setPromptDismissed] = useState(false)
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
-  const greeting = t(getGreetingKey())
+  const { data: me } = useQuery({ queryKey: queryKeys.me(), queryFn: meApi.get })
+  const greeting = me?.displayName
+    ? t('greetingWithName', { greeting: t(getGreetingKey()), name: me.displayName })
+    : t(getGreetingKey())
   const dayName = new Date().toLocaleDateString(dateLocale(), { weekday: 'long' })
 
   const { data: active } = useQuery({ queryKey: queryKeys.activeSession(), queryFn: workoutsApi.getActiveSession })

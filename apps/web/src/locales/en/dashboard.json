@@ -4,6 +4,7 @@
     "afternoon": "Good afternoon",
     "evening": "Good evening"
   },
+  "greetingWithName": "{{greeting}}, {{name}}",
   "summary": {
     "vsLastSession": "vs last session",
     "volume": "VOLUME",

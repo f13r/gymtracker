@@ -4,6 +4,7 @@
     "afternoon": "Добрий день",
     "evening": "Добрий вечір"
   },
+  "greetingWithName": "{{greeting}}, {{name}}",
   "summary": {
     "vsLastSession": "порівняно з минулим тренуванням",
     "volume": "ОБ’ЄМ",
