@@ -78,14 +78,20 @@ describe('ThisWeekCard', () => {
   it("shows today's workout below the week by default, without a legend", async () => {
     renderCard()
     const summary = await screen.findByTestId('week-focus')
-    expect(summary).toHaveTextContent('Today · Glutes + Shoulders · 3 exercises')
+    expect(within(summary).getByText('Today')).toBeInTheDocument()
+    expect(within(summary).getByText('Glutes + Shoulders')).toBeInTheDocument()
+    expect(within(summary).getByText('3 exercises')).toBeInTheDocument()
+    expect(summary).not.toHaveTextContent('·')
     expect(screen.queryByText(/^•/)).not.toBeInTheDocument()
   })
 
   it('shows the tapped day below the week', async () => {
     renderCard()
     fireEvent.click(await screen.findByRole('button', { name: /Wed 18/ }))
-    expect(within(screen.getByTestId('week-focus')).getByText(/Legs \+ Arms · done/)).toBeInTheDocument()
+    const summary = screen.getByTestId('week-focus')
+    expect(within(summary).getByText('Wednesday')).toBeInTheDocument()
+    expect(within(summary).getByText('Legs + Arms')).toBeInTheDocument()
+    expect(within(summary).getByText('done')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Wed 18/ })).toHaveAttribute('aria-pressed', 'true')
   })
 })

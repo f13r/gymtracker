@@ -36,8 +36,8 @@ function defaultFocus(days: WeekDay[], today: Date): number | null {
 
 /**
  * "This Week" overview: one tile per day showing whether its workout is done,
- * planned or missed (rest days stay empty), today ringed. Below the week, one
- * line names the focused day's workout — today (or the next planned day) by
+ * planned or missed (rest days stay empty), today ringed. Below the week, the
+ * focused day's workout and its status — today (or the next planned day) by
  * default, or whichever tile was tapped. Renders nothing until something is
  * scheduled, so it never clutters an empty home.
  */
@@ -64,20 +64,34 @@ export function ThisWeekCard() {
   const focusIdx = selected ?? defaultFocus(days, today)
   const focus = focusIdx != null ? days[focusIdx] : null
 
-  function focusLine(d: WeekDay): string {
-    const isToday = isSameDay(d.date, today)
-    const weekday = d.date.toLocaleDateString(dateLocale(), { weekday: 'long' })
-    const when = isToday ? t('week.today') : weekday.charAt(0).toUpperCase() + weekday.slice(1)
-    const parts = [when, nameOf(d)]
-    if (d.status === 'planned') {
-      const count = d.templateId ? (templateById.get(d.templateId)?.exercises.length ?? 0) : 0
-      if (count > 0) {
-        parts.push(t('week.exerciseCount', { count }))
-      }
-    } else if (d.status !== 'rest') {
-      parts.push(t(`week.status.${d.status}`))
+  function focusWhen(d: WeekDay): string {
+    if (isSameDay(d.date, today)) {
+      return t('week.today')
     }
-    return parts.join(' · ')
+    const weekday = d.date.toLocaleDateString(dateLocale(), { weekday: 'long' })
+    return weekday.charAt(0).toUpperCase() + weekday.slice(1)
+  }
+
+  function focusBadge(d: WeekDay) {
+    if (d.status === 'done') {
+      return (
+        <span className="bg-primary/15 text-primary inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold capitalize">
+          <Check size={12} strokeWidth={3} />
+          {t('week.status.done')}
+        </span>
+      )
+    }
+    if (d.status === 'missed') {
+      return (
+        <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2.5 py-1 text-xs font-medium capitalize">
+          {t('week.status.missed')}
+        </span>
+      )
+    }
+    const count = d.status === 'planned' && d.templateId ? (templateById.get(d.templateId)?.exercises.length ?? 0) : 0
+    return count > 0 ? (
+      <span className="text-muted-foreground shrink-0 text-xs">{t('week.exerciseCount', { count })}</span>
+    ) : null
   }
 
   return (
@@ -143,13 +157,17 @@ export function ThisWeekCard() {
         </ul>
 
         {focus && (
-          <p
+          <div
             aria-live="polite"
-            className="border-border text-muted-foreground mt-3 truncate border-t pt-2.5 text-sm"
+            className="border-border mt-3 flex items-center justify-between gap-3 border-t pt-2.5"
             data-testid="week-focus"
           >
-            {focusLine(focus)}
-          </p>
+            <div className="min-w-0">
+              <p className="text-muted-foreground text-xs">{focusWhen(focus)}</p>
+              <p className="text-foreground truncate text-sm font-semibold">{nameOf(focus)}</p>
+            </div>
+            {focusBadge(focus)}
+          </div>
         )}
       </div>
     </section>
