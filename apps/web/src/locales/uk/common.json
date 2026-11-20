@@ -17,5 +17,9 @@
   "increase": "Збільшити",
   "errors": {
     "requestFailed": "Не вдалося виконати запит"
+  },
+  "duration": {
+    "minutes": "{{m}} хв",
+    "hoursMinutes": "{{h}} год {{m}} хв"
   }
 }

@@ -105,9 +105,11 @@ export function HistoryPage() {
                         <p className="text-muted-foreground mt-0.5 text-xs">{formatDate(s.startedAt)}</p>
                       </div>
                     </div>
-                    <div className="text-muted-foreground flex items-center gap-1">
+                    <div className="text-muted-foreground flex shrink-0 items-center gap-1">
                       <Clock size={12} />
-                      <span className="text-xs font-medium">{formatSessionDuration(s.startedAt, s.finishedAt!)}</span>
+                      <span className="text-xs font-medium whitespace-nowrap">
+                        {formatSessionDuration(s.startedAt, s.finishedAt!)}
+                      </span>
                     </div>
                   </Link>
                   {!acting && (

@@ -541,9 +541,11 @@ export function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-muted-foreground flex items-center gap-1.5">
+                  <div className="text-muted-foreground flex shrink-0 items-center gap-1.5">
                     <Clock size={12} />
-                    <span className="text-xs font-medium">{formatSessionDuration(s.startedAt, s.finishedAt!)}</span>
+                    <span className="text-xs font-medium whitespace-nowrap">
+                      {formatSessionDuration(s.startedAt, s.finishedAt!)}
+                    </span>
                   </div>
                 </div>
               </Link>

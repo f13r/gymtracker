@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
+import i18n from '@/lib/i18n'
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -23,5 +25,7 @@ export function formatElapsed(totalSeconds: number): string {
 /** Human-readable duration between two Unix timestamps (seconds). */
 export function formatSessionDuration(start: number, end: number): string {
   const mins = Math.round((end - start) / 60)
-  return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`
+  return mins < 60
+    ? i18n.t('common:duration.minutes', { m: mins })
+    : i18n.t('common:duration.hoursMinutes', { h: Math.floor(mins / 60), m: mins % 60 })
 }

@@ -17,5 +17,9 @@
   "increase": "Increase",
   "errors": {
     "requestFailed": "Request failed"
+  },
+  "duration": {
+    "minutes": "{{m}}m",
+    "hoursMinutes": "{{h}}h {{m}}m"
   }
 }
