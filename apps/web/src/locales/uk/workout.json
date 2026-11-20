@@ -143,8 +143,18 @@
     "sectionLabel": "Розклад тренувань на цей тиждень",
     "title": "Цей тиждень",
     "restDay": "День відпочинку",
-    "dayAria": "{{day}} {{date}}: {{name}}",
-    "dayAriaToday": "{{day}} {{date}}: {{name}} (сьогодні)"
+    "dayAria": "{{day}} {{date}}: {{status}}",
+    "dayAriaToday": "{{day}} {{date}}: {{status}} (сьогодні)",
+    "today": "Сьогодні",
+    "status": {
+      "done": "виконано",
+      "planned": "заплановано",
+      "missed": "пропущено"
+    },
+    "exerciseCount_one": "{{count}} вправа",
+    "exerciseCount_few": "{{count}} вправи",
+    "exerciseCount_many": "{{count}} вправ",
+    "exerciseCount_other": "{{count}} вправи"
   },
   "templateForm": {
     "back": "Тренування",

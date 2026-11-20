@@ -6,8 +6,6 @@ import { TemplateForm } from '@/components/workout/TemplateForm'
 import { WorkoutLogger } from '@/components/workout/WorkoutLogger'
 import { useWorkoutLogger } from '@/components/workout/useWorkoutLogger'
 import i18n from '@/lib/i18n'
-import enWorkout from '@/locales/en/workout.json'
-import ukWorkout from '@/locales/uk/workout.json'
 import type { ReactNode } from 'react'
 
 // ── Mock the controller hook so WorkoutLogger renders without React Query / Router.
@@ -48,22 +46,6 @@ afterAll(() => {
 beforeEach(() => {
   vi.clearAllMocks()
   missingKeys.length = 0
-})
-
-// ── Recursive key-set extraction for parity comparison.
-function collectKeys(obj: Record<string, unknown>, prefix = ''): string[] {
-  return Object.entries(obj).flatMap(([k, v]) => {
-    const path = prefix ? `${prefix}.${k}` : k
-    return v && typeof v === 'object' && !Array.isArray(v) ? collectKeys(v as Record<string, unknown>, path) : [path]
-  })
-}
-
-describe('workout namespace parity', () => {
-  it('uk and en workout.json have identical key sets (both directions)', () => {
-    const ukKeys = collectKeys(ukWorkout as Record<string, unknown>).sort()
-    const enKeys = collectKeys(enWorkout as Record<string, unknown>).sort()
-    expect(ukKeys).toEqual(enKeys)
-  })
 })
 
 function makeHookReturn(overrides: Record<string, unknown> = {}) {

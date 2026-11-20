@@ -143,8 +143,16 @@
     "sectionLabel": "This week's training schedule",
     "title": "This Week",
     "restDay": "Rest day",
-    "dayAria": "{{day}} {{date}}: {{name}}",
-    "dayAriaToday": "{{day}} {{date}}: {{name}} (today)"
+    "dayAria": "{{day}} {{date}}: {{status}}",
+    "dayAriaToday": "{{day}} {{date}}: {{status}} (today)",
+    "today": "Today",
+    "status": {
+      "done": "done",
+      "planned": "planned",
+      "missed": "missed"
+    },
+    "exerciseCount_one": "{{count}} exercise",
+    "exerciseCount_other": "{{count}} exercises"
   },
   "templateForm": {
     "back": "Workouts",

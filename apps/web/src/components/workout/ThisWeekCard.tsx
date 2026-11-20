@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight } from 'lucide-react'
-import { useMemo } from 'react'
+import { Check, ChevronRight, Dumbbell } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { programApi } from '@/api/program'
 import { queryKeys } from '@/api/queryKeys'
 import { schedulesApi } from '@/api/schedules'
 import { workoutsApi } from '@/api/workouts'
-import { dayLabelByTemplate, isSameDay, workoutsForDate } from '@/lib/schedule'
+import { dateLocale } from '@/lib/date-locale'
+import { isSameDay } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
+import { type WeekDay, weekDayStatuses } from '@/lib/week-status'
 
 // JS getDay() index (0 = Sunday) → shared common:days key, so labels react to language.
 const DOW_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
@@ -23,43 +24,60 @@ function currentWeekDates(today: Date): Date[] {
   )
 }
 
+/** Today when it has a workout (planned or done), else the next planned day this week. */
+function defaultFocus(days: WeekDay[], today: Date): number | null {
+  const todayIdx = days.findIndex(d => isSameDay(d.date, today))
+  if (todayIdx >= 0 && days[todayIdx].status !== 'rest') {
+    return todayIdx
+  }
+  const next = days.findIndex((d, i) => i > todayIdx && d.status === 'planned')
+  return next >= 0 ? next : null
+}
+
 /**
- * Read-only "This Week" overview: shows which workout lands on each day of the
- * week (recurring or one-time), with today highlighted, and links to the full
- * calendar. Renders nothing until something is scheduled, so it never clutters
- * an empty home.
+ * "This Week" overview: one tile per day showing whether its workout is done,
+ * planned or missed (rest days stay empty), today ringed. Below the week, one
+ * line names the focused day's workout — today (or the next planned day) by
+ * default, or whichever tile was tapped. Renders nothing until something is
+ * scheduled, so it never clutters an empty home.
  */
 export function ThisWeekCard() {
   const { t } = useTranslation(['workout', 'common'])
   const { data: schedules = [] } = useQuery({ queryKey: queryKeys.schedules(), queryFn: schedulesApi.getSchedules })
-  const { data: program } = useQuery({ queryKey: ['program'], queryFn: programApi.getActive })
+  const { data: sessions = [] } = useQuery({ queryKey: queryKeys.sessions(), queryFn: workoutsApi.getSessions })
   const { data: templates = [] } = useQuery({ queryKey: ['templates'], queryFn: workoutsApi.getTemplates })
+  const [selected, setSelected] = useState<number | null>(null)
 
   const today = useMemo(() => new Date(), [])
   const week = useMemo(() => currentWeekDates(today), [today])
+  const days = useMemo(() => weekDayStatuses(week, today, schedules, sessions), [week, today, schedules, sessions])
 
-  if (schedules.length === 0) {
+  if (schedules.length === 0 || days.every(d => d.status === 'rest')) {
     return null
   }
 
-  const labels = dayLabelByTemplate(program)
-  const nameById = new Map(templates.map(t => [t.id, t.name]))
+  const templateById = new Map(templates.map(tpl => [tpl.id, tpl]))
+  const nameOf = (d: WeekDay) =>
+    d.templateId ? (templateById.get(d.templateId)?.name ?? t('session.fallbackName')) : t('week.restDay')
+  const shortDay = (d: WeekDay) => t(`common:days.${DOW_KEYS[d.date.getDay()]}`)
 
-  // Legend: each distinct template that appears this week, label + full name.
-  const seen = new Set<string>()
-  const legend: { label: string; name: string }[] = []
-  for (const date of week) {
-    for (const { templateId } of workoutsForDate(date, schedules)) {
-      if (seen.has(templateId)) {
-        continue
+  const focusIdx = selected ?? defaultFocus(days, today)
+  const focus = focusIdx != null ? days[focusIdx] : null
+
+  function focusLine(d: WeekDay): string {
+    const isToday = isSameDay(d.date, today)
+    const weekday = d.date.toLocaleDateString(dateLocale(), { weekday: 'long' })
+    const when = isToday ? t('week.today') : weekday.charAt(0).toUpperCase() + weekday.slice(1)
+    const parts = [when, nameOf(d)]
+    if (d.status === 'planned') {
+      const count = d.templateId ? (templateById.get(d.templateId)?.exercises.length ?? 0) : 0
+      if (count > 0) {
+        parts.push(t('week.exerciseCount', { count }))
       }
-      seen.add(templateId)
-      legend.push({ label: labels.get(templateId) ?? '•', name: nameById.get(templateId) ?? t('session.fallbackName') })
+    } else if (d.status !== 'rest') {
+      parts.push(t(`week.status.${d.status}`))
     }
-  }
-
-  if (legend.length === 0) {
-    return null
+    return parts.join(' · ')
   }
 
   return (
@@ -71,53 +89,67 @@ export function ThisWeekCard() {
 
       <div className="bg-card border-border rounded-xl border p-3">
         <ul className="grid grid-cols-7 gap-1.5">
-          {week.map(date => {
-            const first = workoutsForDate(date, schedules)[0]
-            const tid = first?.templateId ?? null
-            const isToday = isSameDay(date, today)
-            const day = date.getDay()
-            const label = tid ? (labels.get(tid) ?? '•') : null
-            const dayLabel = t(`common:days.${DOW_KEYS[day]}`)
-            const workoutName = tid ? (nameById.get(tid) ?? t('session.fallbackName')) : t('week.restDay')
-            const ariaLabel = isToday
-              ? t('week.dayAriaToday', { day: dayLabel, date: date.getDate(), name: workoutName })
-              : t('week.dayAria', { day: dayLabel, date: date.getDate(), name: workoutName })
+          {days.map((d, i) => {
+            const isToday = isSameDay(d.date, today)
+            const isFocused = i === focusIdx
+            const status = d.status === 'rest' ? t('week.restDay') : `${nameOf(d)}, ${t(`week.status.${d.status}`)}`
+            const ariaLabel = t(isToday ? 'week.dayAriaToday' : 'week.dayAria', {
+              day: shortDay(d),
+              date: d.date.getDate(),
+              status,
+            })
 
             return (
-              <li key={date.toISOString()} aria-label={ariaLabel} className="flex flex-col items-center gap-1.5">
-                <span
-                  className={cn(
-                    'text-[10px] font-semibold tracking-wide uppercase',
-                    isToday ? 'text-primary' : 'text-muted-foreground',
-                  )}
+              <li key={d.date.toISOString()}>
+                <button
+                  aria-label={ariaLabel}
+                  aria-pressed={isFocused}
+                  className="flex w-full flex-col items-center gap-1.5"
+                  type="button"
+                  onClick={() => setSelected(i)}
                 >
-                  {dayLabel}
-                </span>
-                <div
-                  className={cn(
-                    'flex h-11 w-full items-center justify-center rounded-lg text-sm font-semibold tabular-nums',
-                    isToday && tid && 'bg-primary text-primary-foreground',
-                    isToday && !tid && 'text-primary ring-primary/40 ring-2 ring-inset',
-                    !isToday && tid && 'bg-muted text-foreground',
-                    !isToday && !tid && 'text-muted-foreground/30',
-                  )}
-                >
-                  {label ?? '–'}
-                </div>
-                {isToday && <span aria-hidden="true" className="bg-primary h-1 w-1 rounded-full" />}
+                  <span
+                    className={cn(
+                      'text-[10px] font-semibold tracking-wide uppercase',
+                      isToday ? 'text-primary' : 'text-muted-foreground',
+                    )}
+                  >
+                    {shortDay(d)}
+                  </span>
+                  <span
+                    className={cn(
+                      'flex h-11 w-full items-center justify-center rounded-lg transition-colors',
+                      d.status === 'done' && 'bg-primary text-primary-foreground',
+                      (d.status === 'planned' || d.status === 'missed') && 'bg-muted text-muted-foreground',
+                      d.status === 'missed' && 'opacity-40',
+                      isToday && 'ring-primary ring-offset-card ring-2 ring-offset-2',
+                    )}
+                  >
+                    {d.status === 'done' && <Check size={18} strokeWidth={3} />}
+                    {(d.status === 'planned' || d.status === 'missed') && <Dumbbell size={16} />}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-[11px] tabular-nums',
+                      isFocused ? 'text-foreground font-semibold' : 'text-muted-foreground/60',
+                    )}
+                  >
+                    {d.date.getDate()}
+                  </span>
+                </button>
               </li>
             )
           })}
         </ul>
 
-        {legend.length > 0 && (
-          <div className="border-border mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t pt-2.5">
-            {legend.map(({ label, name }) => (
-              <span key={label + name} className="text-muted-foreground text-xs">
-                <span className="text-foreground font-semibold">{label}</span> · {name}
-              </span>
-            ))}
-          </div>
+        {focus && (
+          <p
+            aria-live="polite"
+            className="border-border text-muted-foreground mt-3 truncate border-t pt-2.5 text-sm"
+            data-testid="week-focus"
+          >
+            {focusLine(focus)}
+          </p>
         )}
       </div>
     </section>
