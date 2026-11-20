@@ -18,7 +18,6 @@
   },
   "detail": {
     "back": "Історія",
-    "durationMinutes": "{{minutes}} хв",
     "totalSets": "усього підходів",
     "volumeKg": "об’єм (кг)",
     "exerciseFallback": "Вправа",

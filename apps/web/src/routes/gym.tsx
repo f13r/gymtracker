@@ -89,8 +89,8 @@ export function GymPage() {
               <p className="text-muted-foreground text-xs">
                 {t(`equipment:equipmentTypes.${item.equipmentType ?? 'other'}`, {
                   defaultValue: item.equipmentType ?? 'other',
-                })}{' '}
-                · {t('exerciseCount', { count: item.exercises.length })}
+                })}
+                , {t('exerciseCount', { count: item.exercises.length })}
               </p>
               {item.exercises.length > 0 && (
                 <p className="text-muted-foreground mt-0.5 truncate text-xs">

@@ -18,7 +18,6 @@
   },
   "detail": {
     "back": "History",
-    "durationMinutes": "{{minutes}}m",
     "totalSets": "total sets",
     "volumeKg": "volume (kg)",
     "exerciseFallback": "Exercise",

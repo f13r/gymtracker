@@ -42,7 +42,7 @@ export function CalendarPage() {
 
   // Legend: each distinct template scheduled in the visible month.
   const seen = new Set<string>()
-  const legend: { label: string; name: string }[] = []
+  const legend: { templateId: string; label: string | undefined; name: string }[] = []
   for (const date of grid) {
     if (date.getMonth() !== view.month) {
       continue
@@ -53,7 +53,8 @@ export function CalendarPage() {
       }
       seen.add(templateId)
       legend.push({
-        label: labels.get(templateId) ?? '•',
+        templateId,
+        label: labels.get(templateId),
         name: nameById.get(templateId) ?? t('calendar.workoutFallback'),
       })
     }
@@ -162,9 +163,14 @@ export function CalendarPage() {
 
         {legend.length > 0 && (
           <div className="border-border mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t pt-3">
-            {legend.map(({ label, name }) => (
-              <span key={label + name} className="text-muted-foreground text-xs">
-                <span className="text-foreground font-semibold">{label}</span> · {name}
+            {legend.map(({ templateId, label, name }) => (
+              <span key={templateId} className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                {label ? (
+                  <span className="bg-primary/15 text-primary rounded px-1.5 py-0.5 font-bold">{label}</span>
+                ) : (
+                  <span className="bg-primary size-1.5 rounded-full" aria-hidden />
+                )}
+                {name}
               </span>
             ))}
           </div>

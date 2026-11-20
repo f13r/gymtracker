@@ -456,10 +456,9 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
           style={currentGroup ? { borderLeftColor: currentGroup.color, borderLeftWidth: 4 } : undefined}
         >
           <div className="mb-0.5 flex items-center gap-2">
-            <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-              {t('header.exerciseCount', { current: activeExerciseIndex + 1, total: exercises.length })}
-              {' · '}
-              {t('header.setsProgress', { done: doneCount, logged: loggedCount })}
+            <p className="text-muted-foreground flex gap-4 text-xs font-semibold tracking-widest uppercase">
+              <span>{t('header.exerciseCount', { current: activeExerciseIndex + 1, total: exercises.length })}</span>
+              <span>{t('header.setsProgress', { done: doneCount, logged: loggedCount })}</span>
             </p>
             {currentGroup && (
               <span

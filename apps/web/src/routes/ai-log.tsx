@@ -36,7 +36,7 @@ function LogEntry({ entry }: { entry: AiLogEntry }) {
               {entry.type}
             </Badge>
             <span className="text-muted-foreground text-xs">
-              {formatDate(entry.createdAt)} · {formatTime(entry.createdAt)}
+              {formatDate(entry.createdAt)}, {formatTime(entry.createdAt)}
             </span>
             <span className="text-muted-foreground text-xs">{t('durationMs', { ms: entry.durationMs })}</span>
           </div>

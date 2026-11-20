@@ -8,6 +8,7 @@ import type { AnalyzeSuggestion, SaveExerciseInput, SuggestedExercise } from '@g
 import { equipmentApi } from '@/api/equipment'
 import { queryKeys } from '@/api/queryKeys'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const EQUIPMENT_TYPES = ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'other'] as const
 
@@ -349,9 +350,11 @@ function Step2({ s2, setS2, onBack, onClose, onSaved }: Step2Props) {
                     }
                   />
                   <p className="text-muted-foreground text-xs">
-                    {t(`categories.${ex.category}`, { defaultValue: ex.category })} ·{' '}
+                    {t(`categories.${ex.category}`, { defaultValue: ex.category })},{' '}
                     {t(`equipmentTypes.${ex.equipmentType}`, { defaultValue: ex.equipmentType })}
-                    {ex.existingId ? ` · ${t('step2.alreadyInLibrary')}` : ` · ${t('step2.willBeCreated')}`}
+                  </p>
+                  <p className={cn('text-xs font-medium', ex.existingId ? 'text-muted-foreground' : 'text-primary')}>
+                    {ex.existingId ? t('step2.alreadyInLibrary') : t('step2.willBeCreated')}
                   </p>
                 </div>
               </div>

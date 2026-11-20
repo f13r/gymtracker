@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, CheckCircle2, Circle, Trash2 } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, Circle, Clock, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { dateLocale } from '@/lib/date-locale'
+import { formatSessionDuration } from '@/lib/utils'
 import { useActing } from '@/stores/acting.store'
 
 export function HistoryDetailPage() {
@@ -135,14 +136,21 @@ export function HistoryDetailPage() {
           )}
         </div>
         <h1 className="font-display font-700 text-2xl leading-tight tracking-wide">{session.name}</h1>
-        <p className="text-muted-foreground mt-1 text-xs">
-          {new Date(session.startedAt * 1000).toLocaleDateString(dateLocale(), {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}
-          {duration && ` · ${t('detail.durationMinutes', { minutes: duration })}`}
-        </p>
+        <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <span>
+            {new Date(session.startedAt * 1000).toLocaleDateString(dateLocale(), {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </span>
+          {duration && (
+            <span className="flex items-center gap-1">
+              <Clock size={12} />
+              {formatSessionDuration(session.startedAt, session.finishedAt!)}
+            </span>
+          )}
+        </div>
       </div>
 
       {totalSets > 0 && (
