@@ -16,6 +16,7 @@ import { exercisesApi } from '@/api/exercises'
 import { queryKeys } from '@/api/queryKeys'
 import { setsApi } from '@/api/sets'
 import { workoutsApi } from '@/api/workouts'
+import { flushPendingSetEdits } from '@/components/workout/pendingSetEdits'
 import { useElapsedSeconds } from '@/components/workout/useElapsedSeconds'
 import { usePrepopulatedSet } from '@/components/workout/usePrepopulatedSet'
 
@@ -330,7 +331,11 @@ export function useWorkoutLogger(sessionId: string, activeExerciseId?: string) {
   })
 
   const finishWorkout = useMutation({
-    mutationFn: () => workoutsApi.finishSession(sessionId),
+    mutationFn: async () => {
+      // Save any number still sitting in a row's debounce before closing the Session.
+      await flushPendingSetEdits()
+      return workoutsApi.finishSession(sessionId)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.activeSession() })
       queryClient.invalidateQueries({ queryKey: queryKeys.sessions() })

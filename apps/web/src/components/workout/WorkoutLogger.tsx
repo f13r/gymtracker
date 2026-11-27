@@ -1,6 +1,6 @@
 import { Navigate } from '@tanstack/react-router'
 import { ChevronLeft, ChevronUp, Plus, CheckCircle2, Square, ImageIcon, Trash2, Loader2 } from 'lucide-react'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { PreviousSetReference, WorkoutSet } from '@gymtracker/shared'
@@ -10,6 +10,7 @@ import { NumericInput } from '@/components/inputs/NumericInput'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { ExerciseMediaDrawer } from '@/components/workout/ExerciseMediaDrawer'
 import { ExercisePicker } from '@/components/workout/ExercisePicker'
+import { registerPendingSetEdit } from '@/components/workout/pendingSetEdits'
 import { buildSupersetMeta } from '@/components/workout/superset-display'
 import { useSwipeReveal } from '@/components/workout/useSwipeReveal'
 import { useWorkoutLogger } from '@/components/workout/useWorkoutLogger'
@@ -67,7 +68,7 @@ function InlineSetRow({
   /** What was done in the same position last time, if the Exercise has history. */
   previous: PreviousSetReference | undefined
   isBodyweight: boolean
-  onUpdate: (data: { weightKg: number; reps: number }) => void
+  onUpdate: (data: { weightKg: number; reps: number }) => Promise<unknown> | void
   onToggleDone: () => void
   onDelete: () => void
   isDeletePending: boolean
@@ -90,23 +91,40 @@ function InlineSetRow({
     setReps(set.reps ?? 8)
   }
 
+  const pendingRef = useRef<{ weightKg: number; reps: number } | null>(null)
+  const onUpdateRef = useRef(onUpdate)
   useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
-      }
+    onUpdateRef.current = onUpdate
+  })
+
+  // Send the typed-but-unsaved numbers now. Used by the debounce, by Finish
+  // (via the registry) and on unmount, so leaving the page never drops an edit.
+  const flush = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
     }
+    const data = pendingRef.current
+    pendingRef.current = null
+    isDirtyRef.current = false
+    return data ? onUpdateRef.current(data) : undefined
   }, [])
+
+  useEffect(() => {
+    const unregister = registerPendingSetEdit(flush)
+    return () => {
+      unregister()
+      void flush()
+    }
+  }, [flush])
 
   const scheduleUpdate = (w: number, r: number) => {
     isDirtyRef.current = true
+    pendingRef.current = { weightKg: w, reps: r }
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
     }
-    debounceRef.current = setTimeout(() => {
-      onUpdate({ weightKg: w, reps: r })
-      isDirtyRef.current = false
-    }, 600)
+    debounceRef.current = setTimeout(() => void flush(), 600)
   }
 
   const handleWeightChange = (v: number) => {
@@ -346,6 +364,7 @@ function ExerciseSummaryBar({
 // data, navigation, and UI state live in that controller hook.
 
 export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProps) {
+  const [nameTipOpen, setNameTipOpen] = useState(false)
   const {
     session,
     exercises,
@@ -470,14 +489,30 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
               </span>
             )}
           </div>
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-display font-700 text-3xl leading-tight tracking-wide">
-              {currentExercise.name.toUpperCase()}
-            </p>
-            <div className="flex shrink-0 items-center gap-3">
+          <div className="flex flex-col gap-2">
+            <div key={currentExercise.id} className="relative">
+              <button
+                className="font-display font-700 block w-full truncate text-left text-lg leading-tight tracking-wide"
+                title={currentExercise.name}
+                type="button"
+                onClick={() => setNameTipOpen(v => !v)}
+              >
+                {currentExercise.name.toUpperCase()}
+              </button>
+              {nameTipOpen && (
+                <div
+                  className="bg-popover text-popover-foreground border-border absolute top-full left-0 z-20 mt-1 max-w-full rounded-lg border px-3 py-2 text-sm shadow-lg"
+                  role="tooltip"
+                  onClick={() => setNameTipOpen(false)}
+                >
+                  {currentExercise.name}
+                </div>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center justify-between gap-3">
               {canAddSet && (
                 <button
-                  className="text-muted-foreground border-border active:bg-muted/50 mt-1 flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
+                  className="text-muted-foreground border-border active:bg-muted/50 flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
                   disabled={addSet.isPending}
                   type="button"
                   onClick={() => {
@@ -491,7 +526,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
               )}
               <button
                 aria-label={t('aria.showDemonstration')}
-                className="text-muted-foreground mt-1 shrink-0 active:opacity-60"
+                className="text-muted-foreground shrink-0 active:opacity-60"
                 type="button"
                 onClick={() => setMediaOpen(true)}
               >
@@ -553,7 +588,7 @@ export function WorkoutLogger({ sessionId, activeExerciseId }: WorkoutLoggerProp
             setIndex={i}
             onDelete={() => deleteSet.mutate(s.id)}
             onToggleDone={() => toggleDone.mutate({ setId: s.id, done: !s.done })}
-            onUpdate={data => updateSet.mutate({ setId: s.id, data })}
+            onUpdate={data => updateSet.mutateAsync({ setId: s.id, data }).catch(() => undefined)}
           />
         ))}
 
